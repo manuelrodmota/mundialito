@@ -35,7 +35,7 @@
 }
 .sb-team.you {
   background: linear-gradient(135deg, #efce85 0%, #c39a36 100%);
-  clip-path: polygon(16px 0, 100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 16px 100%);
   padding-left: 28px;
   border-radius: 0 10px 10px 0;
   flex-direction: row-reverse;

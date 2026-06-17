@@ -1,8 +1,6 @@
 # WORLD CUP CLASH — Game Design Document **v8**
 *(working title — alternatives: Road to Glory, Stoppage Time, Total Football)*
 
-Important: FULL DESIGN OF THE APP IS AT ./design => Includes the full Design System (`World Cup Clash - Design System.html`) + the interactive HTML prototype (`World Cup Clash.html`, which loads the v8 engine/board: `js/engine8.js` + `js/engine3.js`, `jsx/Board8.jsx` + `jsx/Board7Widgets.jsx`, `css/v8.css`). The v8 handoff notes live at `design/design_handoff_world_cup_clash_v8/README.md`.
-
 A **Slay the Spire–style arcade roguelike** themed on World Cup football. Play the headline **Arcade Run** — a 7‑match journey to the Final against **real historic national teams** — or **Quickplay** a single match at a difficulty you choose. You don't chip an HP bar — **you score goals**, driven by **expected goals (xG)**. A match is a **full 90 minutes**: lead by **3 goals** and it's an instant win, otherwise **whoever's ahead at full time wins** (level → golden-goal extra time). Each round (a slice of the clock) you pick a **formation**, secretly field a **capped lineup** across **attack/defense lanes**, and play single-use **Tactical Cards**. Your **star players are once-per-half trumps**; **fatigue** means you can't park the bus forever.
 
 ---
@@ -130,7 +128,7 @@ Each player has **ATK** and **DEF**, from one `overall` + position. ATK feeds yo
 - **Per-round card cap** (the key balance lever): field at most **4 player cards** (attack + defense combined) per round, ramping **4** (R1–5) / **5** (R6–8) / **6** (R9–10). Tactical Cards don't count toward the cap. The cap equalizes how many players each side fields, so a star-led lineup beats an equal-count common lineup on **per-card quality** — and you can still fill the cap *with* a star (5-cost legendary + three 1-cost commons = 8 stamina, 4 cards).
 - Stamina never covers your whole hand → every round is "who do I leave on the bench?"
 
-> **Halftime (round 5)** is a real reset: locked **premium players return** to your draw pile **and fatigue clears** for both sides — a second-half fresh start. Spent **Tactical Cards stay gone**, and each side's **2-per-half tactical allowance refreshes**.
+> **Halftime (round 5)** is a real reset: locked **premium players return** to your draw pile **and fatigue clears** for both sides — a second-half fresh start. Spent **Tactical Cards stay gone.**
 
 ---
 
@@ -279,7 +277,7 @@ The score is a normal **scoreboard** (e.g. "ARG 3 – 2 BRA") with the clock —
 
 ## 15. Tuning Table (every knob)
 
-| Parameter | v8 value |
+| Parameter | v7 value |
 |---|---|
 | Run length | 7 matches (3 group · R16 · QF · SF · Final) · loss = run over |
 | Match length | **10 rounds = 90'** (≈9'/round); halftime R5 (45'), full time R10 (90') |
@@ -290,7 +288,7 @@ The score is a normal **scoreboard** (e.g. "ARG 3 – 2 BRA") with the clock —
 | Starting XI | 11 players, slot budget **10**, + 0–1 Tactical |
 | Quickplay deck | ~16 players, slot budget **20**, + **up to 3** Tactical; pick difficulty → opponent tier |
 | Slot costs | Common 0 · Rare 1 · Epic 2 · Legendary 3 · Tactical 1 (legendary Tacticals 2–3) |
-| Reward / win | +1 random player (rarity by stage) + choose-1-of-3 Tactical (a **swap** once at the deck cap) |
+| Reward / win | +1 random player (rarity by stage) + choose-1-of-3 Tactical |
 | Opening hand / draw | open 5 (Captain) · **draw up to 5 each round (minimum hand 5)**; grays reshuffle mid-draw to guarantee the refill |
 | Tactical limits | **≤2 plays per half (4/match)** · Run **deck cap ~4** (swap past cap) · single-use (exiled) — all tunable |
 | Stamina | **8**/round (R1–5), **10** (R6–8), **12** (R9–10), both players |
@@ -314,16 +312,15 @@ North star: **FIFA Ultimate Team card art on a Slay-the-Spire run.** Stadium-at-
 1. **Main menu / Mode select** — **Arcade Run** vs **Quickplay**, plus Collection and How to Play. Choosing **Quickplay** opens a **difficulty picker** (Easy / Medium / Hard / Legendary → opponent tier) and the **loaded-deck builder** (~16 players / **20 slots** + **up to 3 Tactical Cards**); then straight into a single match.
 2. **Run Map / Bracket** — 7-stop ladder, progress lit, next opponent crest + year + difficulty stars; Final glows.
 3. **XI Builder** — filterable pool, **Slot Budget meter** (x/10 in the Run, **x/20 in Quickplay**), Captain star, **Tactical tray** (start ≤**1** in the Run → grows to a cap of **~4** via rewards; **up to 3** in Quickplay), ATK/DEF + cost curves.
-4. **Locker Room** *(Arcade Run only)* — reward player reveal, **choose-1-of-3 Tactical** (a **swap** when you're at the ~4 deck cap — mark one held tactical OUT, take the new one), set Captain, deck list, next-opponent preview.
+4. **Locker Room** *(Arcade Run only)* — reward player reveal, **choose-1-of-3 Tactical**, set Captain, deck list, next-opponent preview.
 5. **Match Board (centerpiece):**
    - **Scoreboard + match clock:** a normal **numeric scoreboard** ("ARG 2 – 1 BRA") and a **running clock** — kickoff → **45' HALFTIME** (round 5) → **90' FULL TIME** (round 10) → **ET** if level. A subtle **"–3 to win"** marker hints at the mercy threshold.
    - **xG meter** per team — **always visible**, shown as a **filling bar (not a precise decimal)** so it reads as football. The round's gain **animates in on reveal**, and a **fatigue "heat" glow** shows when that side's defense is tiring (§8). Both bars on screen at all times is load-bearing — it's how you make the attack-vs-defend call, and watching the opponent's bar **flatline against your wall** is the payoff for defending. A bar crossing 1.0 → **full-screen "GOAL!!!"**, crowd roar, net-ripple.
    - **Three card zones** beside your hand: the **draw/discard** count (grays cycling), a **bench/locked pile** for spent **premium players** (with a "returns at halftime" cue), and an **exiled** sliver for spent **Tactical Cards**.
-   - **Action-dock cap chips:** a **`x/N players`** per-round player-cap chip and, beside it, a **`x/2 tactics · half`** counter that turns red when the half's 2-tactical allowance is spent.
    - **Formation selector** (3 shapes) for the round; **ATTACK / DEFENSE** lanes to drag face-down cards into (up to the card cap).
    - **Tactical Cards play face-up in a prominent center slot** with a clear callout ("⚠ OFFSIDE TRAP", "PENALTY!") — visible to both, and they visibly **burn/exile** after resolving. Lineups stay face-down until reveal.
    - **Intent strip:** "Opponent: Offensive (3-4-3) · 3 cards · 6 stamina · played **Catenaccio**."
-   - Booked = yellow corner; Red Card animates off; **Halftime (45')** = a "Fresh Legs" beat — benched stars slide back to the deck, fatigue cools, tactical allowance refreshes, for both sides; **Extra Time** = a distinct golden-goal mode (decks refreshed, doubled-xG bars, "next goal wins" banner).
+   - Booked = yellow corner; Red Card animates off; **Halftime (45')** = a "Fresh Legs" beat — benched stars slide back to the deck, fatigue cools, for both sides; **Extra Time** = a distinct golden-goal mode (decks refreshed, doubled-xG bars, "next goal wins" banner).
 6. **Result / Run-over / Trophy** — final score + **MVP** (most xG/goals); in the Run, a loss → run summary + restart, the Final → trophy lift; in Quickplay, **Win / Loss** + rematch (ET means no draw by default).
 7. **Card detail modal** — ATK/DEF, ability/Tactical text, World Cup tag, (opponents) team blurb.
 
@@ -513,11 +510,11 @@ function checkWin(m):                                // ONCE, after the full rou
 - ~12 OpponentTeams across tiers incl. a few champions; AI commits first.
 - **GOAL animation** even in MVP — it's the core feel.
 
-**V2 — wrap the run around it:** the 7-match **Arcade Run** shell (bracket, permadeath, score resets), **Locker Room** + post-match rewards (incl. the **tactical deck-cap swap**), full Tactical set + all gates, statuses, Powers, Momentum, all 22 champions + extended pool, signature formations/Tacticals, animation polish, trophy screen, card-removal reward.
+**V2 — wrap the run around it:** the 7-match **Arcade Run** shell (bracket, permadeath, score resets), **Locker Room** + post-match rewards, full Tactical set + all gates, statuses, Powers, Momentum, all 22 champions + extended pool, signature formations/Tacticals, animation polish, trophy screen, card-removal reward.
 
 **V3:** meta-progression, online leaderboards (fastest/cleanest runs), Arcade Continues, 2026 champion content.
 
-**AI heuristic (MVP):** track its own xG/fatigue → pick formation (Defensive when fresh & protecting a lead, Offensive to chase or when its fatigue is high so it rests by attacking); split lanes to balance scoring vs exposure; play gated Tacticals only when it fields the required role and within the **2-per-half** cap; hold Penalty/Hand of God to convert; use VAR/Offside reactively against visible Tacticals/big commits. Keep it legible.
+**AI heuristic (MVP):** track its own xG/fatigue → pick formation (Defensive when fresh & protecting a lead, Offensive to chase or when its fatigue is high so it rests by attacking); split lanes to balance scoring vs exposure; play gated Tacticals only when it fields the required role; hold Penalty/Hand of God to convert; use VAR/Offside reactively against visible Tacticals/big commits. Keep it legible.
 
 ---
 
@@ -534,7 +531,6 @@ function checkWin(m):                                // ONCE, after the full rou
 9. **Defense: throttle-only or drain?** Defense currently only slows the opponent's fill rate. If defending feels too passive, add a **small capped drain** when `DEF_eff` decisively beats `ATK_eff` (held in reserve; the sim decides).
 10. **Quickplay draws** — ET makes every match decisive; if you'd rather allow casual 90' draws in Quickplay, that's a one-line toggle (skip ET when level).
 11. **Premium-heavy decks & the half-lock** — a 20-slot Quickplay deck has many stars to rotate; a lean run deck burns through its few stars fast each half. Confirm both feel good (front-loaded star bursts then gray-grind, refreshed at halftime).
-12. **Minimum hand of 5** — does drawing back to 5 (and reshuffling grays mid-draw) keep hands consistently playable without making the deck feel "on rails"? Watch thin run decks early vs the loaded Quickplay deck.
 
 ---
 
