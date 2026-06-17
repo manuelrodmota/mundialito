@@ -51,6 +51,17 @@ describe('{ComponentName}', () => {
 });
 ```
 
+## Engine Reproducibility Check
+
+The match engine is deterministic given a seed. Verify engine/sim changes with the fixed-seed self-check rather than ad-hoc runs:
+
+```bash
+npm run sim:check   # runs the same seeded match twice, asserts byte-identical results + stable RNG sequence
+```
+
+- Always thread the same seeded `Rng` through a run; never read `Math.random()` in engine/sim code (it breaks reproducibility)
+- When adding engine behaviour, extend `src/sim/selfcheck.ts` to assert the new output field stays stable across identical seeds
+
 ## Coverage Expectations
 
 - No coverage gate exists today — establish one when the first test file is added

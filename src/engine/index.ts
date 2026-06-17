@@ -1,0 +1,55 @@
+export type {
+  Position,
+  Rarity,
+  Lane,
+  Formation,
+  TacticalCategory,
+  TacticalKind,
+  Tier,
+  TacticalEffect,
+  PlayerCard,
+  TacticalCard,
+  Card,
+  CardStatus,
+  PlayerState,
+  PrevSnapshot,
+  MatchState,
+  SideTotals,
+  BoardSnapshot,
+  AiIntent,
+  MatchEvent,
+  XgPart,
+  GateSpec,
+  OpponentTeam,
+  Tuning,
+} from "./types.ts";
+
+export { DEFAULT_TUNING } from "./config.ts";
+export { makeRng } from "./rng.ts";
+export type { Rng } from "./rng.ts";
+
+export {
+  newMatch,
+  startRound,
+  reveal,
+  planAndResolveRound,
+  setFormation,
+  canPlace,
+  place,
+  recall,
+  playTactic,
+  canPlayTactic,
+  effStats,
+  chemNations,
+  sideTotals,
+  staminaFor,
+  cardCapFor,
+  rarityMultOf,
+  fmults,
+  GATES,
+  gateText,
+  gateMet,
+  beginExtraTime,
+  decideExtraTime,
+} from "./engine.ts";
+export type { NewMatchOptions } from "./engine.ts";

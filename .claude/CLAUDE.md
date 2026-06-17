@@ -35,13 +35,17 @@ This project is **World Cup Clash**, a **Slay the Spire–style arcade roguelike
 | CSS stylesheet | `src/{name}.css` | `src/App.css` |
 | Entry point | `src/main.tsx` | `src/main.tsx` |
 | Static asset | `src/assets/{name}` | `src/assets/hero.png` |
+| Match engine (pure TS, framework-agnostic) | `src/engine/{name}.ts` | `src/engine/engine.ts` |
+| Node-only sim harness (excluded from browser build) | `src/sim/{name}.ts` | `src/sim/run.ts` |
 
 ## Directory Structure
 
 ```
 project/
 └── src/
-    └── assets/  # Static asset
+    ├── assets/  # Static asset
+    ├── engine/  # Pure TS v8 match engine — no JSX/DOM; public surface via index.ts
+    └── sim/     # Node-only Monte-Carlo harness (own tsconfig.sim.json; out/ git-ignored)
 ```
 
 ## Services & Ports
@@ -57,6 +61,8 @@ project/
 | `vite` | Start dev environment (_root) |
 | `tsc -b && vite build` | Build (_root) |
 | `eslint .` | Run linters (_root) |
+| `npm run sim` | Run the headless Monte-Carlo match simulator (`SIM_N` / `SIM_OUT` env vars) |
+| `npm run sim:check` | Fixed-seed reproducibility self-check (exit 0 = pass) |
 
 <!-- LLM_WIKI_START -->
 ## LLM Wiki
