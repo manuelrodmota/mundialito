@@ -1,0 +1,254 @@
+/* WORLD CUP CLASH — card frames (4 variants via .frame-*) */
+
+.wcard {
+  --c-gold: #e8c873;
+  --c-gold-deep: #9a7b2d;
+  position: relative;
+  isolation: isolate;
+  width: var(--cw, 168px);
+  height: calc(var(--cw, 168px) * 1.42);
+  border-radius: 12px;
+  user-select: none;
+  flex: none;
+  font-family: "Inter", sans-serif;
+  color: #f5f2e8;
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms;
+}
+.wcard .inner {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.wcard.clickable { cursor: pointer; }
+.wcard.clickable:hover { transform: translateY(-6px) scale(1.03); box-shadow: 0 14px 30px rgba(0,0,0,.55); }
+
+/* rarity surfaces */
+.wcard[data-rarity="common"] .inner {
+  background: linear-gradient(155deg, #d9dde3 0%, #aab2bd 38%, #8a93a0 60%, #c4cad3 100%);
+  color: #1d232c;
+}
+.wcard[data-rarity="rare"] .inner {
+  background: linear-gradient(155deg, #5aa7e8 0%, #2a64b8 40%, #1b3f86 65%, #3f83d6 100%);
+  color: #eef5ff;
+}
+.wcard[data-rarity="epic"] .inner {
+  background: linear-gradient(155deg, #b07ae8 0%, #7a3fc0 40%, #4d2386 65%, #9257d8 100%);
+  color: #f4ebff;
+}
+.wcard[data-rarity="icon"] .inner,
+.wcard[data-rarity="legendary"] .inner {
+  background: linear-gradient(155deg, #f6e3a1 0%, #d9b04f 38%, #a87d23 62%, #edd78f 100%);
+  color: #3a2c08;
+}
+.wcard[data-rarity="event"] .inner {
+  background: linear-gradient(155deg, #f06a6a 0%, #b91c1c 45%, #7f1212 70%, #e25555 100%);
+  color: #fff1f1;
+}
+
+/* sheen */
+.wcard .inner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.28) 45%, transparent 60%);
+  pointer-events: none;
+}
+
+/* top row: rating + position | flag */
+.wcard .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 9% 9% 0;
+  position: relative;
+  z-index: 1;
+}
+.wcard .ratpos { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.wcard .rating { font-size: calc(var(--cw, 168px) * 0.19); font-weight: 800; letter-spacing: -0.02em; }
+.wcard .pos { font-size: calc(var(--cw, 168px) * 0.075); font-weight: 700; letter-spacing: 0.08em; opacity: 0.85; margin-top: 2px; }
+.wcard .flag {
+  width: calc(var(--cw, 168px) * 0.17);
+  height: calc(var(--cw, 168px) * 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.wcard .flag i { flex: 1; }
+
+/* figure */
+.wcard .figure {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1;
+  min-height: 0;
+}
+.wcard .silhouette {
+  width: 68%;
+  height: 88%;
+}
+.wcard .silhouette svg { width: 100%; height: 100%; display: block; }
+
+/* name + ability strip */
+.wcard .strip {
+  padding: 4% 8% 8%;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+.wcard .strip::before {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 0;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.35;
+}
+.wcard .pname {
+  font-size: calc(var(--cw, 168px) * 0.082);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wcard .meta {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: calc(var(--cw, 168px) * 0.062);
+  font-weight: 600;
+  opacity: 0.8;
+}
+.wcard .ability-tag {
+  margin-top: 4px;
+  display: inline-block;
+  font-size: calc(var(--cw, 168px) * 0.06);
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+  color: inherit;
+  letter-spacing: 0.04em;
+}
+.wcard[data-rarity="common"] .ability-tag { background: rgba(255, 255, 255, 0.45); }
+
+/* cost chip */
+.wcard .cost {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: calc(var(--cw, 168px) * 0.21);
+  height: calc(var(--cw, 168px) * 0.21);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #7ee0a0, #14843e 70%);
+  color: #fff;
+  font-weight: 800;
+  font-size: calc(var(--cw, 168px) * 0.105);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  z-index: 3;
+}
+
+/* captain band */
+.wcard .captain-band {
+  position: absolute;
+  top: calc(var(--cw, 168px) * 0.06);
+  right: calc(var(--cw, 168px) * -0.036);
+  background: linear-gradient(180deg, #ffd54a, #d99a06);
+  color: #4a3300;
+  font-size: calc(var(--cw, 168px) * 0.058);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: calc(var(--cw, 168px) * 0.018) calc(var(--cw, 168px) * 0.048);
+  border-radius: 4px 0 0 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  z-index: 3;
+}
+
+/* ---------- frame variants ---------- */
+/* 1. classic (default, shield-ish gloss) — as above */
+
+/* 2. modern: diagonal slash + flat darker base */
+.frame-modern .wcard .inner { border-radius: 8px; }
+.frame-modern .wcard { border-radius: 8px; }
+.frame-modern .wcard .inner::before {
+  background:
+    linear-gradient(115deg, transparent 30%, rgba(255,255,255,.18) 45%, transparent 60%),
+    linear-gradient(205deg, rgba(0, 0, 0, 0.35) 0 28%, transparent 28.5%);
+}
+.frame-modern .wcard .top { flex-direction: row-reverse; }
+.frame-modern .wcard .ratpos { align-items: flex-end; }
+.frame-modern .wcard .pname { text-transform: none; letter-spacing: 0; font-weight: 800; }
+.frame-modern .wcard .strip::before { display: none; }
+.frame-modern .wcard .strip { text-align: left; }
+.frame-modern .wcard .meta { justify-content: flex-start; }
+
+/* 3. retro: sticker-album */
+.frame-retro .wcard, .frame-retro .wcard .inner { border-radius: 4px; }
+.frame-retro .wcard .inner {
+  background: #f3ead3 !important;
+  color: #2a2118 !important;
+  border: 6px solid;
+  border-color: #fff;
+  outline: 1px solid rgba(0,0,0,.25);
+}
+.frame-retro .wcard[data-rarity="rare"] .inner { border-color: #2a64b8; }
+.frame-retro .wcard[data-rarity="epic"] .inner { border-color: #7a3fc0; }
+.frame-retro .wcard[data-rarity="icon"] .inner, .frame-retro .wcard[data-rarity="legendary"] .inner { border-color: #d9b04f; }
+.frame-retro .wcard[data-rarity="event"] .inner { border-color: #b91c1c; }
+.frame-retro .wcard .inner::before { display: none; }
+.frame-retro .wcard .pname { font-weight: 800; }
+
+/* 4. night: Hiedra dark glass w/ purple edge */
+.frame-night .wcard .inner {
+  background: linear-gradient(165deg, #1d2230 0%, #11141d 70%) !important;
+  color: #e9e6f5 !important;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.frame-night .wcard[data-rarity="rare"] .inner { box-shadow: inset 0 0 0 2px #3b82d6, 0 4px 14px rgba(0,0,0,.5); }
+.frame-night .wcard[data-rarity="epic"] .inner { box-shadow: inset 0 0 0 2px #7f56d9, 0 4px 14px rgba(0,0,0,.5); }
+.frame-night .wcard[data-rarity="icon"] .inner, .frame-night .wcard[data-rarity="legendary"] .inner { box-shadow: inset 0 0 0 2px #e8c873, 0 4px 14px rgba(0,0,0,.5); }
+.frame-night .wcard[data-rarity="event"] .inner { box-shadow: inset 0 0 0 2px #d92d20, 0 4px 14px rgba(0,0,0,.5); }
+.frame-night .wcard .rating { color: #fff; }
+.frame-night .wcard[data-rarity="icon"] .rating, .frame-night .wcard[data-rarity="legendary"] .rating { color: #e8c873; }
+.frame-night .wcard .inner::before {
+  background: radial-gradient(120% 60% at 50% 0%, rgba(127, 86, 217, 0.25), transparent 60%);
+}
+
+/* card back */
+.wcard.back .inner {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(127, 86, 217, 0.55), transparent 52%),
+    repeating-linear-gradient(45deg, #181c28 0 10px, #141823 10px 20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wcard.back .backmark {
+  width: 44%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: calc(var(--cw, 168px) * 0.16);
+  letter-spacing: -0.04em;
+  background: rgba(127, 86, 217, 0.35);
+}

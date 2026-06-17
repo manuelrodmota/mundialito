@@ -1,0 +1,7 @@
+{
+  "version": "1",
+  "command": "uvx",
+  "args": ["code-review-graph"],
+  "resolved_at": "2026-06-15T00:38:26Z",
+  "tool_version": "code-review-graph 2.3.6"
+}

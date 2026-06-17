@@ -1,0 +1,81 @@
+{
+  "version": "1.0.0",
+  "schema_version": "1.0.0",
+  "framework_version": "1.0.0",
+  "stack_profile": {
+    "services": [
+      {
+        "id": "mundialito-client",
+        "name": "mundialito-client",
+        "path": ".",
+        "type": "frontend",
+        "language": "typescript",
+        "language_version": "6.0.2",
+        "frameworks": {
+          "main": "React 19.2.6"
+        },
+        "environment": {
+          "port": 5173
+        },
+        "file_count": 7,
+        "manifest_file": "package.json"
+      },
+      {
+        "id": "javascript-scripts",
+        "name": "Javascript Scripts",
+        "path": ".",
+        "type": "library",
+        "language": "javascript",
+        "frameworks": {},
+        "file_count": 40
+      }
+    ],
+    "is_monorepo": false,
+    "file_counts": {
+      "total": 61,
+      "by_language": {
+        "javascript": 40,
+        "css": 15,
+        "html": 4,
+        "typescript": 2
+      }
+    },
+    "automation": {
+      "makefiles": [],
+      "justfiles": [],
+      "taskfiles": [],
+      "shell_scripts": [],
+      "ci_hints": []
+    },
+    "command_catalog": {
+      "start_dev": [
+        {
+          "tier": "package_manager",
+          "command": "vite",
+          "source": "documented_commands(package_json)",
+          "per_service": "_root"
+        }
+      ],
+      "run_build": [
+        {
+          "tier": "package_manager",
+          "command": "tsc -b && vite build",
+          "source": "documented_commands(package_json)",
+          "per_service": "_root"
+        }
+      ],
+      "run_lint": [
+        {
+          "tier": "package_manager",
+          "command": "eslint .",
+          "source": "documented_commands(package_json)",
+          "per_service": "_root"
+        }
+      ]
+    }
+  },
+  "resource_state": {
+    "skills": {},
+    "agents": {}
+  }
+}

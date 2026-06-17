@@ -1,0 +1,191 @@
+/* =====================================================================
+   WORLD CUP CLASH — DESIGN TOKENS
+   ---------------------------------------------------------------------
+   Single source of truth for the game's visual language. Built on top of
+   the Hiedra design system (purple accent = Hiedra --primary-600 #7F56D9),
+   re-skinned for a dark "stadium night" gaming theme.
+
+   Drop this file in once and reference var(--token) everywhere. Names are
+   the game's originals so existing CSS keeps working; the Hiedra column in
+   comments shows the equivalent foundation token where one exists.
+   ===================================================================== */
+
+:root {
+  /* -------------------------------------------------------------------
+     1. SURFACES — the night palette (≈85% of every screen)
+     darkest → lightest. Use --night-0 for the page, --night-2 for panels.
+     ------------------------------------------------------------------- */
+  --night-0: #07090f;   /* page background (Hiedra ~ darker than --gray-950) */
+  --night-1: #0c101a;   /* chrome bars, headers, footers */
+  --night-2: #131826;   /* cards, modals, inputs, pick slots */
+  --night-3: #1c2334;   /* nested fills inside a panel */
+
+  /* hairlines & dividers — always 1px, always translucent white */
+  --line: rgba(255, 255, 255, 0.10);
+
+  /* -------------------------------------------------------------------
+     2. TEXT
+     ------------------------------------------------------------------- */
+  --txt: #eef0f6;       /* primary text  (Hiedra --fg-primary, inverted) */
+  --txt-dim: #98a0b3;   /* secondary / labels / hints (Hiedra --fg-tertiary) */
+
+  /* -------------------------------------------------------------------
+     3. BRAND & ACCENT
+     Purple is the interactive accent (links, primary CTA, active state).
+     Gold is the "trophy" accent — captains, wins, the gameplay highlight.
+     Use ONE accent per region; never both fighting for attention.
+     ------------------------------------------------------------------- */
+  --brand: #7f56d9;                          /* Hiedra --primary-600 */
+  --brand-soft: rgba(127, 86, 217, 0.25);    /* tinted fills, active chips */
+  --brand-grad: linear-gradient(180deg, #8f68e3, #6941c6);
+  --brand-grad-hover: linear-gradient(180deg, #9b77e8, #7551d0);
+
+  --gold: #e8c873;                           /* captain / win / focus ring */
+  --gold-grad: linear-gradient(180deg, #f0d68a, #c89a2e);
+  --gold-ink: #3a2a05;                       /* text on a gold surface */
+
+  /* -------------------------------------------------------------------
+     4. SEMANTIC / STATUS (map to Hiedra error/success/info/warning)
+     ------------------------------------------------------------------- */
+  --good: #3fbf6f;      /* success, morale healthy   (Hiedra --success-500) */
+  --bad: #e8554a;       /* damage, danger, low morale (Hiedra --error-500) */
+  --warn: #ff9e50;      /* fatigue / stoppage heat    (Hiedra --warning-500) */
+  --info: #58a9ff;      /* defensive stat / info      (Hiedra --info-500) */
+
+  /* gameplay stat inks */
+  --atk: #ff5f4e;       /* attack value (red) */
+  --def: #58a9ff;       /* defense value (blue) */
+
+  /* -------------------------------------------------------------------
+     5. PITCH — the football field greens
+     ------------------------------------------------------------------- */
+  --pitch: #1e5c38;
+  --pitch-deep: #17452c;
+  --pitch-bright: #277249;
+  --pitch-line: rgba(255, 255, 255, 0.16);
+
+  /* -------------------------------------------------------------------
+     6. POSITION TINTS — silhouette + role coding (GK/DEF/MID/FWD)
+     ------------------------------------------------------------------- */
+  --pos-gk: #f2c14e;
+  --pos-def: #6ea8e8;
+  --pos-mid: #7fd99a;
+  --pos-fwd: #ef8a7c;
+
+  /* -------------------------------------------------------------------
+     7. TACTIC CATEGORY ACCENTS (instant = red, skill = blue, power = gold)
+     each has a glow (radial bg), an edge (border) and an ink (label text)
+     ------------------------------------------------------------------- */
+  --tac-instant-ink: #ff9d92;  --tac-instant-edge: rgba(232, 85, 74, 0.55);
+  --tac-skill-ink: #82c0f2;    --tac-skill-edge: rgba(62, 148, 222, 0.55);
+  --tac-power-ink: #ecd089;    --tac-power-edge: rgba(232, 200, 115, 0.60);
+
+  /* -------------------------------------------------------------------
+     8. CARD RARITY SURFACES — the diagonal metallic gradients on a card
+     common = silver, rare = blue, epic = purple, legendary/icon = gold,
+     event = red. Each ships with the ink colour for text on that surface.
+     ------------------------------------------------------------------- */
+  --rar-common: linear-gradient(155deg, #d9dde3 0%, #aab2bd 38%, #8a93a0 60%, #c4cad3 100%);
+  --rar-common-ink: #1d232c;
+  --rar-rare: linear-gradient(155deg, #5aa7e8 0%, #2a64b8 40%, #1b3f86 65%, #3f83d6 100%);
+  --rar-rare-ink: #eef5ff;
+  --rar-epic: linear-gradient(155deg, #b07ae8 0%, #7a3fc0 40%, #4d2386 65%, #9257d8 100%);
+  --rar-epic-ink: #f4ebff;
+  --rar-legendary: linear-gradient(155deg, #f6e3a1 0%, #d9b04f 38%, #a87d23 62%, #edd78f 100%);
+  --rar-legendary-ink: #3a2c08;
+  --rar-event: linear-gradient(155deg, #f06a6a 0%, #b91c1c 45%, #7f1212 70%, #e25555 100%);
+  --rar-event-ink: #fff1f1;
+
+  /* rarity stat multipliers (gameplay — common ×1.0 so no badge) */
+  --rar-mult-rare: 1.1;
+  --rar-mult-epic: 1.2;
+  --rar-mult-legendary: 1.3;
+
+  /* -------------------------------------------------------------------
+     9. TYPOGRAPHY — Inter only, weights 400/500/600/700/800
+     Display uses tight tracking; numbers use tabular figures.
+     ------------------------------------------------------------------- */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-black: 800;
+
+  /* type scale (size / line-height / tracking) used across the game */
+  --t-display: 84px;    --t-display-lh: 1.0;   --t-display-ls: -0.03em;  /* menu H1 */
+  --t-title: 34px;      --t-title-lh: 1.1;     --t-title-ls: -0.02em;    /* screen titles, results */
+  --t-h2: 24px;         --t-h2-lh: 1.2;        --t-h2-ls: -0.01em;       /* panel headings */
+  --t-h3: 20px;         --t-h3-lh: 1.25;                                  /* sub-headings */
+  --t-lg: 17px;         --t-lg-lh: 1.4;                                   /* big body / buttons */
+  --t-base: 15px;       --t-base-lh: 1.5;                                 /* body, buttons */
+  --t-sm: 13px;         --t-sm-lh: 1.5;                                   /* hints, chips */
+  --t-xs: 11px;         --t-xs-lh: 1.4;                                   /* labels, tags */
+  --t-eyebrow-ls: 0.16em;   /* uppercase eyebrow / tag tracking */
+  --t-kicker-ls: 0.30em;    /* hero kicker tracking */
+
+  /* -------------------------------------------------------------------
+     10. SPACING — 4-pt grid
+     ------------------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;     /* desktop page padding */
+
+  /* -------------------------------------------------------------------
+     11. RADII
+     ------------------------------------------------------------------- */
+  --radius-sm: 4px;     /* sticker frames, small tags */
+  --radius-md: 8px;     /* inputs, ghost buttons */
+  --radius-lg: 10px;    /* buttons, pick slots */
+  --radius-xl: 12px;    /* cards, lanes, big buttons */
+  --radius-2xl: 16px;   /* modals, panels */
+  --radius-full: 999px; /* pills, chips, crests */
+
+  /* card aspect ratio — height = width × this. Drive width with --cw. */
+  --card-ratio: 1.42;
+
+  /* -------------------------------------------------------------------
+     12. SHADOWS — soft, layered, dark-friendly
+     ------------------------------------------------------------------- */
+  --shadow-card: 0 4px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --shadow-card-hover: 0 14px 30px rgba(0, 0, 0, 0.55);
+  --shadow-btn-brand: 0 3px 10px rgba(127, 86, 217, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  --shadow-btn-gold: 0 3px 12px rgba(232, 200, 115, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --shadow-panel: 0 18px 50px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --shadow-focus-gold: 0 0 0 3px var(--gold);   /* selected card / focus */
+
+  /* glows */
+  --glow-gold: 0 0 22px rgba(232, 200, 115, 0.35);
+  --glow-good: 0 0 6px rgba(63, 191, 111, 0.6);
+
+  /* -------------------------------------------------------------------
+     13. MOTION — subtle & fast. ease-out for enter, in-out for transforms.
+     No bounces on chrome; reserved spring only for card flips & slams.
+     ------------------------------------------------------------------- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.3, 1);   /* slams, clash pops */
+
+  --dur-micro: 120ms;   /* hover tints */
+  --dur-fast: 160ms;    /* card lift, chip toggle */
+  --dur-base: 220ms;    /* modal pop, readouts */
+  --dur-slow: 420ms;    /* deal-in, deck pulse */
+  --dur-reveal: 520ms;  /* card flip */
+
+  /* -------------------------------------------------------------------
+     14. BLUR — backdrop blur for floating chrome over busy backgrounds
+     ------------------------------------------------------------------- */
+  --blur-sm: 4px;
+  --blur-md: 8px;
+}

@@ -1,0 +1,220 @@
+/* ==========================================================================
+   Hiedra Design System — Colors + Type tokens
+   Based on the Untitled UI foundation (from the supplied Figma).
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+:root {
+  /* ---------- Base ---------- */
+  --white: #FFFFFF;
+  --black: #000000;
+
+  /* ---------- Gray scale (neutrals) ---------- */
+  --gray-25:  #FCFCFD;
+  --gray-50:  #F9FAFB;
+  --gray-100: #F2F4F7;
+  --gray-200: #EAECF0;
+  --gray-300: #D0D5DD;
+  --gray-400: #98A2B3;
+  --gray-500: #667085;
+  --gray-600: #475467;
+  --gray-700: #344054;
+  --gray-800: #1D2939;
+  --gray-900: #101828;
+  --gray-950: #0A0D12;
+
+  /* ---------- Primary (Purple — the Hiedra brand color) ---------- */
+  --primary-25:  #FCFAFF;
+  --primary-50:  #F9F5FF;
+  --primary-100: #F4EBFF;
+  --primary-200: #E9D7FE;
+  --primary-300: #D6BBFB;
+  --primary-400: #B692F6;
+  --primary-500: #9E77ED;
+  --primary-600: #7F56D9;
+  --primary-700: #6941C6;
+  --primary-800: #53389E;
+  --primary-900: #42307D;
+  --primary-950: #2C1C5F;
+
+  /* ---------- Error (Red) ---------- */
+  --error-25:  #FFFBFA;
+  --error-50:  #FEF3F2;
+  --error-100: #FEE4E2;
+  --error-200: #FECDCA;
+  --error-300: #FDA29B;
+  --error-400: #F97066;
+  --error-500: #F04438;
+  --error-600: #D92D20;
+  --error-700: #B42318;
+  --error-800: #912018;
+  --error-900: #7A271A;
+  --error-950: #55160C;
+
+  /* ---------- Warning (Amber) ---------- */
+  --warning-25:  #FFFCF5;
+  --warning-50:  #FFFAEB;
+  --warning-100: #FEF0C7;
+  --warning-200: #FEDF89;
+  --warning-300: #FEC84B;
+  --warning-400: #FDB022;
+  --warning-500: #F79009;
+  --warning-600: #DC6803;
+  --warning-700: #B54708;
+  --warning-800: #93370D;
+  --warning-900: #7A2E0E;
+  --warning-950: #4E1D09;
+
+  /* ---------- Success (Green) ---------- */
+  --success-25:  #F6FEF9;
+  --success-50:  #ECFDF3;
+  --success-100: #DCFAE6;
+  --success-200: #ABEFC6;
+  --success-300: #75E0A7;
+  --success-400: #47CD89;
+  --success-500: #17B26A;
+  --success-600: #079455;
+  --success-700: #067647;
+  --success-800: #085D3A;
+  --success-900: #074D31;
+  --success-950: #053321;
+
+  /* ---------- Info (Blue) ---------- */
+  --info-25:  #F5FAFF;
+  --info-50:  #EFF8FF;
+  --info-100: #D1E9FF;
+  --info-200: #B2DDFF;
+  --info-300: #84CAFF;
+  --info-400: #53B1FD;
+  --info-500: #2E90FA;
+  --info-600: #1570EF;
+  --info-700: #175CD3;
+  --info-800: #1849A9;
+  --info-900: #194185;
+  --info-950: #102A56;
+
+  /* ---------- Semantic aliases ---------- */
+  --bg-primary:        var(--white);
+  --bg-secondary:      var(--gray-50);
+  --bg-tertiary:       var(--gray-100);
+  --bg-brand-primary:  var(--primary-600);
+  --bg-brand-light:    var(--primary-50);
+  --bg-overlay:        var(--gray-900);
+
+  --fg-primary:        var(--gray-900);
+  --fg-secondary:      var(--gray-700);
+  --fg-tertiary:       var(--gray-500);
+  --fg-quaternary:     var(--gray-400);
+  --fg-disabled:       var(--gray-300);
+  --fg-brand:          var(--primary-700);
+  --fg-on-brand:       var(--white);
+  --fg-error:          var(--error-600);
+  --fg-warning:        var(--warning-600);
+  --fg-success:        var(--success-600);
+
+  --border-primary:    var(--gray-300);
+  --border-secondary:  var(--gray-200);
+  --border-tertiary:   var(--gray-100);
+  --border-brand:      var(--primary-600);
+  --border-error:      var(--error-500);
+
+  /* ---------- Radii ---------- */
+  --radius-none: 0px;
+  --radius-xxs: 2px;
+  --radius-xs:  4px;
+  --radius-sm:  6px;
+  --radius-md:  8px;
+  --radius-lg:  10px;
+  --radius-xl:  12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
+  --radius-4xl: 24px;
+  --radius-full: 9999px;
+
+  /* ---------- Spacing (4-pt grid) ---------- */
+  --space-0:    0px;
+  --space-0-5:  2px;
+  --space-1:    4px;
+  --space-1-5:  6px;
+  --space-2:    8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-16:  64px;
+  --space-20:  80px;
+  --space-24:  96px;
+
+  /* ---------- Shadows ---------- */
+  --shadow-xs:  0px 1px 2px 0px rgba(16,24,40,0.05);
+  --shadow-sm:  0px 1px 2px 0px rgba(16,24,40,0.06), 0px 1px 3px 0px rgba(16,24,40,0.10);
+  --shadow-md:  0px 2px 4px -2px rgba(16,24,40,0.06), 0px 4px 8px -2px rgba(16,24,40,0.10);
+  --shadow-lg:  0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08);
+  --shadow-xl:  0px 8px 8px -4px rgba(16,24,40,0.03), 0px 20px 24px -4px rgba(16,24,40,0.08);
+  --shadow-2xl: 0px 24px 48px -12px rgba(16,24,40,0.18);
+  --shadow-3xl: 0px 32px 64px -12px rgba(16,24,40,0.14);
+  --shadow-focus-brand: 0 0 0 4px rgba(158,119,237,0.24);
+  --shadow-focus-error: 0 0 0 4px rgba(240,68,56,0.24);
+  --shadow-focus-gray:  0 0 0 4px rgba(152,162,179,0.14);
+
+  /* ---------- Backdrop blurs ---------- */
+  --blur-sm: blur(4px);
+  --blur-md: blur(8px);
+  --blur-lg: blur(16px);
+  --blur-xl: blur(24px);
+
+  /* ---------- Type primitives ---------- */
+  --font-sans:   'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+  --font-serif:  'Roboto', system-ui, sans-serif; /* UUI uses Roboto for body copy in some contexts */
+  --font-mono:   ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  /* Type scale — matches Untitled UI display + text scales */
+  --font-display-2xl:  72px;  --lh-display-2xl: 90px;  --ls-display-2xl: -0.02em;
+  --font-display-xl:   60px;  --lh-display-xl:  72px;  --ls-display-xl:  -0.02em;
+  --font-display-lg:   48px;  --lh-display-lg:  60px;  --ls-display-lg:  -0.02em;
+  --font-display-md:   36px;  --lh-display-md:  44px;  --ls-display-md:  -0.02em;
+  --font-display-sm:   30px;  --lh-display-sm:  38px;
+  --font-display-xs:   24px;  --lh-display-xs:  32px;
+
+  --font-text-xl:      20px;  --lh-text-xl:     30px;
+  --font-text-lg:      18px;  --lh-text-lg:     28px;
+  --font-text-md:      16px;  --lh-text-md:     24px;
+  --font-text-sm:      14px;  --lh-text-sm:     20px;
+  --font-text-xs:      12px;  --lh-text-xs:     18px;
+  --font-text-2xs:     10px;  --lh-text-2xs:    14px;
+
+  /* ---------- Motion ---------- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+}
+
+/* ---------- Semantic element styles ---------- */
+html { font-family: var(--font-sans); color: var(--fg-primary); background: var(--bg-primary); -webkit-font-smoothing: antialiased; }
+body { margin: 0; font-size: var(--font-text-md); line-height: var(--lh-text-md); }
+
+h1, .h1 { font-family: var(--font-sans); font-weight: var(--fw-semibold); font-size: var(--font-display-lg); line-height: var(--lh-display-lg); letter-spacing: var(--ls-display-lg); color: var(--fg-primary); margin: 0; }
+h2, .h2 { font-family: var(--font-sans); font-weight: var(--fw-semibold); font-size: var(--font-display-md); line-height: var(--lh-display-md); letter-spacing: var(--ls-display-md); color: var(--fg-primary); margin: 0; }
+h3, .h3 { font-family: var(--font-sans); font-weight: var(--fw-semibold); font-size: var(--font-display-sm); line-height: var(--lh-display-sm); color: var(--fg-primary); margin: 0; }
+h4, .h4 { font-family: var(--font-sans); font-weight: var(--fw-semibold); font-size: var(--font-display-xs); line-height: var(--lh-display-xs); color: var(--fg-primary); margin: 0; }
+h5, .h5 { font-family: var(--font-sans); font-weight: var(--fw-semibold); font-size: var(--font-text-xl);   line-height: var(--lh-text-xl);   color: var(--fg-primary); margin: 0; }
+h6, .h6 { font-family: var(--font-sans); font-weight: var(--fw-semibold); font-size: var(--font-text-lg);   line-height: var(--lh-text-lg);   color: var(--fg-primary); margin: 0; }
+
+p, .body { font-size: var(--font-text-md); line-height: var(--lh-text-md); color: var(--fg-secondary); margin: 0 0 12px; }
+.body-sm { font-size: var(--font-text-sm); line-height: var(--lh-text-sm); color: var(--fg-tertiary); }
+.body-xs { font-size: var(--font-text-xs); line-height: var(--lh-text-xs); color: var(--fg-tertiary); }
+.caption { font-size: var(--font-text-xs); line-height: var(--lh-text-xs); color: var(--fg-tertiary); font-weight: var(--fw-medium); }
+.eyebrow { font-size: var(--font-text-sm); line-height: var(--lh-text-sm); color: var(--fg-brand); font-weight: var(--fw-semibold); }
+code, .mono { font-family: var(--font-mono); font-size: 0.9em; color: var(--fg-primary); background: var(--gray-100); padding: 2px 6px; border-radius: 4px; }
