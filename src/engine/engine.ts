@@ -1,6 +1,6 @@
-// Pure TypeScript port of design/js/engine8.js — GDD v8 §6, §7, §8, §10, §12, §14.
+// Pure TypeScript port of design/js/engine9.js — GDD v10 §6, §7, §8, §10, §12, §14.
 // All DOM/window globals removed; inject an Rng instance and caller-supplied decks instead.
-// Where engine8.js and GDD §17 differ, engine8.js takes precedence; each divergence is noted.
+// Where engine9.js and GDD §17 differ, engine9.js takes precedence; each divergence is noted.
 
 import type { Rng } from "./rng.ts";
 import type {
@@ -196,7 +196,7 @@ export interface NewMatchOptions {
 
 /**
  * Creates a fresh MatchState and runs startRound(1) so the match is ready for planning.
- * Replaces engine8.js::newMatch; caller supplies the opponent deck instead of engine3.
+ * Replaces engine9.js::newMatch; caller supplies the opponent deck instead of engine3.
  */
 export function newMatch(opts: NewMatchOptions): MatchState {
   const T: Tuning = Object.assign({}, DEFAULT_TUNING, opts.tuning ?? {});
@@ -395,7 +395,7 @@ export function playTactic(
   opts?: { discardIds?: string[] },
 ): boolean {
   const P = state.players[0];
-  // divergence: engine8.js checks card.type === "tactic"; we use "tactical" (§17 canonical)
+  // divergence: engine9.js checks card.type === "tactic"; we use "tactical" (§17 canonical)
   if (card.type !== "tactical" || !P.hand.includes(card)) return false;
   const chk = canPlayTactic(state, 0, card);
   if (!chk.ok) return false;

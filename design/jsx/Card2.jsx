@@ -3,6 +3,14 @@ const { useState, useEffect, useRef } = React;
 const WCJersey = window.WCJersey;
 
 function Flag2({ nation }) {
+  const src = window.WCC2.crestSrc ? window.WCC2.crestSrc(nation) : null;
+  if (src) {
+    return (
+      <span className="flag crest-on" title={nation}>
+        <img src={src} alt={nation + " crest"} loading="lazy" draggable="false" />
+      </span>
+    );
+  }
   const cols = window.WCC2.NATIONS[nation] || ["#555", "#777", "#555"];
   return (
     <span className="flag" title={nation}>
@@ -38,6 +46,10 @@ function SlotPips({ n }) {
 // rarity stat multiplier (GDD v5 §4) — common is ×1.0 so no badge
 const RARITY_MULT5 = { rare: "1.1", epic: "1.2", legendary: "1.3", icon: "1.3" };
 
+// v10: per-round field cost is the gentle rarity curve (2/2/3/4) when the v10 engine is loaded;
+// older builds (no window.fieldCostOf) fall back to the card's own cost — backward-safe.
+const fieldCost = (c) => (window.fieldCostOf ? window.fieldCostOf(c) : c.cost);
+
 // status: {booked, injured} or undefined
 function PCard({ card, size = 168, isCaptain, status, onClick, faceDown, className = "", showSlots, showMult }) {
   if (faceDown) {
@@ -54,7 +66,7 @@ function PCard({ card, size = 168, isCaptain, status, onClick, faceDown, classNa
       style={{ "--cw": size + "px" }}
       onClick={onClick}
     >
-      <div className="cost" title="Stamina cost">{card.cost}</div>
+      <div className="cost" title="Stamina cost to field this round">{fieldCost(card)}</div>
       {showMult && RARITY_MULT5[card.rarity] && (
         <div className="rarmult5" data-rar={card.rarity} title={"Rarity multiplier — contributes " + RARITY_MULT5[card.rarity] + "× its stats to the lane"}>×{RARITY_MULT5[card.rarity]}</div>
       )}
@@ -118,7 +130,7 @@ function TCard({ card, size = 168, onClick, faceDown, className = "", showSlots 
       style={{ "--cw": size + "px" }}
       onClick={onClick}
     >
-      <div className="cost" title="Stamina cost">{card.cost}</div>
+      <div className="cost" title="Stamina cost">{fieldCost(card)}</div>
       <div className="inner">
         <div className="cat">{card.category}</div>
         <div className="glyph">{CAT_GLYPH[card.category]}</div>
@@ -156,7 +168,7 @@ function CardModal2({ card, isCaptain, status, showMult, onClose }) {
               {showMult && RARITY_MULT5[card.rarity] && (
                 <div className="ab"><b>Star quality.</b> {card.rarity.charAt(0).toUpperCase() + card.rarity.slice(1)} cards contribute ×{RARITY_MULT5[card.rarity]} their stats each round — an effective ATK {Math.round(card.atk * parseFloat(RARITY_MULT5[card.rarity]))} / DEF {Math.round(card.def * parseFloat(RARITY_MULT5[card.rarity]))}.</div>
               )}
-              <div className="ab"><b>Cost.</b> {card.cost} stamina to field, into attack or defense.</div>
+              <div className="ab"><b>Cost.</b> {fieldCost(card)} stamina to field, into attack or defense. Beside a star (premium in the lane) support cards pay half.</div>
               {status && (status.booked || status.injured) && (
                 <div className="ab"><b>Status.</b> {status.booked ? "Booked — another whistle means a red card. " : ""}{status.injured ? "Injured — −15 ATK/DEF for the match." : ""}</div>
               )}
@@ -165,7 +177,7 @@ function CardModal2({ card, isCaptain, status, showMult, onClose }) {
             <React.Fragment>
               <div className="tag">{card.category.toUpperCase()} tactical card · {card.slots} slot{card.slots === 1 ? "" : "s"}</div>
               <div className="ab">{card.text}</div>
-              <div className="ab"><b>Cost.</b> {card.cost} stamina.</div>
+              <div className="ab"><b>Cost.</b> {fieldCost(card)} stamina.</div>
             </React.Fragment>
           )}
           <button className="btn btn-ghost" onClick={onClose}>Close</button>

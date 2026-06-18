@@ -1,5 +1,5 @@
-// GDD v8 §17 data model — ported from engine8.js into pure TypeScript.
-// Card.type uses "tactical" (§17 canonical); engine8.js uses "tactic" — noted where checked.
+// GDD v10 §17 data model — ported from engine9.js into pure TypeScript.
+// Card.type uses "tactical" (§17 canonical); engine9.js uses "tactic" — noted where checked.
 
 export type Position = "GK" | "DEF" | "MID" | "FWD";
 export type Rarity = "common" | "rare" | "epic" | "legendary";
@@ -50,7 +50,7 @@ export interface PlayerCard {
 
 export interface TacticalCard {
   id: string;
-  // §17 uses "tactical"; engine8.js uses "tactic" — we canonicalize to "tactical" here
+  // §17 uses "tactical"; engine9.js uses "tactic" — we canonicalize to "tactical" here
   type: "tactical";
   name: string;
   category: TacticalCategory;

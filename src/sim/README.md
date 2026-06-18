@@ -106,7 +106,7 @@ src/engine/         Pure TypeScript match engine (shared with future game UI)
   types.ts          v8 data model
   config.ts         DEFAULT_TUNING — all knobs
   rng.ts            Seeded mulberry32 PRNG
-  engine.ts         Full v8 match-resolution logic (port of design/js/engine8.js)
+  engine.ts         Full v10 match-resolution logic (port of design/js/engine9.js)
   index.ts          Public re-export surface
 
 src/sim/            Node-only simulator harness

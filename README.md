@@ -41,10 +41,12 @@ Both modes share the same match engine (xG, formations, fatigue, Tactical Cards,
 .
 ├── APP_DEFINITION.md          # GDD v10 — the authoritative game spec (read first)
 ├── design/                    # Design system + high-fidelity interactive prototype (behavioral + visual source of truth)
-│   ├── World Cup Clash.html               # playable HTML/React prototype (loads js/engine8.js + jsx/Board8.jsx)
+│   ├── README.md                          # current handoff — the v10 balance build (read this first)
+│   ├── World Cup Clash.html               # playable HTML/React prototype (loads js/engine9.js + jsx/Board9.jsx)
 │   ├── World Cup Clash - Design System.html
-│   ├── design_handoff_world_cup_clash_v8/ # v8 handoff notes
-│   └── design_handoff_jersey_cards/        # per-nation procedural jersey-kit card art
+│   ├── js/engine9.js                       # v10 match engine (window.WCC9E) + engine3.js run helpers
+│   ├── assets/crests/                      # national-team crests (SVG)
+│   └── design_handoff_jersey_cards/        # per-nation procedural jersey-kit card art (Card2.jsx + Jersey.jsx)
 ├── src/
 │   ├── engine/                # Pure TS v10 match engine — public surface via index.ts
 │   ├── sim/                   # Node-only Monte-Carlo balance simulator (own tsconfig.sim.json; out/ git-ignored)

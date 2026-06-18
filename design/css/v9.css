@@ -1,0 +1,20 @@
+/* WORLD CUP CLASH v9 / v10 balance pass — UI additions
+   - star-core discount chip in the action dock (lights up when a lane holds a premium)
+   The gentle field cost (2/2/3/4), the half-price support discount, diminishing returns,
+   the retuned xG curve and sudden-death extra time are all engine-side (js/engine9.js). */
+
+/* Star-core discount chip — gold-tinted, sits after the tactical-cap chip. */
+.cap-chip5.star {
+  color: #ffd9a0;
+  border-color: rgba(232, 200, 115, 0.5);
+  background: rgba(232, 200, 115, 0.12);
+  animation: starcore-in var(--dur-base, 200ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+@keyframes starcore-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cap-chip5.star { animation: none; }
+}

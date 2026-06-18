@@ -1,5 +1,14 @@
 // WORLD CUP CLASH v3 — run map (bracket) + locker room
 function Crest3({ nation, year, size = 46, showYear = true }) {
+  const src = window.WCC_DATA.crestSrc ? window.WCC_DATA.crestSrc(nation) : null;
+  if (src) {
+    return (
+      <span className="crest3 has-img" style={{ "--cs": size + "px" }} title={nation + (year ? " " + year : "")}>
+        <img src={src} alt={nation + " crest"} loading="lazy" draggable="false" />
+        {showYear && year ? <span className="yr">{String(year).slice(2)}</span> : null}
+      </span>
+    );
+  }
   const cols = window.WCC_DATA.NATIONS[nation] || ["#555", "#777", "#555"];
   return (
     <span className="crest3" style={{ "--cs": size + "px" }} title={nation + (year ? " " + year : "")}>

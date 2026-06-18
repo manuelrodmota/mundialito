@@ -323,6 +323,66 @@
     "—": ["#525252", "#737373", "#525252"],
   };
 
+  // National-team crest artwork (footylogos / footballlogos.org). Keyed by the
+  // same nation names as NATIONS. Nations without an entry fall back to the
+  // colored-band flag chip. Paths are relative to the HTML at project root.
+  const CRESTS = {
+    Argentina: "assets/crests/argentina.svg",
+    France: "assets/crests/france.svg",
+    Brazil: "assets/crests/brazil.svg",
+    England: "assets/crests/england.svg",
+    Portugal: "assets/crests/portugal.svg",
+    Spain: "assets/crests/spain.svg",
+    Germany: "assets/crests/germany.svg",
+    Netherlands: "assets/crests/netherlands.svg",
+    Belgium: "assets/crests/belgium.svg",
+    Croatia: "assets/crests/croatia.svg",
+    Uruguay: "assets/crests/uruguay.svg",
+    Morocco: "assets/crests/morocco.svg",
+    Japan: "assets/crests/japan.svg",
+    USA: "assets/crests/usa.svg",
+    Mexico: "assets/crests/mexico.svg",
+    Senegal: "assets/crests/senegal.svg",
+    "South Korea": "assets/crests/south-korea.svg",
+    Norway: "assets/crests/norway.svg",
+    Canada: "assets/crests/canada.svg",
+    Egypt: "assets/crests/egypt.svg",
+    Algeria: "assets/crests/algeria.svg",
+    Sweden: "assets/crests/sweden.svg",
+    Scotland: "assets/crests/scotland.svg",
+    Australia: "assets/crests/australia.svg",
+    Iran: "assets/crests/iran.svg",
+    Qatar: "assets/crests/qatar.svg",
+    "Saudi Arabia": "assets/crests/saudi-arabia.svg",
+    Ecuador: "assets/crests/ecuador.svg",
+    Colombia: "assets/crests/colombia.svg",
+    Switzerland: "assets/crests/switzerland.svg",
+    Ghana: "assets/crests/ghana.svg",
+    "Ivory Coast": "assets/crests/ivory-coast.svg",
+    Tunisia: "assets/crests/tunisia.svg",
+    Austria: "assets/crests/austria.svg",
+    Bosnia: "assets/crests/bosnia.svg",
+    "Bosnia and Herzegovina": "assets/crests/bosnia.svg",
+    "Cape Verde": "assets/crests/cape-verde.svg",
+    "Cabo Verde": "assets/crests/cape-verde.svg",
+    "Curaçao": "assets/crests/curacao.svg",
+    Curacao: "assets/crests/curacao.svg",
+    Czechia: "assets/crests/czechia.svg",
+    "DR Congo": "assets/crests/dr-congo.svg",
+    Haiti: "assets/crests/haiti.svg",
+    Jordan: "assets/crests/jordan.svg",
+    "New Zealand": "assets/crests/new-zealand.svg",
+    Panama: "assets/crests/panama.svg",
+    Paraguay: "assets/crests/paraguay.svg",
+    "South Africa": "assets/crests/south-africa.svg",
+    Türkiye: "assets/crests/turkiye.svg",
+    Turkey: "assets/crests/turkiye.svg",
+    Uzbekistan: "assets/crests/uzbekistan.svg",
+  };
+  function crestSrc(nation) {
+    return CRESTS[nation] || null;
+  }
+
   function costOf(r) {
     if (r <= 69) return 1;
     if (r <= 79) return 2;
@@ -383,5 +443,5 @@
     };
   });
 
-  window.WCC_DATA = { POOL, NATIONS, costOf, rarityOf };
+  window.WCC_DATA = { POOL, NATIONS, CRESTS, crestSrc, costOf, rarityOf };
 })();
