@@ -119,5 +119,5 @@
     T("Total Football", "power", 3, 3, "totalFootball", "Persistent: every player adds 50% of their other stat to the opposite lane."),
   ];
 
-  window.WCC2 = { PLAYERS, TACTICS, NATIONS: base.NATIONS, SLOTS };
+  window.WCC2 = { PLAYERS, TACTICS, NATIONS: base.NATIONS, CRESTS: base.CRESTS, crestSrc: base.crestSrc, SLOTS };
 })();

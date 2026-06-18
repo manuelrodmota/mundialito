@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>World Cup Clash — Design System v8</title>
+<title>World Cup Clash — Design System v9</title>
 
 <!-- 1. Foundation tokens FIRST so everything below can resolve var(--*) -->
 <link rel="stylesheet" href="design-system/tokens.css" />
@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="css/v6.css" />
 <link rel="stylesheet" href="css/v7.css" />
 <link rel="stylesheet" href="css/v8.css" />
+<link rel="stylesheet" href="css/v9.css" />
 
 <!-- 3. Styleguide chrome LAST — unlocks body scroll, lays out the doc -->
 <link rel="stylesheet" href="ds/ds.css" />
@@ -31,20 +32,23 @@
 <!-- data layer (for nation flags + card shapes used by the real card component) -->
 <script src="js/data.js"></script>
 <script src="js/data2.js"></script>
+<script src="js/engine3.js"></script>
+<script src="js/engine9.js"></script>
 </head>
 <body>
 <div id="root"></div>
 
 <!-- real production card component -->
+<script type="text/babel" src="jsx/Jersey.jsx"></script>
 <script type="text/babel" src="jsx/Card2.jsx"></script>
 
 <!-- styleguide -->
 <script type="text/babel" src="ds/DSKit.jsx"></script>
 <script type="text/babel" src="ds/DSFoundations.jsx"></script>
 <script type="text/babel" src="ds/DSComponents.jsx"></script>
-<script type="text/babel" src="ds/DSPatterns8.jsx"></script>
-<script type="text/babel" src="ds/DSScreens8.jsx"></script>
+<script type="text/babel" src="ds/DSPatterns9.jsx"></script>
+<script type="text/babel" src="ds/DSScreens9.jsx"></script>
 <script type="text/babel" src="ds/DSData.jsx"></script>
-<script type="text/babel" src="ds/DSApp8.jsx"></script>
+<script type="text/babel" src="ds/DSApp9.jsx"></script>
 </body>
 </html>

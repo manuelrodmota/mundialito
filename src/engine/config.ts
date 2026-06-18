@@ -5,7 +5,7 @@ import type { Tuning } from "./types.ts";
  * All engine magic numbers live here — changing any value and re-running
  * requires zero edits to engine.ts.
  *
- * Mirrored verbatim from engine8.js::DEF_T (GDD v8 §15).
+ * Mirrored verbatim from engine9.js::DEF_T (GDD v10 §15).
  */
 export const DEFAULT_TUNING = {
   // Win / match length

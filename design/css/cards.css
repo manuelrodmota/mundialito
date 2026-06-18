@@ -80,6 +80,31 @@
 }
 .wcard .flag i { flex: 1; }
 
+/* crest image variant of the nation flag (footylogos crests) */
+.flag.crest-on {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+  box-shadow: none;
+}
+.flag.crest-on img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+.wcard .flag.crest-on {
+  width: calc(var(--cw, 168px) * 0.2);
+  height: calc(var(--cw, 168px) * 0.2);
+  box-shadow: none;
+}
+
 /* figure */
 .wcard .figure {
   flex: 1;

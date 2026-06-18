@@ -1,5 +1,5 @@
 // Deterministic policies for the headless sim.
-// baselinePolicy ports §18 / engine8.js::aiPlan for player side (p0).
+// baselinePolicy ports §18 / engine9.js::aiPlan for player side (p0).
 
 import type { Rng } from "../engine/rng.ts";
 import type { MatchState, TacticalCard, PlayerCard, TacticalKind, Formation } from "../engine/types.ts";
@@ -25,7 +25,7 @@ function laneCount(state: MatchState, side: 0 | 1): number {
 }
 
 /**
- * Baseline policy — mirrors engine8.js::aiPlan logic for the player side (p0).
+ * Baseline policy — mirrors engine9.js::aiPlan logic for the player side (p0).
  * Side-agnostic: works for either side when the engine's AI is not running.
  *
  * For side 1 (AI), the engine's built-in aiPlan already runs inside startRound;
