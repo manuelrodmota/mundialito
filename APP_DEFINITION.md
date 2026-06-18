@@ -1,4 +1,4 @@
-# WORLD CUP CLASH — Game Design Document **v8**
+# WORLD CUP CLASH — Game Design Document **v9**
 *(working title — alternatives: Road to Glory, Stoppage Time, Total Football)*
 
 Important: FULL DESIGN OF THE APP IS AT ./design => Includes the full Design System (`World Cup Clash - Design System.html`) + the interactive HTML prototype (`World Cup Clash.html`, which loads the v8 engine/board: `js/engine8.js` + `js/engine3.js`, `jsx/Board8.jsx` + `jsx/Board7Widgets.jsx`, `css/v8.css`). The v8 handoff notes live at `design/design_handoff_world_cup_clash_v8/README.md`.
@@ -9,10 +9,13 @@ A **Slay the Spire–style arcade roguelike** themed on World Cup football. Play
 
 ## 0. What changed
 
-**v8 (this revision) — hand & tactical limits:**
-- **Minimum hand of 5** (§6, §10): each round you **draw up to 5** instead of a flat 3; if the draw pile empties mid-draw, grays reshuffle in and you keep drawing to 5. Fixes thin 2-card hands; drops the old draw-3 / 8-cap.
-- **Tactical play cap** (§6, §12): **≤2 Tactical Cards per half, 4 per match** — so an accumulated stack can't fire a swing every round.
-- **Run tactical deck cap ~4** (§5): Tactical rewards become a **swap** once you're at the cap — bounds the "≈7 tacticals by the Final" pile-up and makes the reward a real choice. (Numbers tunable.)
+**v9 (this revision) — commons are rolled, not picked:**
+- **Random-common fill** (§5, §16): your slot budget buys your **premium** core; the remaining roster spots **auto-fill with random commons**, and you **can't hand-pick** them. Stops the min-max where you'd cherry-pick every top-rated common (all the 79s) and make the budget meaningless; turns the bench into genuine squad depth. Applies to the Run and Quickplay.
+
+**v8 — hand & tactical limits:**
+- **Minimum hand of 5** (§6, §10): draw up to 5 each round; grays reshuffle mid-draw. Drops the old draw-3 / 8-cap.
+- **Tactical play cap** (§6, §12): ≤2 Tactical Cards per half, 4 per match.
+- **Run tactical deck cap ~4** (§5): Tactical rewards become a swap past the cap.
 
 **v7 — the 90-minute match:**
 - **No more "race to 3."** A match is a full **90 minutes (10 rounds)**; **whoever leads at full time wins** (§14).
@@ -56,7 +59,7 @@ Two modes share the **same match engine** (xG, formations, fatigue, Tactical Car
 - **Quickplay** — build a full deck and play **one match** at a difficulty you pick. No run, no permadeath, no rewards. For a fast game, or to test deck ideas and learn the systems.
 
 ### Quickplay
-- **Build a loaded squad up front** (there are no rewards to earn): ~16 players within a **slot budget of 20** *(double the run's 10 — enough for a genuinely star-studded squad)*, **plus up to 3 Tactical Cards** as a **separate allowance** (not drawn from the player budget — the same player-vs-tactical split the run uses), and designate a Captain. Deliberately more generous than the run's lean 11, since your deck won't grow during the game and you'll pick a difficulty to match.
+- **Build a loaded squad up front** (there are no rewards to earn): a **~16-player roster**, spending a **slot budget of 20** on premiums *(double the run's 10 — enough for a genuinely star-studded squad)* with the rest **auto-filled with random commons** (§5), **plus up to 3 Tactical Cards** as a **separate allowance** (not drawn from the player budget — the same player-vs-tactical split the run uses), and designate a Captain. Deliberately more generous than the run's lean 11, since your deck won't grow during the game and you'll pick a difficulty to match.
 - **Pick a difficulty**, which sets the opponent's tier: **Easy → D/C · Medium → B · Hard → A · Legendary → S** (a World Cup champion). Same historic-team pool as the run (§13).
 - Play one match under the **standard rules** (90 minutes, mercy at a 3-goal lead, xG, fatigue, formations, the card cap, single-use Tactical Cards).
 - **Level at full time → extra time** decides it, same as the run — so a Quickplay match always produces a winner. *(If you'd prefer casual draws here, that's a one-line toggle — see §19.)*
@@ -111,7 +114,8 @@ Each player has **ATK** and **DEF**, from one `overall` + position. ATK feeds yo
 
 ## 5. Your Squad & Progression
 
-- **Start:** pick **11 players** within a **slot budget of 10**, plus optionally **one** Tactical Card; designate a **Captain** (always in your opening hand, grants Captain's Pride). Commons are free (0 slots) — fill out the XI with role-players.
+- **Start:** spend a **slot budget of 10** on **premium players** (Rare 1 / Epic 2 / Legendary 3) to form your core, designate a **Captain** (always in your opening hand, grants Captain's Pride), and optionally include **one** Tactical Card. Your roster is **11 players** total.
+- **Commons are rolled, not picked.** Once your budget is spent (or you choose to stop), the remaining roster spots **auto-fill with random commons** — the free, 0-slot tier. You **can't hand-pick which commons** you get: otherwise you'd just grab every top-rated common (all the 79s in a 60–79 pool) and the budget would mean nothing. Random commons keep the budget honest and make your bench real squad depth, not a free batch of near-stars. *(Same in Quickplay; rolled once at deck creation.)*
 - **After each win:** **+1 random player** (rarity odds improve as you advance) and a **Tactical Card reward (choose 1 of 3)**.
 - **Tactical deck cap (~4, tunable):** you carry at most **~4 Tactical Cards** in your Run deck. Once you're at the cap, a Tactical reward becomes a **swap** — take the new one and exile one you hold, or decline. This lines up with the 4-per-match play cap (§6), so you almost never draw a tactical you can't use, and it makes the reward a real *choice* (à la Slay the Spire) rather than endless piling-on. *(This is the fix for "7 tacticals by the Final" — the deck cap bounds the count, the per-half play cap bounds the burst.)*
 - Deck grows from ~11–12 cards to roughly **~17 players + ~4 Tactical Cards** by the Final — stronger every round, but with a hard ceiling on tactical spam. *(Optional StS touch: occasionally offer to remove a player card too.)*
@@ -309,11 +313,11 @@ The score is a normal **scoreboard** (e.g. "ARG 3 – 2 BRA") with the clock —
 
 ## 16. UI / Screens — for Claude Design
 
-North star: **FIFA Ultimate Team card art on a Slay-the-Spire run.** Stadium-at-night, glossy. Card frames by rarity (silver/blue/purple/gold), position badge, **ATK (red) / DEF (blue)** pips.
+North star: **FIFA Ultimate Team card art on a Slay-the-Spire run.** Stadium-at-night, glossy. Card frames by rarity (silver/blue/purple/gold), position badge, **ATK (red) / DEF (blue)** pips. The player figure is a **per-nation football-jersey kit** — a procedural SVG rendered in the nation's colours (solid / vertical-stripe / checkerboard), in place of a generic role silhouette; unknown nations fall back to flag-derived colours. *(Kit-art handoff: `design/design_handoff_jersey_cards/`.)*
 
 1. **Main menu / Mode select** — **Arcade Run** vs **Quickplay**, plus Collection and How to Play. Choosing **Quickplay** opens a **difficulty picker** (Easy / Medium / Hard / Legendary → opponent tier) and the **loaded-deck builder** (~16 players / **20 slots** + **up to 3 Tactical Cards**); then straight into a single match.
 2. **Run Map / Bracket** — 7-stop ladder, progress lit, next opponent crest + year + difficulty stars; Final glows.
-3. **XI Builder** — filterable pool, **Slot Budget meter** (x/10 in the Run, **x/20 in Quickplay**), Captain star, **Tactical tray** (start ≤**1** in the Run → grows to a cap of **~4** via rewards; **up to 3** in Quickplay), ATK/DEF + cost curves.
+3. **XI Builder** — pick **premium players** from a filterable pool against a **Slot Budget meter** (x/10 in the Run, **x/20 in Quickplay**), set a Captain, and stock the **Tactical tray** (start ≤**1** in the Run → grows to a cap of **~4** via rewards; **up to 3** in Quickplay). A **"Fill with Commons" button** completes the roster with **random commons** — individual commons aren't pickable (no cherry-picking the best ones). ATK/DEF + cost curves shown for the premiums.
 4. **Locker Room** *(Arcade Run only)* — reward player reveal, **choose-1-of-3 Tactical** (a **swap** when you're at the ~4 deck cap — mark one held tactical OUT, take the new one), set Captain, deck list, next-opponent preview.
 5. **Match Board (centerpiece):**
    - **Scoreboard + match clock:** a normal **numeric scoreboard** ("ARG 2 – 1 BRA") and a **running clock** — kickoff → **45' HALFTIME** (round 5) → **90' FULL TIME** (round 10) → **ET** if level. A subtle **"–3 to win"** marker hints at the mercy threshold.
@@ -415,12 +419,20 @@ interface MatchState {
 
 interface RunState {
   matchIndex: number; stage: "group" | "r16" | "qf" | "sf" | "final";
-  deck: Card[]; captainId: string; defeated: string[]; alive: boolean;
+  deck: Card[];                  // premiums you picked + random commons filled to roster size
+  captainId: string; defeated: string[]; alive: boolean;
 }
 ```
 
 **Round resolution (pseudocode):**
 ```
+// Deck build: the budget buys premiums; the rest of the roster is RANDOM commons (no cherry-picking):
+function buildDeck(picks, rosterSize, commonPool):
+    assert all(c.rarity != "common" for c in picks)
+    assert sum(slotCost(c) for c in picks) <= BUDGET            // 10 run / 20 quickplay
+    fillers = sample(commonPool, rosterSize - picks.length)     // uniform random; player has no say
+    return shuffle(picks + fillers)
+
 // At commit/lock-in: reject a lineup if it exceeds the cap or stamina:
 function validLineup(m, p):
     cards = laneCards(m,p,"attack") + laneCards(m,p,"defense")
@@ -535,7 +547,8 @@ function checkWin(m):                                // ONCE, after the full rou
 10. **Quickplay draws** — ET makes every match decisive; if you'd rather allow casual 90' draws in Quickplay, that's a one-line toggle (skip ET when level).
 11. **Premium-heavy decks & the half-lock** — a 20-slot Quickplay deck has many stars to rotate; a lean run deck burns through its few stars fast each half. Confirm both feel good (front-loaded star bursts then gray-grind, refreshed at halftime).
 12. **Minimum hand of 5** — does drawing back to 5 (and reshuffling grays mid-draw) keep hands consistently playable without making the deck feel "on rails"? Watch thin run decks early vs the loaded Quickplay deck.
+13. **Random-common variance** — commons fill randomly (§5) and the pool spans ~60–79 OVR, so a bad roll gives a slightly weaker bench. Since commons are low-impact by design this should be mild, but if it ever feels punishing, soften with a **draft-style "fill from a random 3 per slot"** (a little agency without cherry-picking) or narrow the common OVR band.
 
 ---
 
-*End of v8. A full 90-minute match: lead by 3 to end it early, else most goals at full time, golden-goal extra time if level. Stars are once-per-half trumps; Tactical Cards are single-use and capped at 2 a half (deck cap ~4); commons are the sustain engine and you always draw back to a 5-card hand. xG keeps the variance honest; fatigue makes the clock matter. Every value in §15 is a knob.*
+*End of v9. A full 90-minute match: lead by 3 to end it early, else most goals at full time, golden-goal extra time if level. Your budget buys a premium core and the bench fills with random commons; stars are once-per-half trumps; Tactical Cards are single-use and capped at 2 a half (deck cap ~4); commons are the sustain engine and you always draw back to a 5-card hand. xG keeps the variance honest; fatigue makes the clock matter. Every value in §15 is a knob.*

@@ -1,14 +1,14 @@
 # mundialito-client
 
-## The Game — World Cup Clash (v8)
+## The Game — World Cup Clash (v9)
 
-This project is **World Cup Clash**, a **Slay the Spire–style arcade roguelike** themed on World Cup football. The full game design document is **`APP_DEFINITION.md`** (GDD v8) — read it first for any gameplay work. The complete design system + an interactive HTML/React prototype (the behavioral source of truth) live in **`design/`**, with the v8 handoff at `design/design_handoff_world_cup_clash_v8/` (engine `design/js/engine8.js`, board `design/jsx/Board8.jsx`, styles `design/css/v8.css`).
+This project is **World Cup Clash**, a **Slay the Spire–style arcade roguelike** themed on World Cup football. The full game design document is **`APP_DEFINITION.md`** (GDD v9) — read it first for any gameplay work. The complete design system + an interactive HTML/React prototype (the behavioral source of truth) live in **`design/`**, with the v8 handoff at `design/design_handoff_world_cup_clash_v8/` (engine `design/js/engine8.js`, board `design/jsx/Board8.jsx`, styles `design/css/v8.css`). Player-card figure art is a **per-nation jersey kit** (procedural SVG) — handoff at `design/design_handoff_jersey_cards/` (`Jersey.jsx` + README); to be built with the PlayerCard component (SCRUM-29 / WCC-020).
 
 **Core concept:** you don't drain an HP bar — you **score goals**, driven by **expected goals (xG)**. Each round (a slice of the match clock) you pick a **formation**, secretly field a **capped lineup** across **attack/defense lanes**, and play single-use **Tactical Cards** (visible to the opponent the moment they're played; lineups stay hidden).
 
 **Two modes share one match engine:**
 - **Arcade Run** — a 7-match knockout ladder to the Final vs historic national teams, with a lean XI that grows via rewards and roguelike **permadeath**.
-- **Quickplay** — build a loaded deck (~16 players / **20 slots** + up to 3 Tactical Cards), pick a difficulty (sets opponent tier), play **one match**. No run, no rewards.
+- **Quickplay** — build a loaded deck (a **~16-player roster**: **20 slots** spent on premiums + the bench **auto-filled with random commons**, plus up to 3 Tactical Cards), pick a difficulty (sets opponent tier), play **one match**. No run, no rewards.
 
 **The match (v8 rules):** a full **90 minutes = 10 rounds**.
 - **Mercy rule:** a **3-goal lead** ends the match instantly.
