@@ -327,25 +327,47 @@ function laneCount(P: PlayerState): number {
   return P.board.attack.length + P.board.defense.length;
 }
 
+/**
+ * Fix 1 — star synergy: stamina cost to place `card` into `lane` for `side`, right now.
+ * Off (default) → returns card.cost (baseline). On → if the lane ALREADY contains a
+ * premium (non-common) card, this card is a discounted supporting card
+ * (max(synergyMinCost, floor(cost × synergyDiscount))); the first premium placed pays full
+ * (it is the anchor), and a lane with no premium pays full. Must be evaluated BEFORE the
+ * card is pushed into the lane so the anchor doesn't discount itself. With the policies'
+ * highest-stat-first placement, the highest-cost premium lands first → it is the anchor,
+ * matching the spec's lane-anchor (argmax-cost) rule.
+ */
+export function placementCost(
+  state: MatchState,
+  side: number,
+  card: PlayerCard,
+  lane: "attack" | "defense",
+): number {
+  const T = state.T;
+  // Gentle curve: per-round base cost from rarity map when set, else the card's own cost.
+  const base = T.costByRarity ? T.costByRarity[card.rarity] : card.cost;
+  if (!T.starSynergyDiscount) return base;
+  const lanePremium = state.players[side].board[lane].some((c) => c.rarity !== "common");
+  if (!lanePremium) return base;
+  return Math.max(T.synergyMinCost, Math.floor(base * T.synergyDiscount));
+}
+
 export function canPlace(state: MatchState, card: Card, lane: "attack" | "defense"): boolean {
   const P = state.players[0];
   if (laneCount(P) >= cardCapFor(state.T, state.round, state.extraTime)) return false;
-  return (
-    state.phase === "plan" &&
-    card.type === "player" &&
-    P.hand.includes(card) &&
-    P.stamina >= card.cost &&
-    !(card.position === "GK" && lane === "attack")
-  );
+  if (state.phase !== "plan" || card.type !== "player" || !P.hand.includes(card)) return false;
+  if (card.position === "GK" && lane === "attack") return false;
+  return P.stamina >= placementCost(state, 0, card, lane);
 }
 
 export function place(state: MatchState, card: Card, lane: "attack" | "defense"): boolean {
   if (!canPlace(state, card, lane)) return false;
   if (card.type !== "player") return false;
   const P = state.players[0];
+  const cost = placementCost(state, 0, card, lane); // before push — anchor pays full
   P.hand = P.hand.filter((c) => c !== card);
   P.board[lane].push(card);
-  P.stamina -= card.cost;
+  P.stamina -= cost;
   return true;
 }
 
@@ -355,6 +377,9 @@ export function recall(state: MatchState, card: Card): void {
   if (card.type === "player" && laneCards(P).includes(card)) {
     removeFromLanes(P, card);
     P.hand.push(card);
+    // note (Fix 1): refunds nominal cost; not reconciled with the star-synergy discount.
+    // The sim never recalls, so this is a UI-only concern (the future board UI must track
+    // the actual stamina charged per card if it allows un-placing).
     P.stamina += card.cost;
   } else if (card.type === "tactical" && P.tactics.includes(card)) {
     P.tactics = P.tactics.filter((c) => c !== card);
@@ -461,6 +486,25 @@ export function effStats(
   return { a: Math.max(0, a), d: Math.max(0, d) };
 }
 
+/**
+ * Fix 2 — diminishing returns on stacked lane contributions. When `weights` is set,
+ * the per-card contributions are sorted descending and each multiplied by its weight
+ * (index 0 = top contributor; the last weight repeats for any overflow), so additional
+ * cards in a lane add less. When `weights` is null/empty, this is a plain flat sum —
+ * byte-identical to the pre-fix behavior.
+ */
+function laneAccumulate(values: number[], weights: number[] | null): number {
+  if (!weights || weights.length === 0) {
+    return values.reduce((s, v) => s + v, 0);
+  }
+  const sorted = [...values].sort((a, b) => b - a);
+  let total = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    total += sorted[i]! * weights[Math.min(i, weights.length - 1)]!;
+  }
+  return total;
+}
+
 export function sideTotals(
   state: MatchState,
   p: number,
@@ -479,19 +523,24 @@ export function sideTotals(
   let def = 0;
   let rarityUpA = 0;
   let rarityUpD = 0;
+  const atkContribs: number[] = [];
+  const defContribs: number[] = [];
   P.board.attack.forEach((c) => {
     if (c.id === zeroId || c === nutmegCard) return;
     const e = effStats(state, p, c, chem);
-    atk += e.a;
+    atkContribs.push(e.a);
     rarityUpA += c.atk * (rarityMultOf(T, c.rarity) - 1);
     if (tf) def += Math.round(e.d / 2);
   });
   P.board.defense.forEach((c) => {
     const e = effStats(state, p, c, chem);
-    def += e.d;
+    defContribs.push(e.d);
     rarityUpD += c.def * (rarityMultOf(T, c.rarity) - 1);
     if (tf) atk += Math.round(e.a / 2);
   });
+  // Fix 2: per-lane contributions are flat-summed (baseline) or diminishing-weighted.
+  atk += laneAccumulate(atkContribs, T.stackWeights);
+  def += laneAccumulate(defContribs, T.stackWeights);
   if (tf) notes.push("Total Football: cross-lane spillover");
   if (rarityUpA >= 1 || rarityUpD >= 1) {
     const bits: string[] = [];
@@ -807,22 +856,45 @@ export function reveal(state: MatchState, rng: Rng): MatchEvent[] {
     return { sum: r2(sum), parts };
   });
 
-  [0, 1].forEach((s) => {
-    const A = P[s];
-    const amt = adds[s]!.sum;
-    state.roundXg[s] = amt;
+  if (!state.extraTime) {
+    // Regulation: both sides accumulate; each banks every goal its meter crosses this round.
+    [0, 1].forEach((s) => {
+      const A = P[s];
+      const amt = adds[s]!.sum;
+      state.roundXg[s] = amt;
+      A.xg = r2(A.xg + amt);
+      A.xgTotal = r2(A.xgTotal + amt);
+      ev.push({ t: "xg", who: s, amount: amt, parts: adds[s]!.parts });
+      while (A.xg >= 1) {
+        A.xg = r2(A.xg - 1);
+        A.goals++;
+        state.roundGoals[s]++;
+        if (A.scoredFirstAt == null) A.scoredFirstAt = state.round;
+        ev.push({ t: "goal", who: s, score: [P[0].goals, P[1].goals] });
+      }
+    });
+  } else {
+    // v10 golden goal — true sudden death (GDD §14/§17): ONLY the side that created the bigger
+    // chance this passage banks xG; the trailing side adds nothing. So both can't score the
+    // same round and ET settles in a round or two. Ties on round xG fall to accumulated ET xG.
+    const lead =
+      adds[0]!.sum > adds[1]!.sum ? 0 : adds[1]!.sum > adds[0]!.sum ? 1 : P[0].etXg >= P[1].etXg ? 0 : 1;
+    const A = P[lead];
+    const amt = adds[lead]!.sum;
+    state.roundXg[0] = lead === 0 ? amt : 0;
+    state.roundXg[1] = lead === 1 ? amt : 0;
     A.xg = r2(A.xg + amt);
     A.xgTotal = r2(A.xgTotal + amt);
-    if (state.extraTime) A.etXg = r2(A.etXg + amt);
-    ev.push({ t: "xg", who: s, amount: amt, parts: adds[s]!.parts });
-    while (A.xg >= 1) {
+    A.etXg = r2(A.etXg + amt);
+    ev.push({ t: "xg", who: lead, amount: amt, parts: adds[lead]!.parts });
+    if (A.xg >= 1) {
       A.xg = r2(A.xg - 1);
       A.goals++;
-      state.roundGoals[s]++;
+      state.roundGoals[lead]++;
       if (A.scoredFirstAt == null) A.scoredFirstAt = state.round;
-      ev.push({ t: "goal", who: s, score: [P[0].goals, P[1].goals] });
+      ev.push({ t: "goal", who: lead, score: [P[0].goals, P[1].goals] });
     }
-  });
+  }
 
   // 10. Utility skills
   [0, 1].forEach((p) => {
@@ -1012,8 +1084,9 @@ function aiPlan(state: MatchState, rng: Rng): void {
     }
   };
   const placeAI = (c: PlayerCard, lane: "attack" | "defense") => {
-    P.stamina -= c.cost;
-    spent += c.cost;
+    const cost = placementCost(state, 1, c, lane); // before push — anchor pays full (Fix 1)
+    P.stamina -= cost;
+    spent += cost;
     P.hand = P.hand.filter((x) => x !== c);
     P.board[lane].push(c);
   };
@@ -1060,9 +1133,10 @@ function aiPlan(state: MatchState, rng: Rng): void {
     .sort((a, b) => (b as PlayerCard).atk - (a as PlayerCard).atk)
     .forEach((c) => {
       const pc = c as PlayerCard;
-      if (!atCap() && P.hand.includes(c) && spentA + pc.cost <= atkBudget && aff(pc)) {
+      const cost = placementCost(state, 1, pc, "attack");
+      if (!atCap() && P.hand.includes(c) && spentA + cost <= atkBudget && P.stamina >= cost) {
         placeAI(pc, "attack");
-        spentA += pc.cost;
+        spentA += cost;
       }
     });
   P.hand
@@ -1070,7 +1144,8 @@ function aiPlan(state: MatchState, rng: Rng): void {
     .sort((a, b) => (b as PlayerCard).def - (a as PlayerCard).def)
     .forEach((c) => {
       const pc = c as PlayerCard;
-      if (!atCap() && P.hand.includes(c) && aff(pc) && P.stamina - pc.cost >= reserve)
+      const cost = placementCost(state, 1, pc, "defense");
+      if (!atCap() && P.hand.includes(c) && P.stamina >= cost && P.stamina - cost >= reserve)
         placeAI(pc, "defense");
     });
 

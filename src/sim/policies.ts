@@ -6,6 +6,7 @@ import type { MatchState, TacticalCard, PlayerCard, TacticalKind, Formation } fr
 import {
   setFormation,
   place,
+  placementCost,
   playTactic,
   canPlayTactic,
   gateMet,
@@ -88,8 +89,9 @@ export const baselinePolicy: Policy = {
       .sort((a, b) => (b as PlayerCard).atk - (a as PlayerCard).atk)
       .forEach((c) => {
         const pc = c as PlayerCard;
-        if (!atCap() && P.hand.includes(c) && spentA + pc.cost <= atkBudget && aff(pc)) {
-          if (place(state, pc, "attack")) spentA += pc.cost;
+        const cost = placementCost(state, 0, pc, "attack");
+        if (!atCap() && P.hand.includes(c) && spentA + cost <= atkBudget && P.stamina >= cost) {
+          if (place(state, pc, "attack")) spentA += cost;
         }
       });
     P.hand
@@ -97,7 +99,8 @@ export const baselinePolicy: Policy = {
       .sort((a, b) => (b as PlayerCard).def - (a as PlayerCard).def)
       .forEach((c) => {
         const pc = c as PlayerCard;
-        if (!atCap() && P.hand.includes(c) && aff(pc) && P.stamina - pc.cost >= reserve)
+        const cost = placementCost(state, 0, pc, "defense");
+        if (!atCap() && P.hand.includes(c) && P.stamina >= cost && P.stamina - cost >= reserve)
           place(state, pc, "defense");
       });
 

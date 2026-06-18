@@ -6,7 +6,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeRng } from "../engine/rng.ts";
 import { newMatch, reveal, startRound } from "../engine/engine.ts";
-import type { MatchState } from "../engine/types.ts";
+import type { MatchState, Tuning } from "../engine/types.ts";
 import { baselinePolicy } from "./policies.ts";
 import { DECKS, OPPONENTS } from "./rosters.ts";
 import type { DeckName } from "./rosters.ts";
@@ -18,6 +18,42 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const BASE_SEED = 42;
 const N_PER_CELL = parseInt(process.env["SIM_N"] ?? "1000", 10);
 const OUT_DIR = process.env["SIM_OUT"] ?? join(__dirname, "out");
+
+// Experimental balance configs (see "Balance Fix Spec — Diminishing Returns + Star Synergy").
+// Each is a tuning override layered over DEFAULT_TUNING; baseline = {} reproduces prior output.
+// Override the set with SIM_CONFIGS=baseline,fix2,fix12 (default: all three).
+interface SimConfig {
+  name: string;
+  tuning: Partial<Tuning>;
+}
+
+// v10 is now the shipping default (DEFAULT_TUNING in src/engine/config.ts): diminishing returns,
+// star-core discount, gentle field-cost curve, xG /210 cap 0.50, sudden-death ET. The sim
+// validates it and, for contrast, can re-run the original pre-v10 baseline (all fixes off + the
+// old /150, 0.60 curve) to show the balance flip the v10 pass produced.
+const PRE_V10: Partial<Tuning> = {
+  stackWeights: null,
+  starSynergyDiscount: false,
+  costByRarity: null,
+  xgFloor: 0.05,
+  xgSlope: 150,
+  xgCap: 0.6,
+};
+
+const ALL_CONFIGS: SimConfig[] = [
+  { name: "v10", tuning: {} }, // = DEFAULT_TUNING (locked v10)
+  { name: "pre-v10", tuning: PRE_V10 }, // original baseline, for before/after contrast
+];
+
+// Default sweep = v10 (canonical, mirrored to results.csv/summary.json) + the pre-v10 baseline.
+// Override with e.g. SIM_CONFIGS=v10.
+const DEFAULT_CONFIG_NAMES = ["v10", "pre-v10"];
+
+const CONFIGS: SimConfig[] = (() => {
+  const sel = process.env["SIM_CONFIGS"];
+  const wanted = sel ? sel.split(",").map((s) => s.trim()) : DEFAULT_CONFIG_NAMES;
+  return ALL_CONFIGS.filter((c) => wanted.includes(c.name));
+})();
 
 // ---- result row ----
 
@@ -56,9 +92,10 @@ function runMatch(
   seed: number,
   matchId: number,
   playerDeck: DeckName,
+  tuning: Partial<Tuning>,
 ): MatchResult {
   const rng = makeRng(seed);
-  const state = newMatch({ playerCards, captainId, opponent, rng });
+  const state = newMatch({ playerCards, captainId, opponent, rng, tuning });
 
   while (state.winner == null) {
     baselinePolicy.plan(state, 0, rng);
@@ -133,6 +170,28 @@ function buildSummary(results: MatchResult[]) {
       mercyTiming[rd] = (mercyTiming[rd] ?? 0) + 1;
     });
 
+  // extra-time length histogram (golden-goal-fix diagnostic: should be unimodal near 1)
+  const etRoundsHistogram: Record<number, number> = {};
+  results
+    .filter((r) => r.endType === "extratime")
+    .forEach((r) => {
+      etRoundsHistogram[r.etRounds] = (etRoundsHistogram[r.etRounds] ?? 0) + 1;
+    });
+
+  // full-time margin histogram + the share decided by exactly 1 goal (rhythm sanity check)
+  const fulltimeMargins: Record<number, number> = {};
+  let fulltimeCount = 0;
+  results
+    .filter((r) => r.endType === "fulltime")
+    .forEach((r) => {
+      const m = Math.abs(r.goalsHome - r.goalsAway);
+      fulltimeMargins[m] = (fulltimeMargins[m] ?? 0) + 1;
+      fulltimeCount++;
+    });
+  const fulltimeOneGoalPct = fulltimeCount
+    ? round2(((fulltimeMargins[1] ?? 0) / fulltimeCount) * 100)
+    : 0;
+
   // goals per match
   const goalTotals = results.map((r) => r.goalsHome + r.goalsAway);
   const goalStats = {
@@ -205,13 +264,30 @@ function buildSummary(results: MatchResult[]) {
     }
   });
 
+  // per-deck win rate vs each tier (player = home) — the headline ranking signal
+  const deckWinRates: Record<string, Record<string, number>> = {};
+  DECKS.forEach((d) => {
+    OPPONENTS.forEach((opp) => {
+      const rows = results.filter((r) => r.playerDeck === d.name && r.opponentTier === opp.tier);
+      if (rows.length) {
+        (deckWinRates[d.name] ??= {})[opp.tier] = round2(
+          (rows.filter((r) => r.winner === "home").length / rows.length) * 100,
+        );
+      }
+    });
+  });
+
   return {
     totalMatches: total,
     nPerCell: N_PER_CELL,
     scorelines,
     endTypeSplit,
     mercyTiming,
+    etRoundsHistogram,
+    fulltimeMargins,
+    fulltimeOneGoalPct,
     goalStats,
+    deckWinRates,
     defenseImpact,
     starImpact,
     tacticalImpact,
@@ -304,39 +380,149 @@ function printSummary(summary: ReturnType<typeof buildSummary>): void {
 
 // ---- main ----
 
-function main(): void {
-  console.log(`Running Monte-Carlo sim: N=${N_PER_CELL}/cell, seed base=${BASE_SEED}`);
-  console.log(`Matrix: ${DECKS.length} decks × ${OPPONENTS.length} tiers\n`);
-
-  mkdirSync(OUT_DIR, { recursive: true });
-
+/** Run the full deck×tier matrix once for a given tuning config. Seeding is config-independent
+ *  (depends only on cell + match index) so every config replays the same seeded matchups. */
+function runMatrix(tuning: Partial<Tuning>): MatchResult[] {
   const results: MatchResult[] = [];
   let matchId = 1;
-
   DECKS.forEach((deck, deckIdx) => {
     OPPONENTS.forEach((opp, oppIdx) => {
       const cellIndex = deckIdx * OPPONENTS.length + oppIdx;
-      process.stdout.write(`  ${deck.name} vs ${opp.tier} … `);
       for (let i = 0; i < N_PER_CELL; i++) {
         const seed = (BASE_SEED ^ ((cellIndex + 1) * 1000)) + i;
-        results.push(runMatch(deck.cards, deck.captainId, opp, seed, matchId++, deck.name));
+        results.push(runMatch(deck.cards, deck.captainId, opp, seed, matchId++, deck.name, tuning));
       }
-      console.log(`${N_PER_CELL} done`);
+    });
+  });
+  return results;
+}
+
+type Summary = ReturnType<typeof buildSummary>;
+
+function pad(s: string, n: number): string {
+  return s.length >= n ? s : s + " ".repeat(n - s.length);
+}
+
+/** Cross-config side-by-side on the metrics the balance spec asks to compare. */
+function printComparison(summaries: { name: string; summary: Summary }[]): void {
+  const names = summaries.map((s) => s.name);
+  const col = (vals: (string | number)[]) => vals.map((v) => pad(String(v), 14)).join("");
+
+  console.log("\n========================================================");
+  console.log("  CONFIG COMPARISON");
+  console.log("========================================================\n");
+
+  console.log(pad("Metric", 30) + col(names));
+  console.log("-".repeat(30 + 14 * names.length));
+
+  const line = (label: string, pick: (s: Summary) => string | number) =>
+    console.log(pad(label, 30) + col(summaries.map((s) => pick(s.summary))));
+
+  const etDragPct = (s: Summary): string | number => {
+    const h = s.etRoundsHistogram;
+    const total = Object.values(h).reduce((a, b) => a + b, 0);
+    if (!total) return "-";
+    const drag = Object.entries(h)
+      .filter(([k]) => Number(k) >= 4)
+      .reduce((a, [, v]) => a + v, 0);
+    return Math.round((drag / total) * 1000) / 10;
+  };
+
+  line("end: mercy %", (s) => s.endTypeSplit.mercyPct);
+  line("end: fulltime %", (s) => s.endTypeSplit.fulltimePct);
+  line("end: extratime %", (s) => s.endTypeSplit.extratimePct);
+  line("goals/match mean", (s) => s.goalStats.mean);
+  line("goals/match stdev", (s) => s.goalStats.stdev);
+  line("full-time 1-goal %", (s) => s.fulltimeOneGoalPct);
+  line("ET games >=4 rounds %", etDragPct);
+
+  console.log("\n  Player win % by deck × tier (home = player):");
+  const tiers = OPPONENTS.map((o) => o.tier);
+  DECKS.forEach((d) => {
+    tiers.forEach((t) => {
+      line(
+        `  ${d.name} vs ${t}`,
+        (s) => s.deckWinRates[d.name]?.[t] ?? "-",
+      );
     });
   });
 
-  const csvPath = join(OUT_DIR, "results.csv");
-  const jsonPath = join(OUT_DIR, "summary.json");
+  console.log("\n  Defense impact — goals conceded (defense-heavy / all-common; +delta = defends better):");
+  tiers.forEach((t) => {
+    line(`  ${t} delta`, (s) => s.defenseImpact[t]?.delta ?? "-");
+  });
 
-  writeFileSync(csvPath, CSV_HEADER + results.map(toCSVRow).join("\n") + "\n");
+  console.log("\n  Star impact — star-heavy win % (vs all-common in parens per config json):");
+  tiers.forEach((t) => {
+    line(`  ${t} star-heavy win%`, (s) => s.starImpact[t]?.starHeavyWinPct ?? "-");
+  });
 
-  const summary = buildSummary(results);
-  writeFileSync(jsonPath, JSON.stringify(summary, null, 2) + "\n");
+  console.log("\n  Tactical impact — with-tactics win % and goal delta:");
+  tiers.forEach((t) => {
+    line(`  ${t} with-tactics win%`, (s) => s.tacticalImpact[t]?.withTacticsWinPct ?? "-");
+    line(`  ${t} goal delta`, (s) => s.tacticalImpact[t]?.goalDelta ?? "-");
+  });
+  console.log();
+}
 
-  printSummary(summary);
+function main(): void {
+  console.log(`Running Monte-Carlo sim: N=${N_PER_CELL}/cell, seed base=${BASE_SEED}`);
+  console.log(`Matrix: ${DECKS.length} decks × ${OPPONENTS.length} tiers`);
+  console.log(`Configs: ${CONFIGS.map((c) => c.name).join(", ")}\n`);
 
-  console.log(`Wrote: ${csvPath}`);
-  console.log(`Wrote: ${jsonPath}`);
+  mkdirSync(OUT_DIR, { recursive: true });
+
+  const summaries: { name: string; summary: Summary }[] = [];
+
+  CONFIGS.forEach((cfg, idx) => {
+    process.stdout.write(`[${cfg.name}] running ${DECKS.length * OPPONENTS.length} cells … `);
+    const results = runMatrix(cfg.tuning);
+    console.log(`${results.length} matches done`);
+
+    const csvPath = join(OUT_DIR, `results.${cfg.name}.csv`);
+    const jsonPath = join(OUT_DIR, `summary.${cfg.name}.json`);
+    writeFileSync(csvPath, CSV_HEADER + results.map(toCSVRow).join("\n") + "\n");
+    const summary = buildSummary(results);
+    writeFileSync(jsonPath, JSON.stringify(summary, null, 2) + "\n");
+
+    // Continuity: mirror the FIRST config of the sweep to the canonical file names (METRICS.md).
+    if (idx === 0) {
+      writeFileSync(join(OUT_DIR, "results.csv"), CSV_HEADER + results.map(toCSVRow).join("\n") + "\n");
+      writeFileSync(join(OUT_DIR, "summary.json"), JSON.stringify(summary, null, 2) + "\n");
+    }
+
+    summaries.push({ name: cfg.name, summary });
+  });
+
+  // Per-config console summaries
+  summaries.forEach(({ name, summary }) => {
+    console.log(`\n### Config: ${name} ###`);
+    printSummary(summary);
+  });
+
+  // Cross-config comparison + machine-readable comparison.json
+  if (summaries.length > 1) printComparison(summaries);
+
+  const comparison = {
+    nPerCell: N_PER_CELL,
+    baseSeed: BASE_SEED,
+    configs: summaries.map(({ name, summary }) => ({
+      name,
+      endTypeSplit: summary.endTypeSplit,
+      goalStats: summary.goalStats,
+      fulltimeOneGoalPct: summary.fulltimeOneGoalPct,
+      etRoundsHistogram: summary.etRoundsHistogram,
+      deckWinRates: summary.deckWinRates,
+      defenseImpact: summary.defenseImpact,
+      starImpact: summary.starImpact,
+      tacticalImpact: summary.tacticalImpact,
+    })),
+  };
+  const cmpPath = join(OUT_DIR, "comparison.json");
+  writeFileSync(cmpPath, JSON.stringify(comparison, null, 2) + "\n");
+
+  console.log(`\nWrote per-config results.<config>.csv + summary.<config>.json to ${OUT_DIR}`);
+  console.log(`Wrote: ${cmpPath}`);
 }
 
 main();

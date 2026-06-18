@@ -201,8 +201,31 @@ export const championOpponent: OpponentTeam = {
   ],
 };
 
+// ---- realistic Run deck (one superstar + spine + role-player commons; 8/10 build slots) ----
+
+export const runRealisticCards: Card[] = [
+  player("r1", "Idris Bah", "GK", "rare", 12, 70, 71, 3, "SEN"),
+  player("r2", "Marco Ferri", "DEF", "epic", 38, 82, 84, 4, "ITA"), // star CB
+  player("r3", "Diallo Sane", "DEF", "common", 28, 55, 57, 2, "SEN"),
+  player("r4", "Owen Pryce", "DEF", "common", 26, 53, 55, 2, "WAL"),
+  player("r5", "Tariq Aziz", "MID", "epic", 70, 58, 80, 4, "MAR"), // playmaker
+  player("r6", "Sho Tanaka", "MID", "common", 48, 44, 55, 2, "JPN"),
+  player("r7", "Niko Petrov", "MID", "common", 46, 42, 53, 2, "BGR"),
+  player("r8", "Cole Adler", "MID", "common", 44, 40, 52, 2, "USA"),
+  player("r9", "Kwesi Mensah", "FWD", "legendary", 94, 20, 95, 6, "GHA"), // superstar (captain)
+  player("r10", "Bruno Salas", "FWD", "common", 56, 18, 54, 2, "CHL"),
+  player("r11", "Emir Kaya", "FWD", "common", 52, 16, 51, 2, "TUR"),
+];
+export const runRealisticCaptain = "r9";
+
 /** All player archetypes available for the sim matrix. */
-export type DeckName = "all-common" | "all-common-tactics" | "balanced" | "star-heavy" | "defense-heavy";
+export type DeckName =
+  | "all-common"
+  | "all-common-tactics"
+  | "balanced"
+  | "star-heavy"
+  | "defense-heavy"
+  | "run-realistic";
 
 export interface DeckSpec {
   name: DeckName;
@@ -216,6 +239,7 @@ export const DECKS: DeckSpec[] = [
   { name: "balanced", cards: balancedCards, captainId: balancedCaptain },
   { name: "star-heavy", cards: starHeavyCards, captainId: starHeavyCaptain },
   { name: "defense-heavy", cards: defenseHeavyCards, captainId: defenseHeavyCaptain },
+  { name: "run-realistic", cards: runRealisticCards, captainId: runRealisticCaptain },
 ];
 
 export const OPPONENTS: OpponentTeam[] = [weakOpponent, midOpponent, championOpponent];

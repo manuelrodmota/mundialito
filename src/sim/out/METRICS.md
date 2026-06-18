@@ -5,9 +5,20 @@ files are **regenerated every run** (`npm run sim`) and are git-ignored:
 
 | File | What it is |
 |------|------------|
-| `results.csv` | One row per simulated match (the raw data). |
-| `summary.json` | Aggregated metrics across all matches (the report). |
+| `results.csv` / `summary.json` | The first config's raw rows / aggregates (mirrored from `results.<first>.*` — `v10` by default — for continuity). |
+| `results.<config>.csv` | One row per match for each config in the sweep (`v10`, `pre-v10`). |
+| `summary.<config>.json` | Aggregated metrics per config. |
+| `comparison.json` | Cross-config headline metrics side-by-side (endTypeSplit, goalStats, deckWinRates, defense/star/tactical impact, etRoundsHistogram, fulltimeOneGoalPct). |
 | `METRICS.md` | This file — what every column / field means. (tracked in git) |
+
+### Balance configs (v10 is the shipping default — GDD v10 §15)
+`npm run sim` sweeps (override with `SIM_CONFIGS=v10` or `SIM_CONFIGS=v10,pre-v10`):
+- **v10** — the locked shipping rules (`DEFAULT_TUNING`): diminishing returns (`stackWeights`), star-core discount (`starSynergyDiscount`), gentle field-cost curve (`costByRarity`), xG `/210` cap `0.50`, sudden-death ET.
+- **pre-v10** — the original baseline (all balance fixes off + the old `/150`, `0.60` curve), kept for the before/after contrast that motivated the v10 pass.
+
+### `deckWinRates` (in each `summary.json`)
+`deck → tier → player win %`. The headline ranking signal: shows whether each archetype
+beats the opponent tier more or less often than the others. (Player = `home`.)
 
 ## The run, in one paragraph
 
@@ -15,7 +26,7 @@ Each run plays a matrix of **player-deck archetypes × opponent tiers**, `N` mat
 per cell (default **1000**, override with `SIM_N`). Every match is seeded
 deterministically from a fixed base seed, so the whole run is **reproducible** —
 re-running with the same knobs produces byte-identical files. Default matrix =
-**5 decks × 3 tiers × 1000 = 15,000 matches**.
+**6 decks × 3 tiers × 1000 = 18,000 matches** per config.
 
 > **Orientation — read this first.** In every metric, **`home` = your player deck**
 > and **`away` = the opponent**. So `goalsHome` is the goals *your* deck scored,
@@ -23,8 +34,8 @@ re-running with the same knobs produces byte-identical files. Default matrix =
 > win rate against that opponent tier.
 
 - **Decks:** `all-common` (baseline), `balanced`, `star-heavy`, `defense-heavy`,
-  and `all-common-tactics` (the baseline deck plus Tactical Cards — used only for
-  the tactical-impact comparison).
+  `run-realistic` (a buildable star-led Run deck), and `all-common-tactics` (the baseline
+  deck plus Tactical Cards — used only for the tactical-impact comparison).
 - **Tiers:** `weak`, `mid`, `champion` (Tier-S).
 
 ---

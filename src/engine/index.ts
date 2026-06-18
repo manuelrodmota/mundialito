@@ -36,6 +36,7 @@ export {
   setFormation,
   canPlace,
   place,
+  placementCost,
   recall,
   playTactic,
   canPlayTactic,

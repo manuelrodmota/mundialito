@@ -15,10 +15,10 @@ export const DEFAULT_TUNING = {
   etRoundCap: 5,
   etXgMult: 2,
 
-  // xG curve (GDD §7)
+  // xG curve (GDD §7) — v10-tuned (was /150, 0.60)
   xgFloor: 0.05,
-  xgSlope: 150,
-  xgCap: 0.60,
+  xgSlope: 210,
+  xgCap: 0.5,
 
   // Hand (GDD §6 v8)
   openingHand: 5,
@@ -64,4 +64,12 @@ export const DEFAULT_TUNING = {
   gkSaveXg: 0.06,
 
   intent: true,
+
+  // v10 balance pass — LOCKED from the Monte-Carlo sim (GDD v10 §15/§17). These were
+  // experimental toggles while tuning; they are now the shipping defaults.
+  stackWeights: [1.0, 0.85, 0.7, 0.55, 0.4, 0.25], // diminishing returns per lane (sorted desc)
+  starSynergyDiscount: true, // lane with ≥1 premium: non-anchor cards half-price
+  synergyDiscount: 0.5,
+  synergyMinCost: 1,
+  costByRarity: { common: 2, rare: 2, epic: 3, legendary: 4 }, // gentle per-round field cost
 } satisfies Tuning;

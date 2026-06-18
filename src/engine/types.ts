@@ -235,4 +235,22 @@ export interface Tuning {
   fortressDef: number;
   gkSaveXg: number;
   intent: boolean;
+
+  // --- Experimental balance fixes (OFF by default → baseline behavior unchanged).
+  //     See the "Balance Fix Spec — Diminishing Returns + Star Synergy". ---
+  // Fix 2 (resolve): diminishing returns on stacked lane contributions. When set,
+  // each lane's per-card contributions are sorted descending and multiplied by these
+  // weights (index 0 = top contributor). null = flat sum (baseline).
+  stackWeights: number[] | null;
+  // Fix 1 (plan): star synergy stamina discount. When true, in a lane containing >=1
+  // premium (non-common) the highest-cost card is the full-price anchor and every other
+  // card is discounted (regardless of tier). A lane with no premium gets no discount.
+  starSynergyDiscount: boolean;
+  synergyDiscount: number; // non-anchor cost multiplier (e.g. 0.5)
+  synergyMinCost: number; // floor for a discounted card's stamina cost
+  // Experiment: gentle per-round stamina cost curve. When set, a PLAYER card's per-round
+  // stamina cost is taken from this rarity→cost map instead of card.cost (the synergy discount
+  // then applies on top). null = use card.cost (baseline). Deck-build slot costs are unaffected;
+  // tactical cards always use their own card.cost.
+  costByRarity: Record<Rarity, number> | null;
 }
