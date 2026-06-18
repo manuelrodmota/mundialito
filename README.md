@@ -29,11 +29,12 @@ Both modes share the same match engine (xG, formations, fatigue, Tactical Cards,
 ## Tech stack
 
 - **TypeScript** throughout.
-- **React 19** on **Next.js** for the app/UI (the player-facing client).
-- A **pure, framework-agnostic TypeScript match engine** (`src/engine/`) — no DOM, no I/O, deterministic given a seed — shared headless by both modes and trivially portable into the Next.js UI.
-- **Vitest**-style self-checks / a Node-only Monte-Carlo simulator for balance work (`src/sim/`).
+- **React 19 + Vite** for the app/UI (the player-facing client) — a fast client-side SPA, the right fit for an animation-heavy card game (no SSR/server need; screens switch via state, not routing).
+- **UI / interaction libraries:** Framer Motion (animation) + dnd-kit (drag-to-lane), built over the design tokens + ported design-system components in `design/design-system/` + `design/ds/`.
+- A **pure, framework-agnostic TypeScript match engine** (`src/engine/`) — no DOM, no I/O, deterministic given a seed — shared headless by both modes.
+- **Vitest** for unit tests (`pnpm test`).
 
-> **Status:** the v10-locked **match engine** and the **headless balance simulator** are in place; the **React (Next.js) UI** is the active build target. (The repo carries an early Vite scaffold under `src/`; the production client is being built on Next.js. The framework-agnostic engine drops into either.)
+> **Status:** the Foundation layer is in place — canonical v10 types/constants (`src/engine/`), the data layer (296 players, 19 tacticals, 38 opponent teams in `src/data/`), and a Vitest harness. Next up: the match engine (built **fresh from the GDD rules**, SCRUM-6) and the Quickplay **UI** (Vite + React, Framer Motion + dnd-kit, SCRUM-7).
 
 ## Repository layout
 
@@ -48,8 +49,9 @@ Both modes share the same match engine (xG, formations, fatigue, Tactical Cards,
 │   ├── assets/crests/                      # national-team crests (SVG)
 │   └── design_handoff_jersey_cards/        # per-nation procedural jersey-kit card art (Card2.jsx + Jersey.jsx)
 ├── src/
-│   ├── engine/                # Pure TS v10 match engine — public surface via index.ts
-│   ├── sim/                   # Node-only Monte-Carlo balance simulator (own tsconfig.sim.json; out/ git-ignored)
+│   ├── engine/                # Framework-agnostic TS: v10 types + constants (+ seeded rng). Match engine built fresh under SCRUM-6.
+│   ├── data/                  # Player pool (296), tactical catalog (19), opponent teams (38) — derived from the GDD
+│   ├── ui/                    # React components + screens (Vite; Framer Motion + dnd-kit)
 │   └── assets/                # Static assets
 └── docs/llm-wiki/             # LLM-oriented architecture wiki
 ```
@@ -68,14 +70,7 @@ pnpm install        # (npm works for most tasks; this repo carries a pnpm lockfi
 pnpm dev
 pnpm build          # tsc -b && vite build  (type-check gates the bundle)
 pnpm lint
-
-# Headless balance simulator (Node-only)
-npm run sim         # Monte-Carlo sweep → console summary + src/sim/out/{results,summary}.csv/json
-                    #   SIM_N=<n> matches/cell · SIM_OUT=<dir> · SIM_CONFIGS=v10,pre-v10
-npm run sim:check   # fixed-seed reproducibility self-check (exit 0 = pass)
 ```
-
-See [`src/sim/out/METRICS.md`](./src/sim/out/METRICS.md) for what every simulator metric means.
 
 ## Testing
 
@@ -96,8 +91,7 @@ Use explicit `import { describe, it, expect } from "vitest"` — no globals.
 | --------- | -------- |
 | `src/engine/` | Framework-agnostic TS match engine — no React, no `window`, no `Math.random()` |
 | `src/ui/` | React components and pages |
-| `src/data/` | Static game data (rosters, nation metadata, formation definitions) |
-| `src/sim/` | Node-only Monte-Carlo balance simulator (excluded from the browser bundle) |
+| `src/data/` | Static game data — player pool, tactical catalog, opponent teams (derived from the GDD) |
 
 ## Build phasing
 
