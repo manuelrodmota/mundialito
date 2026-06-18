@@ -77,6 +77,28 @@ npm run sim:check   # fixed-seed reproducibility self-check (exit 0 = pass)
 
 See [`src/sim/out/METRICS.md`](./src/sim/out/METRICS.md) for what every simulator metric means.
 
+## Testing
+
+The project uses **Vitest** for unit testing.
+
+```bash
+pnpm test          # run all tests once
+pnpm test:watch    # run in watch mode (re-runs on file change)
+pnpm coverage      # run tests and emit v8 coverage report
+```
+
+Tests are **co-located** next to the source they cover (e.g. `src/engine/rng.test.ts`).
+Use explicit `import { describe, it, expect } from "vitest"` — no globals.
+
+### Directory boundaries
+
+| Directory | Contents |
+| --------- | -------- |
+| `src/engine/` | Framework-agnostic TS match engine — no React, no `window`, no `Math.random()` |
+| `src/ui/` | React components and pages |
+| `src/data/` | Static game data (rosters, nation metadata, formation definitions) |
+| `src/sim/` | Node-only Monte-Carlo balance simulator (excluded from the browser bundle) |
+
 ## Build phasing
 
 - **MVP** — Quickplay end-to-end (deck builder → one match → result), on the shared engine.
