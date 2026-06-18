@@ -1,0 +1,776 @@
+import type { OpponentTeam, TacticalCard, Formation, Tier } from "../engine/types.ts";
+import type { PlayerRating } from "./playerPool.ts";
+import { toPlayerCard } from "./players.ts";
+import { tacticals } from "./tacticals.ts";
+
+// ---- Internal raw-data shape ------------------------------------------------
+
+interface RawSquadEntry {
+  readonly name: string;
+  readonly pos: PlayerRating["position"];
+  readonly overall: number;
+}
+
+interface RawTeam {
+  readonly id: string;
+  readonly nation: string;
+  readonly year: number;
+  readonly tier: Tier;
+  readonly pref: Formation;
+  readonly blurb: string;
+  readonly tacs?: ReadonlyArray<string>;
+  readonly squad: ReadonlyArray<RawSquadEntry>;
+}
+
+// ---- Helpers ----------------------------------------------------------------
+
+/** Looks up a TacticalCard from the catalog by its effect kind. */
+function resolveSignatureTacticals(tacs: ReadonlyArray<string>): TacticalCard[] {
+  const result: TacticalCard[] = [];
+  for (const kind of tacs) {
+    const found = tacticals.find((t) => t.effect.kind === kind);
+    if (found) result.push(found);
+  }
+  return result;
+}
+
+/** Derives average overall from squad entries and rounds to nearest integer. */
+function deriveStrength(squad: ReadonlyArray<RawSquadEntry>): number {
+  return Math.round(squad.reduce((sum, p) => sum + p.overall, 0) / squad.length);
+}
+
+/** Converts a RawTeam to a fully typed OpponentTeam. */
+function buildTeam(raw: RawTeam): OpponentTeam {
+  const seenIds = new Map<string, number>();
+  const squad = raw.squad.map((entry) =>
+    toPlayerCard(
+      { name: entry.name, nation: raw.nation, worldCup: raw.year, position: entry.pos, overall: entry.overall },
+      seenIds,
+    ),
+  );
+  const signatureTactical = raw.tacs ? resolveSignatureTacticals(raw.tacs) : undefined;
+
+  return {
+    id: raw.id,
+    name: `${raw.nation} ${raw.year}`,
+    nation: raw.nation,
+    year: raw.year,
+    tier: raw.tier,
+    strength: deriveStrength(raw.squad),
+    squad,
+    preferredFormation: raw.pref,
+    isChampion: raw.tier === "S",
+    blurb: raw.blurb,
+    ...(signatureTactical && signatureTactical.length > 0 ? { signatureTactical } : {}),
+  };
+}
+
+// ---- Raw team data ----------------------------------------------------------
+// Sources:
+//  · design/js/data3.js RAW_TEAMS (Tier D/C/B/A and the 8 Tier-S teams present there)
+//  · Manually added era-XI entries for the 14 §13 champions absent from data3.js
+
+const RAW_TEAMS: ReadonlyArray<RawTeam> = [
+
+  // ============ TIER D — plucky underdogs (group) ============
+
+  { id: "sau94", nation: "Saudi Arabia", year: 1994, tier: "D", pref: "balanced",
+    blurb: "Al-Owairan's 70-yard solo run made them the surprise of USA '94.",
+    tacs: ["waterBreak", "counterAttack", "timeWasting"],
+    squad: [
+      { name: "Mohammed Al-Deayea",   pos: "GK",  overall: 73 },
+      { name: "Mohammed Al-Khlaiwi", pos: "DEF", overall: 70 },
+      { name: "Ahmed Madani",         pos: "DEF", overall: 69 },
+      { name: "Abdullah Zubromawi",   pos: "DEF", overall: 67 },
+      { name: "Mohammed Al-Jawad",    pos: "DEF", overall: 68 },
+      { name: "Khalid Al-Muwallid",   pos: "MID", overall: 72 },
+      { name: "Fuad Amin",            pos: "MID", overall: 71 },
+      { name: "Fahad Al-Bishi",       pos: "MID", overall: 70 },
+      { name: "Saeed Al-Owairan",     pos: "FWD", overall: 79 },
+      { name: "Sami Al-Jaber",        pos: "FWD", overall: 76 },
+      { name: "Fahad Al-Ghesheyan",   pos: "FWD", overall: 68 },
+    ],
+  },
+
+  { id: "crc14", nation: "Costa Rica", year: 2014, tier: "D", pref: "defensive",
+    blurb: "Topped a group of champions, then Navas carried them to a quarter-final.",
+    tacs: ["catenaccio", "counterAttack", "timeWasting"],
+    squad: [
+      { name: "Keylor Navas",        pos: "GK",  overall: 85 },
+      { name: "Giancarlo González",  pos: "DEF", overall: 75 },
+      { name: "Óscar Duarte",        pos: "DEF", overall: 74 },
+      { name: "Michael Umaña",       pos: "DEF", overall: 72 },
+      { name: "Júnior Díaz",         pos: "DEF", overall: 71 },
+      { name: "Celso Borges",        pos: "MID", overall: 75 },
+      { name: "Yeltsin Tejeda",      pos: "MID", overall: 71 },
+      { name: "Christian Bolaños",   pos: "MID", overall: 74 },
+      { name: "Bryan Ruiz",          pos: "FWD", overall: 78 },
+      { name: "Joel Campbell",       pos: "FWD", overall: 77 },
+      { name: "Marco Ureña",         pos: "FWD", overall: 70 },
+    ],
+  },
+
+  { id: "can22", nation: "Canada", year: 2022, tier: "D", pref: "balanced",
+    blurb: "Back at the World Cup after 36 years, all heart and fast breaks.",
+    tacs: ["highPress", "waterBreak"],
+    squad: [
+      { name: "Milan Borjan",         pos: "GK",  overall: 73 },
+      { name: "Alistair Johnston",    pos: "DEF", overall: 72 },
+      { name: "Kamal Miller",         pos: "DEF", overall: 70 },
+      { name: "Steven Vitória",       pos: "DEF", overall: 71 },
+      { name: "Richie Laryea",        pos: "DEF", overall: 71 },
+      { name: "Atiba Hutchinson",     pos: "MID", overall: 74 },
+      { name: "Stephen Eustáquio",    pos: "MID", overall: 75 },
+      { name: "Tajon Buchanan",       pos: "MID", overall: 75 },
+      { name: "Alphonso Davies",      pos: "FWD", overall: 84 },
+      { name: "Jonathan David",       pos: "FWD", overall: 80 },
+      { name: "Cyle Larin",           pos: "FWD", overall: 73 },
+    ],
+  },
+
+  { id: "sen02", nation: "Senegal", year: 2002, tier: "D", pref: "balanced",
+    blurb: "Beat the holders France on opening night and never looked scared.",
+    tacs: ["highPress", "counterAttack", "waterBreak"],
+    squad: [
+      { name: "Tony Sylva",          pos: "GK",  overall: 74 },
+      { name: "Ferdinand Coly",      pos: "DEF", overall: 73 },
+      { name: "Lamine Diatta",       pos: "DEF", overall: 75 },
+      { name: "Aliou Cissé",         pos: "DEF", overall: 72 },
+      { name: "Omar Daf",            pos: "DEF", overall: 70 },
+      { name: "Papa Bouba Diop",     pos: "MID", overall: 79 },
+      { name: "Salif Diao",          pos: "MID", overall: 74 },
+      { name: "Khalilou Fadiga",     pos: "MID", overall: 78 },
+      { name: "El Hadji Diouf",      pos: "FWD", overall: 82 },
+      { name: "Henri Camara",        pos: "FWD", overall: 78 },
+      { name: "Souleymane Diallo",   pos: "FWD", overall: 71 },
+    ],
+  },
+
+  // ============ TIER C — solid dark horses (R16+) ============
+
+  { id: "kor02", nation: "South Korea", year: 2002, tier: "C", pref: "balanced",
+    blurb: "Hiddink's tireless pressing machine ran all the way to a home semi-final.",
+    tacs: ["highPress", "waterBreak", "substitution"],
+    squad: [
+      { name: "Lee Woon-jae",   pos: "GK",  overall: 77 },
+      { name: "Hong Myung-bo",  pos: "DEF", overall: 83 },
+      { name: "Choi Jin-cheul", pos: "DEF", overall: 76 },
+      { name: "Kim Tae-young",  pos: "DEF", overall: 75 },
+      { name: "Lee Young-pyo",  pos: "DEF", overall: 77 },
+      { name: "Yoo Sang-chul",  pos: "MID", overall: 78 },
+      { name: "Kim Nam-il",     pos: "MID", overall: 76 },
+      { name: "Park Ji-sung",   pos: "MID", overall: 81 },
+      { name: "Lee Chun-soo",   pos: "FWD", overall: 77 },
+      { name: "Seol Ki-hyeon",  pos: "FWD", overall: 76 },
+      { name: "Ahn Jung-hwan",  pos: "FWD", overall: 79 },
+    ],
+  },
+
+  { id: "cro98", nation: "Croatia", year: 1998, tier: "C", pref: "balanced",
+    blurb: "Šuker's golden boot dragged a debutant nation to third place.",
+    tacs: ["counterAttack", "longBall", "waterBreak"],
+    squad: [
+      { name: "Drazen Ladić",          pos: "GK",  overall: 78 },
+      { name: "Slaven Bilić",          pos: "DEF", overall: 81 },
+      { name: "Igor Štimac",           pos: "DEF", overall: 80 },
+      { name: "Dario Šimić",           pos: "DEF", overall: 79 },
+      { name: "Robert Jarni",          pos: "DEF", overall: 80 },
+      { name: "Zvonimir Boban",        pos: "MID", overall: 86 },
+      { name: "Robert Prosinečki",     pos: "MID", overall: 84 },
+      { name: "Aljoša Asanović",       pos: "MID", overall: 82 },
+      { name: "Mario Stanić",          pos: "MID", overall: 78 },
+      { name: "Davor Šuker",           pos: "FWD", overall: 88 },
+      { name: "Goran Vlaović",         pos: "FWD", overall: 77 },
+    ],
+  },
+
+  { id: "usa94", nation: "USA", year: 1994, tier: "C", pref: "defensive",
+    blurb: "Hosts with nothing to lose — organized, stubborn, dangerous on the break.",
+    tacs: ["counterAttack", "timeWasting", "waterBreak"],
+    squad: [
+      { name: "Tony Meola",     pos: "GK",  overall: 76 },
+      { name: "Alexi Lalas",    pos: "DEF", overall: 75 },
+      { name: "Marcelo Balboa", pos: "DEF", overall: 74 },
+      { name: "Fernando Clavijo", pos: "DEF", overall: 71 },
+      { name: "Paul Caligiuri", pos: "MID", overall: 73 },
+      { name: "Tab Ramos",      pos: "MID", overall: 77 },
+      { name: "Thomas Dooley",  pos: "MID", overall: 75 },
+      { name: "John Harkes",    pos: "MID", overall: 74 },
+      { name: "Mike Sorber",    pos: "MID", overall: 71 },
+      { name: "Eric Wynalda",   pos: "FWD", overall: 77 },
+      { name: "Earnie Stewart", pos: "FWD", overall: 74 },
+    ],
+  },
+
+  { id: "mar22", nation: "Morocco", year: 2022, tier: "C", pref: "defensive",
+    blurb: "The wall of Qatar — first African side to reach a World Cup semi-final.",
+    tacs: ["catenaccio", "counterAttack", "fortress"],
+    squad: [
+      { name: "Yassine Bounou",    pos: "GK",  overall: 85 },
+      { name: "Achraf Hakimi",     pos: "DEF", overall: 86 },
+      { name: "Romain Saïss",      pos: "DEF", overall: 80 },
+      { name: "Nayef Aguerd",      pos: "DEF", overall: 79 },
+      { name: "Noussair Mazraoui", pos: "DEF", overall: 80 },
+      { name: "Sofyan Amrabat",    pos: "MID", overall: 83 },
+      { name: "Azzedine Ounahi",   pos: "MID", overall: 79 },
+      { name: "Selim Amallah",     pos: "MID", overall: 76 },
+      { name: "Hakim Ziyech",      pos: "FWD", overall: 84 },
+      { name: "Youssef En-Nesyri", pos: "FWD", overall: 81 },
+      { name: "Sofiane Boufal",    pos: "FWD", overall: 78 },
+    ],
+  },
+
+  // ============ TIER B — genuine contenders (QF+) ============
+
+  { id: "ned78", nation: "Netherlands", year: 1978, tier: "B", pref: "offensive",
+    blurb: "Cruyff stayed home; they still carved their way to a second straight final.",
+    tacs: ["tikiTaka", "longBall", "waterBreak"],
+    squad: [
+      { name: "Jan Jongbloed",           pos: "GK",  overall: 76 },
+      { name: "Ruud Krol",               pos: "DEF", overall: 87 },
+      { name: "Wim Rijsbergen",          pos: "DEF", overall: 80 },
+      { name: "Ernie Brandts",           pos: "DEF", overall: 79 },
+      { name: "Wim Suurbier",            pos: "DEF", overall: 81 },
+      { name: "Johan Neeskens",          pos: "MID", overall: 88 },
+      { name: "Arie Haan",               pos: "MID", overall: 85 },
+      { name: "Willy van de Kerkhof",    pos: "MID", overall: 81 },
+      { name: "Wim Jansen",              pos: "MID", overall: 81 },
+      { name: "Johnny Rep",              pos: "FWD", overall: 85 },
+      { name: "Rob Rensenbrink",         pos: "FWD", overall: 88 },
+    ],
+  },
+
+  { id: "por06", nation: "Portugal", year: 2006, tier: "B", pref: "balanced",
+    blurb: "Figo's last dance and a young Ronaldo — semi-finalists with bite.",
+    tacs: ["nutmeg", "referee", "waterBreak"],
+    squad: [
+      { name: "Ricardo",           pos: "GK",  overall: 81 },
+      { name: "Ricardo Carvalho",  pos: "DEF", overall: 86 },
+      { name: "Fernando Meira",    pos: "DEF", overall: 80 },
+      { name: "Miguel",            pos: "DEF", overall: 80 },
+      { name: "Nuno Valente",      pos: "DEF", overall: 78 },
+      { name: "Maniche",           pos: "MID", overall: 84 },
+      { name: "Costinha",          pos: "MID", overall: 80 },
+      { name: "Deco",              pos: "MID", overall: 88 },
+      { name: "Luís Figo",         pos: "FWD", overall: 89 },
+      { name: "Cristiano Ronaldo", pos: "FWD", overall: 86 },
+      { name: "Pauleta",           pos: "FWD", overall: 82 },
+    ],
+  },
+
+  { id: "bel18", nation: "Belgium", year: 2018, tier: "B", pref: "offensive",
+    blurb: "The golden generation at full power — that counter against Japan still stings.",
+    tacs: ["counterAttack", "highPress", "waterBreak"],
+    squad: [
+      { name: "Thibaut Courtois",  pos: "GK",  overall: 90 },
+      { name: "Vincent Kompany",   pos: "DEF", overall: 85 },
+      { name: "Toby Alderweireld", pos: "DEF", overall: 84 },
+      { name: "Jan Vertonghen",    pos: "DEF", overall: 83 },
+      { name: "Thomas Meunier",    pos: "DEF", overall: 80 },
+      { name: "Axel Witsel",       pos: "MID", overall: 83 },
+      { name: "Marouane Fellaini", pos: "MID", overall: 79 },
+      { name: "Kevin De Bruyne",   pos: "MID", overall: 92 },
+      { name: "Dries Mertens",     pos: "FWD", overall: 84 },
+      { name: "Eden Hazard",       pos: "FWD", overall: 92 },
+      { name: "Romelu Lukaku",     pos: "FWD", overall: 88 },
+    ],
+  },
+
+  { id: "col14", nation: "Colombia", year: 2014, tier: "B", pref: "offensive",
+    blurb: "James lit up Brazil with the goal of the tournament.",
+    tacs: ["tikiTaka", "penalty", "waterBreak"],
+    squad: [
+      { name: "David Ospina",        pos: "GK",  overall: 82 },
+      { name: "Juan Camilo Zúñiga",  pos: "DEF", overall: 78 },
+      { name: "Mario Yepes",         pos: "DEF", overall: 77 },
+      { name: "Cristián Zapata",     pos: "DEF", overall: 76 },
+      { name: "Pablo Armero",        pos: "DEF", overall: 77 },
+      { name: "Carlos Sánchez",      pos: "MID", overall: 79 },
+      { name: "Abel Aguilar",        pos: "MID", overall: 76 },
+      { name: "Juan Cuadrado",       pos: "MID", overall: 84 },
+      { name: "James Rodríguez",     pos: "MID", overall: 90 },
+      { name: "Teófilo Gutiérrez",   pos: "FWD", overall: 79 },
+      { name: "Carlos Bacca",        pos: "FWD", overall: 80 },
+    ],
+  },
+
+  // ============ TIER A — all-time greats (SF+) ============
+
+  { id: "ned74", nation: "Netherlands", year: 1974, tier: "A", pref: "offensive",
+    blurb: "Total Football. Cruyff's orange machine where every player was every position.",
+    tacs: ["totalFootball", "tikiTaka", "highPress"],
+    squad: [
+      { name: "Jan Jongbloed",      pos: "GK",  overall: 75 },
+      { name: "Ruud Krol",          pos: "DEF", overall: 88 },
+      { name: "Wim Suurbier",       pos: "DEF", overall: 82 },
+      { name: "Wim Rijsbergen",     pos: "DEF", overall: 80 },
+      { name: "Arie Haan",          pos: "MID", overall: 86 },
+      { name: "Wim van Hanegem",    pos: "MID", overall: 88 },
+      { name: "Johan Neeskens",     pos: "MID", overall: 90 },
+      { name: "Wim Jansen",         pos: "MID", overall: 82 },
+      { name: "Johnny Rep",         pos: "FWD", overall: 86 },
+      { name: "Johan Cruyff",       pos: "FWD", overall: 96 },
+      { name: "Rob Rensenbrink",    pos: "FWD", overall: 86 },
+    ],
+  },
+
+  { id: "hun54", nation: "Hungary", year: 1954, tier: "A", pref: "offensive",
+    blurb: "The Mighty Magyars — unbeaten for four years, terrifying for ninety minutes.",
+    tacs: ["tikiTaka", "penalty", "waterBreak"],
+    squad: [
+      { name: "Gyula Grosics",      pos: "GK",  overall: 82 },
+      { name: "Jenő Buzánszky",     pos: "DEF", overall: 78 },
+      { name: "Gyula Lóránt",       pos: "DEF", overall: 79 },
+      { name: "Mihály Lantos",      pos: "DEF", overall: 78 },
+      { name: "József Bozsik",      pos: "MID", overall: 89 },
+      { name: "József Zakariás",    pos: "MID", overall: 80 },
+      { name: "Nándor Hidegkuti",   pos: "MID", overall: 91 },
+      { name: "Sándor Kocsis",      pos: "FWD", overall: 93 },
+      { name: "Ferenc Puskás",      pos: "FWD", overall: 96 },
+      { name: "Zoltán Czibor",      pos: "FWD", overall: 88 },
+      { name: "Mihály Tóth",        pos: "FWD", overall: 78 },
+    ],
+  },
+
+  { id: "bra82", nation: "Brazil", year: 1982, tier: "A", pref: "offensive",
+    blurb: "Maybe the most beautiful team never to win it. Zico, Sócrates, Falcão.",
+    tacs: ["tikiTaka", "nutmeg", "waterBreak"],
+    squad: [
+      { name: "Waldir Peres",       pos: "GK",  overall: 77 },
+      { name: "Leandro",            pos: "DEF", overall: 84 },
+      { name: "Oscar",              pos: "DEF", overall: 81 },
+      { name: "Luizinho",           pos: "DEF", overall: 80 },
+      { name: "Júnior",             pos: "DEF", overall: 87 },
+      { name: "Toninho Cerezo",     pos: "MID", overall: 86 },
+      { name: "Falcão",             pos: "MID", overall: 91 },
+      { name: "Sócrates",           pos: "MID", overall: 93 },
+      { name: "Zico",               pos: "MID", overall: 95 },
+      { name: "Éder",               pos: "FWD", overall: 88 },
+      { name: "Serginho",           pos: "FWD", overall: 76 },
+    ],
+  },
+
+  { id: "cro18", nation: "Croatia", year: 2018, tier: "A", pref: "balanced",
+    blurb: "Three straight extra-times on the way to the final. They simply refused to lose.",
+    tacs: ["timeWasting", "counterAttack", "teamTalk"],
+    squad: [
+      { name: "Danijel Subašić",   pos: "GK",  overall: 81 },
+      { name: "Šime Vrsaljko",     pos: "DEF", overall: 80 },
+      { name: "Dejan Lovren",      pos: "DEF", overall: 81 },
+      { name: "Domagoj Vida",      pos: "DEF", overall: 80 },
+      { name: "Ivan Strinić",      pos: "DEF", overall: 77 },
+      { name: "Marcelo Brozović",  pos: "MID", overall: 83 },
+      { name: "Ivan Rakitić",      pos: "MID", overall: 87 },
+      { name: "Luka Modrić",       pos: "MID", overall: 95 },
+      { name: "Ivan Perišić",      pos: "FWD", overall: 85 },
+      { name: "Mario Mandžukić",   pos: "FWD", overall: 85 },
+      { name: "Ante Rebić",        pos: "FWD", overall: 80 },
+    ],
+  },
+
+  // ============ TIER S — world champions (Final only) ============
+  // All 22 §13 champions (8 from data3.js + 14 added below)
+
+  // ---------- Present in data3.js ----------
+
+  { id: "bra70", nation: "Brazil", year: 1970, tier: "S", pref: "offensive",
+    blurb: "Pelé, Jairzinho, Rivellino, Tostão — football's high-water mark in Mexican sun.",
+    tacs: ["tikiTaka", "nutmeg", "penalty", "waterBreak"],
+    squad: [
+      { name: "Félix",          pos: "GK",  overall: 76 },
+      { name: "Carlos Alberto", pos: "DEF", overall: 89 },
+      { name: "Brito",          pos: "DEF", overall: 82 },
+      { name: "Wilson Piazza",  pos: "DEF", overall: 82 },
+      { name: "Everaldo",       pos: "DEF", overall: 80 },
+      { name: "Clodoaldo",      pos: "MID", overall: 85 },
+      { name: "Gérson",         pos: "MID", overall: 90 },
+      { name: "Rivellino",      pos: "MID", overall: 92 },
+      { name: "Jairzinho",      pos: "FWD", overall: 93 },
+      { name: "Tostão",         pos: "FWD", overall: 91 },
+      { name: "Pelé",           pos: "FWD", overall: 98 },
+    ],
+  },
+
+  { id: "ita82", nation: "Italy", year: 1982, tier: "S", pref: "defensive",
+    blurb: "Catenaccio perfected. Zoff's wall, Gentile's shadow, Rossi's six goals.",
+    tacs: ["catenaccio", "fortress", "referee", "counterAttack"],
+    squad: [
+      { name: "Dino Zoff",              pos: "GK",  overall: 91 },
+      { name: "Claudio Gentile",        pos: "DEF", overall: 88 },
+      { name: "Gaetano Scirea",         pos: "DEF", overall: 91 },
+      { name: "Fulvio Collovati",       pos: "DEF", overall: 83 },
+      { name: "Antonio Cabrini",        pos: "DEF", overall: 86 },
+      { name: "Giuseppe Bergomi",       pos: "DEF", overall: 82 },
+      { name: "Marco Tardelli",         pos: "MID", overall: 89 },
+      { name: "Giancarlo Antognoni",    pos: "MID", overall: 84 },
+      { name: "Gabriele Oriali",        pos: "MID", overall: 80 },
+      { name: "Bruno Conti",            pos: "FWD", overall: 87 },
+      { name: "Paolo Rossi",            pos: "FWD", overall: 93 },
+    ],
+  },
+
+  { id: "arg86", nation: "Argentina", year: 1986, tier: "S", pref: "offensive",
+    blurb: "One man, one tournament. The Hand of God and the Goal of the Century.",
+    tacs: ["handOfGod", "nutmeg", "referee", "waterBreak"],
+    squad: [
+      { name: "Nery Pumpido",          pos: "GK",  overall: 80 },
+      { name: "Oscar Ruggeri",         pos: "DEF", overall: 86 },
+      { name: "José Luis Brown",       pos: "DEF", overall: 83 },
+      { name: "José Luis Cuciuffo",    pos: "DEF", overall: 79 },
+      { name: "Julio Olarticoechea",   pos: "DEF", overall: 79 },
+      { name: "Sergio Batista",        pos: "MID", overall: 81 },
+      { name: "Ricardo Giusti",        pos: "MID", overall: 80 },
+      { name: "Jorge Burruchaga",      pos: "MID", overall: 87 },
+      { name: "Héctor Enrique",        pos: "MID", overall: 80 },
+      { name: "Jorge Valdano",         pos: "FWD", overall: 88 },
+      { name: "Diego Maradona",        pos: "FWD", overall: 98 },
+    ],
+  },
+
+  { id: "fra98", nation: "France", year: 1998, tier: "S", pref: "balanced",
+    blurb: "Zidane's two headers and the meanest back line of the decade.",
+    tacs: ["fortress", "teamTalk", "penalty", "waterBreak"],
+    squad: [
+      { name: "Fabien Barthez",    pos: "GK",  overall: 87 },
+      { name: "Lilian Thuram",     pos: "DEF", overall: 89 },
+      { name: "Laurent Blanc",     pos: "DEF", overall: 88 },
+      { name: "Marcel Desailly",   pos: "DEF", overall: 90 },
+      { name: "Bixente Lizarazu",  pos: "DEF", overall: 85 },
+      { name: "Didier Deschamps",  pos: "MID", overall: 87 },
+      { name: "Emmanuel Petit",    pos: "MID", overall: 84 },
+      { name: "Christian Karembeu", pos: "MID", overall: 80 },
+      { name: "Zinedine Zidane",   pos: "MID", overall: 95 },
+      { name: "Youri Djorkaeff",   pos: "FWD", overall: 86 },
+      { name: "Stéphane Guivarc'h", pos: "FWD", overall: 72 },
+    ],
+  },
+
+  { id: "bra02", nation: "Brazil", year: 2002, tier: "S", pref: "offensive",
+    blurb: "The three R's — Ronaldo's redemption, eight goals and a fifth star.",
+    tacs: ["nutmeg", "penalty", "tikiTaka", "waterBreak"],
+    squad: [
+      { name: "Marcos",             pos: "GK",  overall: 84 },
+      { name: "Cafu",               pos: "DEF", overall: 88 },
+      { name: "Lúcio",              pos: "DEF", overall: 86 },
+      { name: "Edmílson",           pos: "DEF", overall: 83 },
+      { name: "Roberto Carlos",     pos: "DEF", overall: 89 },
+      { name: "Gilberto Silva",     pos: "MID", overall: 83 },
+      { name: "Kléberson",          pos: "MID", overall: 80 },
+      { name: "Juninho Paulista",   pos: "MID", overall: 81 },
+      { name: "Ronaldinho",         pos: "MID", overall: 93 },
+      { name: "Rivaldo",            pos: "FWD", overall: 94 },
+      { name: "Ronaldo",            pos: "FWD", overall: 97 },
+    ],
+  },
+
+  { id: "esp10", nation: "Spain", year: 2010, tier: "S", pref: "balanced",
+    blurb: "Tiki-taka at its peak — they passed teams to sleep, then Iniesta woke them up.",
+    tacs: ["tikiTaka", "highPress", "timeWasting", "waterBreak"],
+    squad: [
+      { name: "Iker Casillas",   pos: "GK",  overall: 91 },
+      { name: "Carles Puyol",    pos: "DEF", overall: 89 },
+      { name: "Gerard Piqué",    pos: "DEF", overall: 87 },
+      { name: "Sergio Ramos",    pos: "DEF", overall: 87 },
+      { name: "Joan Capdevila",  pos: "DEF", overall: 80 },
+      { name: "Sergio Busquets", pos: "MID", overall: 87 },
+      { name: "Xabi Alonso",     pos: "MID", overall: 88 },
+      { name: "Xavi",            pos: "MID", overall: 95 },
+      { name: "Andrés Iniesta",  pos: "MID", overall: 94 },
+      { name: "Pedro",           pos: "FWD", overall: 83 },
+      { name: "David Villa",     pos: "FWD", overall: 90 },
+    ],
+  },
+
+  { id: "ger14", nation: "Germany", year: 2014, tier: "S", pref: "balanced",
+    blurb: "The 7-1 machine. Relentless structure with a super-sub for the final.",
+    tacs: ["substitution", "penalty", "highPress", "waterBreak"],
+    squad: [
+      { name: "Manuel Neuer",               pos: "GK",  overall: 93 },
+      { name: "Philipp Lahm",               pos: "DEF", overall: 90 },
+      { name: "Mats Hummels",               pos: "DEF", overall: 89 },
+      { name: "Jérôme Boateng",             pos: "DEF", overall: 87 },
+      { name: "Benedikt Höwedes",           pos: "DEF", overall: 81 },
+      { name: "Bastian Schweinsteiger",     pos: "MID", overall: 89 },
+      { name: "Sami Khedira",               pos: "MID", overall: 84 },
+      { name: "Toni Kroos",                 pos: "MID", overall: 91 },
+      { name: "Mesut Özil",                 pos: "MID", overall: 88 },
+      { name: "Thomas Müller",              pos: "FWD", overall: 90 },
+      { name: "Miroslav Klose",             pos: "FWD", overall: 86 },
+    ],
+  },
+
+  { id: "arg22", nation: "Argentina", year: 2022, tier: "S", pref: "balanced",
+    blurb: "Messi's coronation, the greatest final ever played, and Dibu's glove.",
+    tacs: ["penalty", "timeWasting", "referee", "waterBreak"],
+    squad: [
+      { name: "Emiliano Martínez",   pos: "GK",  overall: 89 },
+      { name: "Nahuel Molina",       pos: "DEF", overall: 82 },
+      { name: "Cristian Romero",     pos: "DEF", overall: 86 },
+      { name: "Nicolás Otamendi",    pos: "DEF", overall: 85 },
+      { name: "Nicolás Tagliafico",  pos: "DEF", overall: 81 },
+      { name: "Rodrigo De Paul",     pos: "MID", overall: 85 },
+      { name: "Enzo Fernández",      pos: "MID", overall: 87 },
+      { name: "Alexis Mac Allister", pos: "MID", overall: 86 },
+      { name: "Ángel Di María",      pos: "FWD", overall: 88 },
+      { name: "Lionel Messi",        pos: "FWD", overall: 98 },
+      { name: "Julián Álvarez",      pos: "FWD", overall: 88 },
+    ],
+  },
+
+  // ---------- Added to complete the 22 §13 champions ----------
+
+  { id: "uru30", nation: "Uruguay", year: 1930, tier: "S", pref: "offensive",
+    blurb: "The first champions. Nasazzi's men dismantled Argentina in the Centenario.",
+    tacs: ["penalty", "counterAttack"],
+    squad: [
+      { name: "Enrique Ballesteros", pos: "GK",  overall: 74 },
+      { name: "José Nasazzi",        pos: "DEF", overall: 84 },
+      { name: "Ernesto Mascheroni",  pos: "DEF", overall: 78 },
+      { name: "Álvaro Gestido",      pos: "DEF", overall: 77 },
+      { name: "José Andrade",        pos: "MID", overall: 86 },
+      { name: "Lorenzo Fernández",   pos: "MID", overall: 82 },
+      { name: "Álvaro Gestido Jr",   pos: "MID", overall: 76 },
+      { name: "Pablo Dorado",        pos: "FWD", overall: 79 },
+      { name: "Héctor Scarone",      pos: "FWD", overall: 88 },
+      { name: "Pedro Cea",           pos: "FWD", overall: 86 },
+      { name: "Santos Iriarte",      pos: "FWD", overall: 79 },
+    ],
+  },
+
+  { id: "ita34", nation: "Italy", year: 1934, tier: "S", pref: "defensive",
+    blurb: "Pozzo's azzurri on home turf — physical, relentless, and first European champions.",
+    tacs: ["catenaccio", "timeWasting"],
+    squad: [
+      { name: "Gianpiero Combi",   pos: "GK",  overall: 82 },
+      { name: "Eraldo Monzeglio",  pos: "DEF", overall: 78 },
+      { name: "Luigi Allemandi",   pos: "DEF", overall: 79 },
+      { name: "Attilio Ferraris",  pos: "DEF", overall: 78 },
+      { name: "Luigi Monti",       pos: "MID", overall: 85 },
+      { name: "Fulvio Bernardini", pos: "MID", overall: 79 },
+      { name: "Giovanni Ferrari",  pos: "MID", overall: 84 },
+      { name: "Giuseppe Meazza",   pos: "FWD", overall: 93 },
+      { name: "Raimundo Orsi",     pos: "FWD", overall: 87 },
+      { name: "Angelo Schiavio",   pos: "FWD", overall: 84 },
+      { name: "Enrique Guaita",    pos: "FWD", overall: 82 },
+    ],
+  },
+
+  { id: "ita38", nation: "Italy", year: 1938, tier: "S", pref: "defensive",
+    blurb: "Back-to-back. Meazza's penalty miss that wasn't, and a second Rimet trophy.",
+    tacs: ["catenaccio", "counterAttack"],
+    squad: [
+      { name: "Aldo Olivieri",     pos: "GK",  overall: 80 },
+      { name: "Alfredo Foni",      pos: "DEF", overall: 79 },
+      { name: "Pietro Rava",       pos: "DEF", overall: 78 },
+      { name: "Michele Andreolo",  pos: "DEF", overall: 80 },
+      { name: "Ugo Locatelli",     pos: "MID", overall: 78 },
+      { name: "Pietro Serantoni",  pos: "MID", overall: 79 },
+      { name: "Giovanni Ferrari",  pos: "MID", overall: 83 },
+      { name: "Giuseppe Meazza",   pos: "FWD", overall: 92 },
+      { name: "Silvio Piola",      pos: "FWD", overall: 89 },
+      { name: "Gino Colaussi",     pos: "FWD", overall: 83 },
+      { name: "Amedeo Biavati",    pos: "FWD", overall: 79 },
+    ],
+  },
+
+  { id: "uru50", nation: "Uruguay", year: 1950, tier: "S", pref: "offensive",
+    blurb: "The Maracanazo. Silence fell on 200,000. Schiaffino and Ghiggia wrote history.",
+    tacs: ["counterAttack", "penalty"],
+    squad: [
+      { name: "Roque Máspoli",    pos: "GK",  overall: 82 },
+      { name: "Matías González",  pos: "DEF", overall: 76 },
+      { name: "Eusebio Tejera",   pos: "DEF", overall: 77 },
+      { name: "Schubert Gambetta", pos: "DEF", overall: 78 },
+      { name: "Obdulio Varela",   pos: "MID", overall: 89 },
+      { name: "Víctor Rodríguez", pos: "MID", overall: 80 },
+      { name: "Julio Pérez",      pos: "MID", overall: 79 },
+      { name: "Juan Alberto Schiaffino", pos: "FWD", overall: 93 },
+      { name: "Alcides Ghiggia",  pos: "FWD", overall: 88 },
+      { name: "Óscar Míguez",     pos: "FWD", overall: 83 },
+      { name: "Omar Miguez",      pos: "FWD", overall: 80 },
+    ],
+  },
+
+  { id: "wge54", nation: "West Germany", year: 1954, tier: "S", pref: "balanced",
+    blurb: "The Miracle of Bern. Down 0-2 to Hungary at half-time; won 3-2. Morlock, Rahn.",
+    tacs: ["counterAttack", "teamTalk"],
+    squad: [
+      { name: "Toni Turek",        pos: "GK",  overall: 82 },
+      { name: "Fritz Laband",      pos: "DEF", overall: 74 },
+      { name: "Josef Posipal",     pos: "DEF", overall: 76 },
+      { name: "Werner Kohlmeyer",  pos: "DEF", overall: 76 },
+      { name: "Horst Eckel",       pos: "MID", overall: 80 },
+      { name: "Karl Mai",          pos: "MID", overall: 78 },
+      { name: "Fritz Walter",      pos: "MID", overall: 91 },
+      { name: "Helmut Rahn",       pos: "FWD", overall: 88 },
+      { name: "Max Morlock",       pos: "FWD", overall: 84 },
+      { name: "Ottmar Walter",     pos: "FWD", overall: 83 },
+      { name: "Hans Schäfer",      pos: "FWD", overall: 80 },
+    ],
+  },
+
+  { id: "bra58", nation: "Brazil", year: 1958, tier: "S", pref: "offensive",
+    blurb: "A 17-year-old Pelé scored twice in the final. The beautiful game went global.",
+    tacs: ["tikiTaka", "nutmeg", "penalty"],
+    squad: [
+      { name: "Gilmar",          pos: "GK",  overall: 84 },
+      { name: "Djalma Santos",   pos: "DEF", overall: 83 },
+      { name: "Nilton Santos",   pos: "DEF", overall: 88 },
+      { name: "Bellini",         pos: "DEF", overall: 81 },
+      { name: "Orlando",         pos: "DEF", overall: 79 },
+      { name: "Didi",            pos: "MID", overall: 92 },
+      { name: "Zito",            pos: "MID", overall: 84 },
+      { name: "Garrincha",       pos: "FWD", overall: 95 },
+      { name: "Vavá",            pos: "FWD", overall: 87 },
+      { name: "Pelé",            pos: "FWD", overall: 93 },
+      { name: "Zagallo",         pos: "FWD", overall: 82 },
+    ],
+  },
+
+  { id: "bra62", nation: "Brazil", year: 1962, tier: "S", pref: "offensive",
+    blurb: "Garrincha's World Cup — he carried Brazil after Pelé was injured in game two.",
+    tacs: ["counterAttack", "nutmeg"],
+    squad: [
+      { name: "Gilmar",          pos: "GK",  overall: 85 },
+      { name: "Djalma Santos",   pos: "DEF", overall: 83 },
+      { name: "Nilton Santos",   pos: "DEF", overall: 87 },
+      { name: "Mauro Ramos",     pos: "DEF", overall: 82 },
+      { name: "Zózimo",          pos: "DEF", overall: 79 },
+      { name: "Didi",            pos: "MID", overall: 90 },
+      { name: "Zito",            pos: "MID", overall: 85 },
+      { name: "Garrincha",       pos: "FWD", overall: 96 },
+      { name: "Vavá",            pos: "FWD", overall: 86 },
+      { name: "Amarildo",        pos: "FWD", overall: 84 },
+      { name: "Zagallo",         pos: "FWD", overall: 81 },
+    ],
+  },
+
+  { id: "eng66", nation: "England", year: 1966, tier: "S", pref: "balanced",
+    blurb: "It's coming home — eventually. Hurst's hat-trick, that crossbar, and Ramsey's wingless wonders.",
+    tacs: ["longBall", "counterAttack", "timeWasting"],
+    squad: [
+      { name: "Gordon Banks",    pos: "GK",  overall: 92 },
+      { name: "George Cohen",    pos: "DEF", overall: 79 },
+      { name: "Jack Charlton",   pos: "DEF", overall: 83 },
+      { name: "Bobby Moore",     pos: "DEF", overall: 91 },
+      { name: "Ray Wilson",      pos: "DEF", overall: 82 },
+      { name: "Nobby Stiles",    pos: "MID", overall: 79 },
+      { name: "Bobby Charlton",  pos: "MID", overall: 92 },
+      { name: "Alan Ball",       pos: "MID", overall: 84 },
+      { name: "Martin Peters",   pos: "FWD", overall: 83 },
+      { name: "Roger Hunt",      pos: "FWD", overall: 82 },
+      { name: "Geoff Hurst",     pos: "FWD", overall: 87 },
+    ],
+  },
+
+  { id: "wge74", nation: "West Germany", year: 1974, tier: "S", pref: "balanced",
+    blurb: "Beckenbauer's libero revolution — the Kaiserslautern sweep that silenced Total Football.",
+    tacs: ["counterAttack", "teamTalk", "penalty"],
+    squad: [
+      { name: "Sepp Maier",        pos: "GK",  overall: 88 },
+      { name: "Franz Beckenbauer", pos: "DEF", overall: 95 },
+      { name: "Hans-Georg Schwarzenbeck", pos: "DEF", overall: 82 },
+      { name: "Berti Vogts",       pos: "DEF", overall: 85 },
+      { name: "Paul Breitner",     pos: "DEF", overall: 86 },
+      { name: "Wolfgang Overath",  pos: "MID", overall: 87 },
+      { name: "Rainer Bonhof",     pos: "MID", overall: 83 },
+      { name: "Uli Hoeness",       pos: "MID", overall: 84 },
+      { name: "Bernd Hölzenbein",  pos: "FWD", overall: 82 },
+      { name: "Gerd Müller",       pos: "FWD", overall: 96 },
+      { name: "Jupp Heynckes",     pos: "FWD", overall: 80 },
+    ],
+  },
+
+  { id: "arg78", nation: "Argentina", year: 1978, tier: "S", pref: "offensive",
+    blurb: "Kempes with his socks down, ticker-tape in the Monumental, and a first star.",
+    tacs: ["counterAttack", "penalty", "nutmeg"],
+    squad: [
+      { name: "Ubaldo Fillol",    pos: "GK",  overall: 85 },
+      { name: "Jorge Olguin",     pos: "DEF", overall: 78 },
+      { name: "Luis Galván",      pos: "DEF", overall: 80 },
+      { name: "Daniel Passarella", pos: "DEF", overall: 89 },
+      { name: "Alberto Tarantini", pos: "DEF", overall: 78 },
+      { name: "Omar Larrosa",     pos: "MID", overall: 78 },
+      { name: "Américo Gallego",  pos: "MID", overall: 80 },
+      { name: "Osvaldo Ardiles",  pos: "MID", overall: 86 },
+      { name: "Leopoldo Luque",   pos: "FWD", overall: 84 },
+      { name: "Mario Kempes",     pos: "FWD", overall: 92 },
+      { name: "René Houseman",    pos: "FWD", overall: 82 },
+    ],
+  },
+
+  { id: "wge90", nation: "West Germany", year: 1990, tier: "S", pref: "defensive",
+    blurb: "Brehme's penalty ends the dullest final ever — and Beckenbauer becomes the only man to win the Cup as player and coach.",
+    tacs: ["catenaccio", "timeWasting", "counterAttack"],
+    squad: [
+      { name: "Bodo Illgner",      pos: "GK",  overall: 85 },
+      { name: "Thomas Berthold",   pos: "DEF", overall: 79 },
+      { name: "Klaus Augenthaler", pos: "DEF", overall: 82 },
+      { name: "Guido Buchwald",    pos: "DEF", overall: 83 },
+      { name: "Andreas Brehme",    pos: "DEF", overall: 87 },
+      { name: "Lothar Matthäus",   pos: "MID", overall: 94 },
+      { name: "Thomas Häßler",     pos: "MID", overall: 84 },
+      { name: "Pierre Littbarski", pos: "MID", overall: 84 },
+      { name: "Rudi Völler",       pos: "FWD", overall: 88 },
+      { name: "Jürgen Klinsmann",  pos: "FWD", overall: 87 },
+      { name: "Karl-Heinz Riedle", pos: "FWD", overall: 80 },
+    ],
+  },
+
+  { id: "bra94", nation: "Brazil", year: 1994, tier: "S", pref: "balanced",
+    blurb: "Romário and Bebeto, babies and all — penalty glory after one of the grittiest runs ever.",
+    tacs: ["penalty", "tikiTaka", "counterAttack"],
+    squad: [
+      { name: "Taffarel",         pos: "GK",  overall: 86 },
+      { name: "Mazinho",          pos: "DEF", overall: 79 },
+      { name: "Aldair",           pos: "DEF", overall: 84 },
+      { name: "Marcio Santos",    pos: "DEF", overall: 80 },
+      { name: "Branco",           pos: "DEF", overall: 82 },
+      { name: "Mauro Silva",      pos: "MID", overall: 78 },
+      { name: "Mauro Galvão",     pos: "MID", overall: 78 },
+      { name: "Mazinho",          pos: "MID", overall: 79 },
+      { name: "Bebeto",           pos: "FWD", overall: 92 },
+      { name: "Romário",          pos: "FWD", overall: 94 },
+      { name: "Zinho",            pos: "MID", overall: 85 },
+    ],
+  },
+
+  { id: "ita06", nation: "Italy", year: 2006, tier: "S", pref: "defensive",
+    blurb: "Cannavaro's masterpiece — a third Coppa del Mondo on Zidane's headbutt night.",
+    tacs: ["catenaccio", "fortress", "penalty"],
+    squad: [
+      { name: "Gianluigi Buffon",  pos: "GK",  overall: 92 },
+      { name: "Fabio Cannavaro",   pos: "DEF", overall: 93 },
+      { name: "Alessandro Nesta",  pos: "DEF", overall: 91 },
+      { name: "Marco Materazzi",   pos: "DEF", overall: 82 },
+      { name: "Gianluca Zambrotta", pos: "DEF", overall: 85 },
+      { name: "Gennaro Gattuso",   pos: "MID", overall: 85 },
+      { name: "Andrea Pirlo",      pos: "MID", overall: 92 },
+      { name: "Daniele De Rossi",  pos: "MID", overall: 86 },
+      { name: "Francesco Totti",   pos: "FWD", overall: 90 },
+      { name: "Luca Toni",         pos: "FWD", overall: 87 },
+      { name: "Alberto Gilardino", pos: "FWD", overall: 82 },
+    ],
+  },
+
+  { id: "fra18", nation: "France", year: 2018, tier: "S", pref: "balanced",
+    blurb: "Les Bleus 2.0 — Mbappé at 19, Kanté everywhere, Lloris in the final frenzy.",
+    tacs: ["counterAttack", "highPress", "penalty"],
+    squad: [
+      { name: "Hugo Lloris",       pos: "GK",  overall: 88 },
+      { name: "Benjamin Pavard",   pos: "DEF", overall: 82 },
+      { name: "Raphaël Varane",    pos: "DEF", overall: 88 },
+      { name: "Samuel Umtiti",     pos: "DEF", overall: 84 },
+      { name: "Lucas Hernández",   pos: "DEF", overall: 83 },
+      { name: "N'Golo Kanté",      pos: "MID", overall: 91 },
+      { name: "Paul Pogba",        pos: "MID", overall: 88 },
+      { name: "Blaise Matuidi",    pos: "MID", overall: 83 },
+      { name: "Antoine Griezmann", pos: "FWD", overall: 90 },
+      { name: "Kylian Mbappé",     pos: "FWD", overall: 92 },
+      { name: "Olivier Giroud",    pos: "FWD", overall: 84 },
+    ],
+  },
+];
+
+/** Full opponent team pool — 22 Tier-S champions + ~22 lower-tier historic teams. */
+export const opponents: OpponentTeam[] = RAW_TEAMS.map(buildTeam);
