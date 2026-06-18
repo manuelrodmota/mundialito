@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sim": "tsx src/sim/run.ts",
+    "sim:check": "tsx src/sim/selfcheck.ts"
   },
   "dependencies": {
     "react": "^19.2.6",
@@ -25,6 +27,7 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
+    "tsx": "^4.19.3",
     "vite": "^8.0.12"
   }
 }

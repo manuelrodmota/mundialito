@@ -4,7 +4,7 @@ summary: >-
   This repository is a **single-service polyrepo** — there is no monorepo
   tooling, no workspaces, and no sibling packages. The entire project is a pure
   client-...
-last_updated: '2026-06-15T00:42:43.827Z'
+last_updated: '2026-06-17T20:18:56.000Z'
 tags:
   - architecture
   - topology
@@ -18,12 +18,14 @@ tags:
 
 This repository is a **single-service polyrepo** — there is no monorepo tooling, no workspaces, and no sibling packages. The entire project is a pure client-side single-page application (SPA) scaffolded with Vite and React. The package manager is `pnpm`.
 
-The top-level layout is minimal. All application source lives under `src/`, which contains seven files: the root entry point, one top-level component, CSS stylesheets, and static assets. No backend, no shared library packages, and no sub-workspace directories exist in the repository root.
+The top-level layout is minimal. Application source lives under `src/`: the React entry point, one top-level component, CSS, and static assets, plus two pure-logic subdirectories added for the game engine — `src/engine/` (a framework-agnostic TypeScript match engine, no DOM/JSX) and `src/sim/` (a Node-only Monte-Carlo simulator harness, excluded from the browser build). No backend, no shared library packages, and no sub-workspace directories exist in the repository root.
 
 | Workspace / Directory | Contents |
 |-----------------------|----------|
 | `src/` | React components, stylesheets, entry point, static assets |
 | `src/assets/` | Static asset files (images, fonts, etc.) |
+| `src/engine/` | Pure framework-agnostic TS v8 match engine (no DOM/I/O); public surface via `index.ts`; type-checked by the browser app project |
+| `src/sim/` | Node-only headless Monte-Carlo match simulator (policies, seeded runner, rosters, self-check); own `tsconfig.sim.json` project; `out/` git-ignored |
 | `public/` | (not determined by analysis) |
 
 ---
@@ -144,8 +146,12 @@ There is no Makefile, Justfile, Taskfile, or shell script automation layer. All 
 | Command | Description | When Used |
 |---------|-------------|-----------|
 | `vite` | Start Vite dev server on port 5173 | Local development |
-| `tsc -b && vite build` | Type-check and emit production bundle to `dist/` | CI build, release |
+| `tsc -b && vite build` | Type-check (app + node + sim projects) and emit production bundle to `dist/` | CI build, release |
 | `eslint .` | Run ESLint across the whole repository | Pre-commit, CI lint step |
+| `npm run sim` | Run the headless Monte-Carlo match simulator (`tsx src/sim/run.ts`; `SIM_N` / `SIM_OUT` env vars) | Balance tuning |
+| `npm run sim:check` | Fixed-seed reproducibility self-check (`tsx src/sim/selfcheck.ts`) | Engine regression check |
+
+The TypeScript build is split into three referenced projects: `tsconfig.app.json` (browser SPA + `src/engine/`), `tsconfig.node.json` (Vite config), and `tsconfig.sim.json` (Node-only `src/sim/`). `src/sim/**` is excluded from the app project so the Node-only simulator never breaks the browser type-check/bundle.
 
 No CI provider configuration file (GitHub Actions, CircleCI, GitLab CI, Bitrise, etc.) has been detected in the repository. CI is (not determined by analysis).
 

@@ -47,3 +47,27 @@ vite build
 # CORRECT — type-check first, then bundle
 tsc -b && vite build
 ```
+
+### Relative imports inside `src/engine` and `src/sim` carry the `.ts` extension
+
+These projects set `allowImportingTsExtensions`, so intra-engine/sim relative imports MUST include the `.ts` suffix. App-side (`.tsx`/`.ts` under `src/`) imports stay extensionless.
+
+```typescript
+// WRONG — resolves in the editor but fails the sim/engine tsconfig build
+import { makeRng } from "./rng";
+
+// CORRECT
+import { makeRng } from "./rng.ts";
+```
+
+### Engine code stays pure; all randomness flows through the seeded `Rng`
+
+`src/engine/**` must not touch JSX, the DOM, or `Math.random()` — it is shared headless by the game UI and the Node sim. Take an `Rng` (seeded mulberry32) parameter and draw from it so runs stay reproducible.
+
+```typescript
+// WRONG — non-deterministic, breaks sim:check reproducibility
+const pick = Math.floor(Math.random() * deck.length);
+
+// CORRECT — deterministic given the seed
+const pick = Math.floor(rng.next() * deck.length);
+```

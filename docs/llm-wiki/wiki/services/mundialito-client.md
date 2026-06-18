@@ -4,7 +4,7 @@ summary: >-
   `mundialito-client` is a TypeScript single-page application responsible for
   delivering the entire user-facing frontend experience. Built on React 19.2.6
   and ...
-last_updated: '2026-06-15T00:42:43.827Z'
+last_updated: '2026-06-17T20:18:56.000Z'
 tags:
   - service
   - typescript
@@ -16,7 +16,7 @@ service_id: mundialito-client
 
 ## Purpose
 
-`mundialito-client` is a TypeScript single-page application responsible for delivering the entire user-facing frontend experience. Built on React 19.2.6 and served by Vite on port 5173 in development, it acts as a pure client-side SPA with no server-side rendering. The application hosts an interactive card/board game whose engine is provided by an externally injected global (`window.WCC_ENGINE`), with React components acting as the rendering and interaction layer on top of that engine.
+`mundialito-client` is a TypeScript single-page application responsible for delivering the entire user-facing frontend experience. Built on React 19.2.6 and served by Vite on port 5173 in development, it acts as a pure client-side SPA with no server-side rendering. The application hosts an interactive card/board game (World Cup Clash). The match rules now live in a pure, framework-agnostic TypeScript engine under `src/engine/` (a faithful port of the v8 prototype `design/js/engine8.js`); the React/board layer historically reads an externally injected `window.WCC_ENGINE` global, and the new `src/engine/` module is the shared, headless rules implementation both the eventual UI and the offline simulator consume.
 
 ---
 
@@ -29,14 +29,14 @@ This service does not expose an HTTP API, queue topics, or webhooks — it is a 
 | `src/main.tsx` | Root Vite entry; mounts the React component tree into the DOM |
 | `src/App.tsx` | Top-level React component; application shell |
 | `src/assets/` | Static assets fingerprinted by Vite at build time |
-
-No exported library symbols, CLI commands, or programmatic public API have been detected.
+| `src/engine/index.ts` | Public surface of the pure TS v8 match engine (`newMatch`, round resolution, config/tuning, seeded RNG, types) consumed by the simulator and the future UI |
+| `npm run sim` / `npm run sim:check` | CLI entry points (`tsx`) for the headless Monte-Carlo simulator and its fixed-seed reproducibility self-check |
 
 ---
 
 ## Internal Architecture
 
-The project is a minimal single-service scaffold with 7 source files under `src/`. The layout is flat — no subdirectory-based layer separation:
+The `src/` tree now separates the React shell from pure game logic:
 
 ```
 src/
@@ -44,6 +44,17 @@ src/
   App.tsx           # Root component
   App.css           # App-scoped styles
   assets/           # Images and other static files
+  engine/           # Pure framework-agnostic TS v8 match engine (no DOM/I/O)
+    types.ts        # v8 data model
+    config.ts       # DEFAULT_TUNING — every tunable knob (xG curve, fatigue, caps)
+    rng.ts          # seeded deterministic PRNG (mulberry32)
+    engine.ts       # match resolution (xG, fatigue, card flow, mercy/ET)
+    index.ts        # public surface
+  sim/              # Node-only headless Monte-Carlo simulator (excluded from the browser build)
+    policies.ts     # deterministic decision policies (baseline = §18 AI heuristic)
+    rosters.ts      # mock archetype decks × opponent tiers
+    run.ts          # seeded Monte-Carlo runner → console summary + results.csv + summary.json
+    selfcheck.ts    # fixed-seed reproducibility self-check
 ```
 
 A parallel `design/` directory at the repository root holds iterative JSX prototypes (`Board.jsx` through `Board5.jsx`, 300–489 lines each). These files are not part of the production Vite bundle — they appear to be workbench prototypes that have evolved independently of the `src/` tree.

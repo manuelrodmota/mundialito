@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jersey Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@700&family=Teko:wght@600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0e1116;
+    color: #e8ecf2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 48px 40px 80px;
+  }
+  h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .sub { color: #8b95a5; font-size: 14px; margin-top: 8px; max-width: 640px; line-height: 1.5; }
+  .section { margin-top: 40px; }
+  .section h2 {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #69748a; padding-bottom: 14px; border-bottom: 1px solid #232a34; margin-bottom: 20px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 18px;
+    max-width: 1180px;
+  }
+  .tile {
+    background: #161b22;
+    border: 1px solid #232a34;
+    border-radius: 14px;
+    padding: 14px 14px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .tile svg { width: 100%; height: auto; max-width: 150px; display: block; }
+  .tile .name { font-size: 13px; font-weight: 600; color: #cfd6e0; text-align: center; }
+</style>
+</head>
+<body>
+  <h1>World Cup 2026 — jersey set (48 teams)</h1>
+  <p class="sub">Locked design: set-in textured shape, crew neck, Anton number in black with a thin white border (Border B). Per-team colours and patterns follow the kit reference. Grouped by confederation.</p>
+
+  <div id="gallery"></div>
+
+<script>
+const TEAMS = [
+  // ---- Hosts ----
+  { g:"Hosts", name:"United States", code:"us", pattern:"solid", base:"#FFFFFF", trim:"#0A1A3F" },
+  { g:"Hosts", name:"Mexico", code:"mx", pattern:"solid", base:"#006847", trim:"#FFFFFF" },
+  { g:"Hosts", name:"Canada", code:"ca", pattern:"solid", base:"#D52B1E", trim:"#FFFFFF" },
+  // ---- UEFA ----
+  { g:"UEFA", name:"England", code:"gb-eng", pattern:"solid", base:"#FFFFFF", trim:"#0A1A3F" },
+  { g:"UEFA", name:"France", code:"fr", pattern:"solid", base:"#1E2A78", trim:"#FFFFFF" },
+  { g:"UEFA", name:"Croatia", code:"hr", pattern:"checker", base:"#FFFFFF", stripe:"#D52B1E", trim:"#0A1A3F" },
+  { g:"UEFA", name:"Norway", code:"no", pattern:"solid", base:"#C8102E", trim:"#00205B" },
+  { g:"UEFA", name:"Portugal", code:"pt", pattern:"solid", base:"#A50021", trim:"#006847" },
+  { g:"UEFA", name:"Germany", code:"de", pattern:"solid", base:"#FFFFFF", trim:"#111111" },
+  { g:"UEFA", name:"Netherlands", code:"nl", pattern:"solid", base:"#F36C21", trim:"#111111" },
+  { g:"UEFA", name:"Switzerland", code:"ch", pattern:"solid", base:"#D52B1E", trim:"#FFFFFF" },
+  { g:"UEFA", name:"Scotland", code:"gb-sct", pattern:"solid", base:"#14274E", trim:"#FFFFFF" },
+  { g:"UEFA", name:"Spain", code:"es", pattern:"solid", base:"#C60B1E", trim:"#FCD116" },
+  { g:"UEFA", name:"Austria", code:"at", pattern:"solid", base:"#ED2939", trim:"#FFFFFF" },
+  { g:"UEFA", name:"Belgium", code:"be", pattern:"solid", base:"#C8102E", trim:"#FCD116" },
+  { g:"UEFA", name:"Bosnia & H.", code:"ba", pattern:"solid", base:"#1A4FA0", trim:"#FCD116" },
+  { g:"UEFA", name:"Sweden", code:"se", pattern:"solid", base:"#FFCD00", trim:"#1E4FA0" },
+  { g:"UEFA", name:"Türkiye", code:"tr", pattern:"solid", base:"#E30A17", trim:"#FFFFFF" },
+  { g:"UEFA", name:"Czechia", code:"cz", pattern:"solid", base:"#D7141A", trim:"#FFFFFF" },
+  // ---- CONMEBOL ----
+  { g:"CONMEBOL", name:"Argentina", code:"ar", pattern:"stripes", base:"#74ACDF", stripe:"#FFFFFF", trim:"#0A1A3F" },
+  { g:"CONMEBOL", name:"Brazil", code:"br", pattern:"solid", base:"#FCD116", trim:"#00843D" },
+  { g:"CONMEBOL", name:"Colombia", code:"co", pattern:"solid", base:"#FCD116", trim:"#1E4FA0" },
+  { g:"CONMEBOL", name:"Ecuador", code:"ec", pattern:"solid", base:"#FFD100", trim:"#1E4FA0" },
+  { g:"CONMEBOL", name:"Paraguay", code:"py", pattern:"stripes", base:"#D52B1E", stripe:"#FFFFFF", trim:"#14274E" },
+  { g:"CONMEBOL", name:"Uruguay", code:"uy", pattern:"solid", base:"#5C9BD6", trim:"#14274E" },
+  // ---- CAF ----
+  { g:"CAF", name:"Algeria", code:"dz", pattern:"solid", base:"#FFFFFF", trim:"#007A3D" },
+  { g:"CAF", name:"Cape Verde", code:"cv", pattern:"solid", base:"#1A4FA0", trim:"#CE1126" },
+  { g:"CAF", name:"Côte d'Ivoire", code:"ci", pattern:"solid", base:"#FF7900", trim:"#007A3D" },
+  { g:"CAF", name:"Egypt", code:"eg", pattern:"solid", base:"#CE1126", trim:"#FFFFFF" },
+  { g:"CAF", name:"Ghana", code:"gh", pattern:"solid", base:"#FFFFFF", trim:"#CE1126" },
+  { g:"CAF", name:"Morocco", code:"ma", pattern:"solid", base:"#C1272D", trim:"#006233" },
+  { g:"CAF", name:"Senegal", code:"sn", pattern:"solid", base:"#FFFFFF", trim:"#00853F" },
+  { g:"CAF", name:"South Africa", code:"za", pattern:"solid", base:"#FCB514", trim:"#007A4D" },
+  { g:"CAF", name:"Tunisia", code:"tn", pattern:"solid", base:"#E70013", trim:"#FFFFFF" },
+  { g:"CAF", name:"DR Congo", code:"cd", pattern:"solid", base:"#2477C9", trim:"#CE1126" },
+  // ---- AFC ----
+  { g:"AFC", name:"Australia", code:"au", pattern:"solid", base:"#FFCD00", trim:"#00843D" },
+  { g:"AFC", name:"Iran", code:"ir", pattern:"solid", base:"#FFFFFF", trim:"#C8102E" },
+  { g:"AFC", name:"Japan", code:"jp", pattern:"solid", base:"#14215B", trim:"#FFFFFF" },
+  { g:"AFC", name:"Jordan", code:"jo", pattern:"solid", base:"#FFFFFF", trim:"#CE1126" },
+  { g:"AFC", name:"South Korea", code:"kr", pattern:"solid", base:"#C8102E", trim:"#14215B" },
+  { g:"AFC", name:"Qatar", code:"qa", pattern:"solid", base:"#7A1F3D", trim:"#FFFFFF" },
+  { g:"AFC", name:"Saudi Arabia", code:"sa", pattern:"solid", base:"#FFFFFF", trim:"#006C35" },
+  { g:"AFC", name:"Uzbekistan", code:"uz", pattern:"solid", base:"#FFFFFF", trim:"#1565C0" },
+  { g:"AFC", name:"Iraq", code:"iq", pattern:"solid", base:"#FFFFFF", trim:"#CE1126" },
+  // ---- CONCACAF ----
+  { g:"CONCACAF", name:"Curaçao", code:"cw", pattern:"solid", base:"#1A4FA0", trim:"#FCD116" },
+  { g:"CONCACAF", name:"Haiti", code:"ht", pattern:"solid", base:"#14387F", trim:"#D21034" },
+  { g:"CONCACAF", name:"Panama", code:"pa", pattern:"solid", base:"#DA121A", trim:"#072357" },
+  // ---- OFC ----
+  { g:"OFC", name:"New Zealand", code:"nz", pattern:"solid", base:"#111111", trim:"#FFFFFF" },
+];
+
+// ---- jersey silhouette: crew neck + sharp sleeves (the wider shape) ----
+const BODY = "M132,46 C140,46 146,62 150,62 C154,62 160,46 168,46 C182,52 196,57 212,63 C228,70 243,79 254,89 C259,95 262,101 262,109 L260,135 Q259,141 252,140 L219,127 Q214,126 214,133 L211,295 Q211,302 202,302 L98,302 Q89,302 89,295 L86,133 Q86,126 81,127 L48,140 Q41,141 40,135 L38,109 C38,101 41,95 46,89 C57,79 72,70 88,63 C104,57 118,52 132,46 Z";
+// crew neckline (collar ring)
+const COLLAR = "M132,46 C140,46 146,62 150,62 C154,62 160,46 168,46";
+// shoulder/sleeve seams (neck -> underarm)
+const SEAM_L = "M131,49 C105,66 90,98 86,131";
+const SEAM_R = "M169,49 C195,66 210,98 214,131";
+// cuff rings (sleeve opening)
+const CUFF_L = "M40,135 L81,127";
+const CUFF_R = "M260,135 L219,127";
+
+function fillEl(team, w, h){
+  if(team.pattern === "stripes"){
+    let r = `<rect x="0" y="0" width="${w}" height="${h}" fill="${team.base}"/>`;
+    const sw = 23;
+    for(let x=46; x<w; x+=sw*2){ r += `<rect x="${x}" y="0" width="${sw}" height="${h}" fill="${team.stripe}"/>`; }
+    return r;
+  }
+  if(team.pattern === "checker"){
+    let r = `<rect x="0" y="0" width="${w}" height="${h}" fill="${team.base}"/>`;
+    const s = 26;
+    for(let y=0,j=0; y<h; y+=s,j++){
+      for(let x=0,i=0; x<w; x+=s,i++){
+        if((i+j)%2===0) r += `<rect x="${x}" y="${y}" width="${s}" height="${s}" fill="${team.stripe}"/>`;
+      }
+    }
+    return r;
+  }
+  return `<rect x="0" y="0" width="${w}" height="${h}" fill="${team.base}"/>`;
+}
+
+// ---------- shared detail builders ----------
+function shadeDef(id){
+  // dark vertical bands at the torso sides + sleeve undersides, soft centre highlight
+  return `<linearGradient id="sh${id}" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#000" stop-opacity="0.06"/>
+    <stop offset="0.15" stop-color="#000" stop-opacity="0.17"/>
+    <stop offset="0.24" stop-color="#000" stop-opacity="0.04"/>
+    <stop offset="0.31" stop-color="#000" stop-opacity="0.26"/>
+    <stop offset="0.42" stop-color="#000" stop-opacity="0.02"/>
+    <stop offset="0.5" stop-color="#fff" stop-opacity="0.07"/>
+    <stop offset="0.58" stop-color="#000" stop-opacity="0.02"/>
+    <stop offset="0.69" stop-color="#000" stop-opacity="0.26"/>
+    <stop offset="0.76" stop-color="#000" stop-opacity="0.04"/>
+    <stop offset="0.85" stop-color="#000" stop-opacity="0.17"/>
+    <stop offset="1" stop-color="#000" stop-opacity="0.06"/>
+  </linearGradient>`;
+}
+function baseShade(id){
+  return `<rect x="0" y="0" width="300" height="340" fill="url(#sh${id})"/>`;
+}
+function folds(){
+  return `<path d="M122,150 Q128,225 122,296" stroke="#000" stroke-width="4" fill="none" opacity="0.07" stroke-linecap="round"/>
+    <path d="M178,150 Q172,225 178,296" stroke="#000" stroke-width="4" fill="none" opacity="0.07" stroke-linecap="round"/>
+    <ellipse cx="150" cy="120" rx="46" ry="28" fill="#fff" opacity="0.06"/>`;
+}
+function seams(team){
+  return `<path d="${SEAM_L}" fill="none" stroke="${team.trim}" stroke-width="1.6" opacity="0.5" stroke-linecap="round"/>
+    <path d="${SEAM_R}" fill="none" stroke="${team.trim}" stroke-width="1.6" opacity="0.5" stroke-linecap="round"/>`;
+}
+function crewCollar(team){
+  return `<path d="${COLLAR}" fill="none" stroke="${team.trim}" stroke-width="10" stroke-linecap="round"/>
+    <path d="${COLLAR}" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.35"/>`;
+}
+function cuffs(team){
+  return `<path d="${CUFF_L}" fill="none" stroke="${team.trim}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${CUFF_R}" fill="none" stroke="${team.trim}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+function outlines(team){
+  return `<path d="${BODY}" fill="none" stroke="${team.trim}" stroke-width="3.4" stroke-linejoin="round"/>`;
+}
+function darken(hex, f){
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round(((n>>16)&255)*f), g = Math.round(((n>>8)&255)*f), b = Math.round((n&255)*f);
+  return `rgb(${r},${g},${b})`;
+}
+
+// ---------- Anton number, black, with varying thin white border ----------
+const NUM_INK = "#141414";
+function antonNum(team, sw){
+  const stroke = sw > 0 ? `stroke="#fff" stroke-width="${sw}" paint-order="stroke" stroke-linejoin="round"` : '';
+  return `<text x="150" y="236" text-anchor="middle" font-family="Anton, Arial, sans-serif" font-weight="400" font-size="104" letter-spacing="-1" fill="${NUM_INK}" ${stroke}>10</text>`;
+}
+
+// ---------- shared body: textured (knit + sheen) with set-in sleeves + crew collar ----------
+function jersey(team, id, numberFn){
+  const clip = `clip${id}`;
+  let knit = '';
+  for(let x=44; x<256; x+=7){ knit += `<line x1="${x}" y1="0" x2="${x}" y2="340" stroke="#000" stroke-width="0.7" opacity="0.04"/>`; }
+  return `<svg viewBox="0 0 300 340" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <clipPath id="${clip}"><path d="${BODY}"/></clipPath>
+      ${shadeDef(id)}
+      <linearGradient id="sheen${id}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0.36" stop-color="#fff" stop-opacity="0"/>
+        <stop offset="0.5" stop-color="#fff" stop-opacity="0.14"/>
+        <stop offset="0.64" stop-color="#fff" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <ellipse cx="150" cy="314" rx="82" ry="9" fill="#000" opacity="0.26"/>
+    <g clip-path="url(#${clip})">
+      ${fillEl(team,300,340)}
+      ${knit}
+      ${baseShade(id)}
+      <rect x="0" y="0" width="300" height="340" fill="url(#sheen${id})"/>
+      ${folds()}
+    </g>
+    ${outlines(team)}
+    ${seams(team)}
+    ${crewCollar(team)}
+    ${cuffs(team)}
+    ${numberFn(team)}
+  </svg>`;
+}
+
+// fixed locked number: Anton black, Border B (2.5 white)
+function jerseyTile(team, id){ return jersey(team, id, (t)=>antonNum(t, 2.5)); }
+
+const gallery = document.getElementById('gallery');
+let uid = 0, lastGroup = null, grid = null;
+TEAMS.forEach(team => {
+  if(team.g !== lastGroup){
+    const sec = document.createElement('div');
+    sec.className = 'section';
+    sec.innerHTML = `<h2>${team.g}</h2>`;
+    grid = document.createElement('div');
+    grid.className = 'grid';
+    sec.appendChild(grid);
+    gallery.appendChild(sec);
+    lastGroup = team.g;
+  }
+  const tile = document.createElement('div');
+  tile.className = 'tile';
+  tile.innerHTML = jerseyTile(team, 'j'+(uid++)) + `<div class="name">${team.name}</div>`;
+  grid.appendChild(tile);
+});
+</script>
+</body>
+</html>
