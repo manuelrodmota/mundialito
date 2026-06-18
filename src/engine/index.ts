@@ -28,29 +28,6 @@ export { DEFAULT_TUNING } from "./config.ts";
 export { makeRng } from "./rng.ts";
 export type { Rng } from "./rng.ts";
 
-export {
-  newMatch,
-  startRound,
-  reveal,
-  planAndResolveRound,
-  setFormation,
-  canPlace,
-  place,
-  placementCost,
-  recall,
-  playTactic,
-  canPlayTactic,
-  effStats,
-  chemNations,
-  sideTotals,
-  staminaFor,
-  cardCapFor,
-  rarityMultOf,
-  fmults,
-  GATES,
-  gateText,
-  gateMet,
-  beginExtraTime,
-  decideExtraTime,
-} from "./engine.ts";
-export type { NewMatchOptions } from "./engine.ts";
+// NOTE: the match-resolution engine (newMatch/reveal/resolveRound/…) is intentionally
+// absent — the throwaway balance-sim port was retired. The shipping engine is built FRESH
+// from the GDD rules under epic SCRUM-6 (see APP_DEFINITION.md §6/§7/§8/§14/§17).
