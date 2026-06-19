@@ -27,6 +27,7 @@ This project is **World Cup Clash**, a **Slay the Spire–style arcade roguelike
 ## Tech Stack
 
 - **mundialito-client** (TypeScript) — React 19.2.6, Vite, ESLint; UI layer uses Framer Motion + dnd-kit; tests on Vitest + React Testing Library (jsdom)
+- **Data backend** — Supabase Postgres, local-first via Docker (`@supabase/supabase-js`). Local dev: `pnpm supabase:start` → `pnpm db:reset` → `pnpm seed`. Env via `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (copy committed `.env.example` → gitignored `.env.local`). The browser uses the **anon** key only; the service-role key is server/seed-only and must **never** be a `VITE_*` var or committed. RLS is read-only public on data tables.
 
 ## File Placement Guide
 
@@ -41,14 +42,18 @@ This project is **World Cup Clash**, a **Slay the Spire–style arcade roguelike
 | UI component (atomic design) | `src/ui/{atoms\|molecules\|organisms}/{Name}/index.tsx` | `src/ui/atoms/Button/index.tsx` |
 | Co-located component test | `src/ui/.../{Name}/{Name}.test.tsx` | `src/ui/atoms/Button/Button.test.tsx` |
 | CSS design tokens | `src/ui/tokens/{name}.css` | `src/ui/tokens/index.css` |
+| Typed data-access layer (Supabase repos/mappers) | `src/data/remote/{name}.ts` | `src/data/remote/players.repo.ts` |
+| DB schema / migrations / seed scripts | `supabase/{migrations\|scripts\|seed}/{name}` | `supabase/migrations/{ts}_init_schema.sql` |
 
 ## Directory Structure
 
 ```
 project/
+├── supabase/    # DB backend: config.toml, migrations/ (SQL), scripts/ (TS seed/import), seed/ (CSV); local-first
 └── src/
     ├── assets/  # Static asset
     ├── engine/  # Pure TS match engine — no JSX/DOM; public surface via index.ts; co-located *.test.ts
+    ├── data/    # Game data: static pool (players/tacticals/opponents) + remote/ typed Supabase repos+mappers (barrel remote/index.ts)
     └── ui/      # Presentational React component library (atomic design); barrel src/ui/index.ts
                  #   atoms/ molecules/ organisms/ (one dir per component: index.tsx + *.test.tsx),
                  #   plus tokens/ (CSS), data/, jersey/ (procedural SVG), motion/, gallery/ (#ds route)
@@ -68,6 +73,10 @@ project/
 | `tsc -b && vite build` | Build (_root) |
 | `eslint .` | Run linters (_root) |
 | `npm run test` | Run the Vitest suite once (jsdom + RTL); `npm run test:watch` to watch, `npm run coverage` for v8 coverage |
+| `pnpm supabase:start` / `supabase:stop` | Start/stop the local Supabase Docker stack |
+| `pnpm db:reset` | Drop + re-apply migrations to the local DB |
+| `pnpm db:types` | Regenerate `src/data/remote/database.types.ts` from the local schema |
+| `pnpm seed` | Idempotent CSV import into the local DB (`supabase/scripts/import.ts`) |
 
 <!-- LLM_WIKI_START -->
 ## LLM Wiki
