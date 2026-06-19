@@ -62,12 +62,11 @@ export function SomeComponent() {
 
 > **Gotcha**: Never use a raw string like `'/src/assets/...'` — the path won't survive Vite's production fingerprinting.
 
-## Adding Engine or Node-Sim Code
+## Adding Engine Code
 
-1. Add engine logic under `src/engine/{name}.ts` (pure TS — no JSX/DOM); re-export any new public symbol from `src/engine/index.ts`
-2. Add Node-only harness code under `src/sim/{name}.ts`
-3. Use `.ts`-suffixed relative imports between these files (see code-conventions)
-4. Keep `src/sim` listed in the `exclude` of `tsconfig.app.json` and covered by `tsconfig.sim.json` (referenced from root `tsconfig.json`)
-5. Run `npm run build` (`tsc -b && vite build`) and `npm run sim:check` — both must stay green
+1. Add engine logic under `src/engine/{name}.ts` (pure TS — no JSX/DOM, no `Math.random()`); re-export any new public symbol from `src/engine/index.ts`
+2. Add a co-located Vitest test `src/engine/{name}.test.ts` (see testing-conventions)
+3. Use `.ts`-suffixed relative imports between engine files (see code-conventions)
+4. Run `npm run test` and `npm run build` (`tsc -b && vite build`) — both must stay green
 
-> **Gotcha**: `src/sim/**` imports `node:` modules and must never enter the browser bundle. If it is not excluded in `tsconfig.app.json`, `tsc -b` fails because the app project lacks `types: ["node"]`.
+> **Gotcha**: engine behaviour must stay deterministic — thread a seeded `Rng` rather than reading `Math.random()`, and assert same-seed reproducibility in the co-located test (`src/engine/match.test.ts` is the reference).

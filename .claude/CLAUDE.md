@@ -37,7 +37,7 @@ This project is **World Cup Clash**, a **Slay the Spire–style arcade roguelike
 | Entry point | `src/main.tsx` | `src/main.tsx` |
 | Static asset | `src/assets/{name}` | `src/assets/hero.png` |
 | Match engine (pure TS, framework-agnostic) | `src/engine/{name}.ts` | `src/engine/engine.ts` |
-| Node-only sim harness (excluded from browser build) | `src/sim/{name}.ts` | `src/sim/run.ts` |
+| Co-located engine test (Vitest) | `src/engine/{name}.test.ts` | `src/engine/match.test.ts` |
 | UI component (atomic design) | `src/ui/{atoms\|molecules\|organisms}/{Name}/index.tsx` | `src/ui/atoms/Button/index.tsx` |
 | Co-located component test | `src/ui/.../{Name}/{Name}.test.tsx` | `src/ui/atoms/Button/Button.test.tsx` |
 | CSS design tokens | `src/ui/tokens/{name}.css` | `src/ui/tokens/index.css` |
@@ -48,8 +48,7 @@ This project is **World Cup Clash**, a **Slay the Spire–style arcade roguelike
 project/
 └── src/
     ├── assets/  # Static asset
-    ├── engine/  # Pure TS v8 match engine — no JSX/DOM; public surface via index.ts
-    ├── sim/     # Node-only Monte-Carlo harness (own tsconfig.sim.json; out/ git-ignored)
+    ├── engine/  # Pure TS match engine — no JSX/DOM; public surface via index.ts; co-located *.test.ts
     └── ui/      # Presentational React component library (atomic design); barrel src/ui/index.ts
                  #   atoms/ molecules/ organisms/ (one dir per component: index.tsx + *.test.tsx),
                  #   plus tokens/ (CSS), data/, jersey/ (procedural SVG), motion/, gallery/ (#ds route)
@@ -68,8 +67,6 @@ project/
 | `vite` | Start dev environment (_root) |
 | `tsc -b && vite build` | Build (_root) |
 | `eslint .` | Run linters (_root) |
-| `npm run sim` | Run the headless Monte-Carlo match simulator (`SIM_N` / `SIM_OUT` env vars) |
-| `npm run sim:check` | Fixed-seed reproducibility self-check (exit 0 = pass) |
 | `npm run test` | Run the Vitest suite once (jsdom + RTL); `npm run test:watch` to watch, `npm run coverage` for v8 coverage |
 
 <!-- LLM_WIKI_START -->
