@@ -53,6 +53,7 @@ export function Patterns() {
             <CapChip kind="tactics" current={0} max={2} />
             <CapChip kind="tactics" current={1} max={2} />
             <CapChip kind="tactics" current={2} max={2} />
+            <CapChip kind="star" />
           </div>
         </Frame>
         <Sub>Run tactical deck cap — locker swap</Sub>
@@ -67,6 +68,48 @@ export function Patterns() {
           </Tile>
         </div>
         <Note>The locker swap-row (<Code>.pick-row.tactic-row</Code>) appears when a run reward exceeds the 4-card deck cap.</Note>
+      </Section>
+
+      <Section id="starcore" eyebrow="Patterns · v10" title="Field cost &amp; the star core"
+        lede="The v10 balance pass makes quality beat quantity. Fielding a card costs a gentle per-round stamina by rarity (separate from the deck-build slot cost). In any lane holding a premium, the costliest card pays full and every other card is half-price — a “star core” — so a few stars out-field a wall of commons. Stacking a lane also hits diminishing returns.">
+        <Sub>Per-round field cost</Sub>
+        <Frame center caption={<span>Stamina to field a card this round. The deck-build <b>slot</b> cost (0 / 1 / 2 / 3) is unchanged.</span>}>
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {([['common', 2], ['rare', 2], ['epic', 3], ['legendary', 4]] as const).map(([r, c]) => (
+              <div key={r} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <PlayerCard card={dsSamples[r]} size={96} />
+                <span className="chip"><b>{c}</b> stamina</span>
+              </div>
+            ))}
+          </div>
+        </Frame>
+        <Sub>Star-core discount</Sub>
+        <div className="ds-grid cols-2">
+          <Tile label="All commons — no discount" sub="three commons in a lane = 2 + 2 + 2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span className="chip">2</span><span className="chip">2</span><span className="chip">2</span>
+              <span className="res l" style={{ marginLeft: 'auto' }}>= 6 stamina</span>
+            </div>
+          </Tile>
+          <Tile label="Star core — support half-price" sub="legendary anchor pays full; the rest halve (min 1)">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span className="chip" style={{ borderColor: 'var(--gold)', color: '#ffd9a0' }}>★ 4</span><span className="chip">1</span><span className="chip">1</span>
+              <span className="res dmg" style={{ marginLeft: 'auto' }}>= 6 stamina</span>
+            </div>
+          </Tile>
+        </div>
+        <Note>The discount is holistic, not per-card: stamina is recomputed from the committed lanes each round, and placement affordability uses the <i>marginal</i> cost — adding a star can retroactively halve its lane-mates. The <Code>.cap-chip5.star</Code> chip lights up while a lane holds a premium.</Note>
+        <Sub>Diminishing returns on stacking</Sub>
+        <Frame center caption={<span>A lane’s contributions are sorted high→low and weighted, so the 4th–5th body adds little.</span>}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {([['1st', '1.00'], ['2nd', '0.85'], ['3rd', '0.70'], ['4th', '0.55'], ['5th', '0.40'], ['6th', '0.25']] as const).map(([ord, w]) => (
+              <div key={ord} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <span className="chip" style={{ opacity: 0.4 + 0.6 * parseFloat(w) }}><b>{ord}</b></span>
+                <span style={{ fontSize: 12, color: 'var(--txt-dim)', fontWeight: 700 }}>×{w}</span>
+              </div>
+            ))}
+          </div>
+        </Frame>
       </Section>
 
       <Section id="meters" eyebrow="Patterns" title="Meters &amp; gauges"

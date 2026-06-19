@@ -10,9 +10,9 @@ export function FillWithCommons({ onFill, disabled }: FillWithCommonsProps) {
   return (
     <div className="fill-with-commons">
       <Button variant="ghost" onClick={onFill} disabled={disabled}>
-        Fill with commons
+        Fill bench (random)
       </Button>
-      <span className="fill-hint">Random commons fill remaining slots</span>
+      <span className="fill-hint">Commons aren&apos;t hand-picked — roll a random bench to complete the XI (re-click to re-roll)</span>
     </div>
   )
 }

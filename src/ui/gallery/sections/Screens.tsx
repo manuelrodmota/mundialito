@@ -53,36 +53,41 @@ export function Screens() {
       </Section>
 
       <Section id="builder" eyebrow="Run &amp; meta" title="Squad builder"
-        lede="Build an XI under a slot budget. Slot meter tracks spend; pick rows list rating/name/slots/captain/remove.">
+        lede="v9: the slot budget buys a PREMIUM core — commons aren&apos;t hand-pickable. The slot meter tracks spend against the 10-slot cap and turns red on overflow; premium picks list with rating, slot cost and a captain toggle. “Fill bench (random)” rolls the rest of the XI from random commons. The tactical tray starts at one card and grows to a run cap of ~4. Formation picker sets your tactical lean.">
         <div className="ds-grid cols-2">
           <Tile label="Slot meter" sub="fills brand→gold; .over turns red">
             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <SlotMeter used={9} cap={12} />
-              <SlotMeter used={14} cap={12} />
+              <SlotMeter used={8} cap={10} />
+              <SlotMeter used={12} cap={10} />
             </div>
           </Tile>
-          <Tile label="Pick rows" sub="rating · name · slot cost · captain · remove">
+          <Tile label="Pick rows" sub="premium core + bench · random commons">
             <div className="pick-rows" style={{ width: '100%' }}>
+              <div className="group-h">Premium core</div>
               <PickRow rating={97} name="Mbappé" slots={3} isCaptain onCaptainToggle={() => {}} onRemove={() => {}} />
               <PickRow rating={90} name="De Bruyne" slots={2} onCaptainToggle={() => {}} onRemove={() => {}} />
-              <PickRow rating="—" name="Catenaccio" slots={1} isTactic onRemove={() => {}} />
+              <div className="group-h">Bench · random commons</div>
+              <div style={{ opacity: 0.8 }}>
+                <PickRow rating={68} name="Rolled common" slots={0} />
+                <PickRow rating={71} name="Rolled common" slots={0} />
+              </div>
             </div>
           </Tile>
         </div>
+        <Sub>Fill bench</Sub>
+        <Frame center caption={<span>Commons can&apos;t be hand-picked in v9 — <Code>.btn-ghost</Code> rolls a random bench to complete the XI. Re-click to re-roll.</span>}>
+          <FillWithCommons onFill={() => {}} />
+        </Frame>
         <Sub>Formation picker</Sub>
         <Frame center caption={<span><Code>.formation-picker</Code> — balanced / offensive / defensive, each tinted on select.</span>}>
           <FormationPicker selected={formation} onSelect={setFormation} />
-        </Frame>
-        <Sub>Fill with commons</Sub>
-        <Frame center caption="Random-common fill for remaining slots (§16.3)">
-          <FillWithCommons onFill={() => {}} />
         </Frame>
       </Section>
 
       <Section id="inputs" eyebrow="Run &amp; meta" title="Filters &amp; inputs"
         lede="The pool browser uses flat night-2 fields with a brand focus border.">
-        <Frame caption={<span><Code>.filters</Code> row — search, select, range.</span>}>
-          <Filters />
+        <Frame caption={<span><Code>.filters</Code> row — search, select, range. v9 offers premiums only (commons aren&apos;t hand-pickable).</span>}>
+          <Filters rarityAllLabel="All premiums" rarityOptions={['Legendary', 'Epic', 'Rare']} />
         </Frame>
       </Section>
 

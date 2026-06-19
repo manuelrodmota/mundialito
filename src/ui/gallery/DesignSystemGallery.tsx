@@ -9,7 +9,7 @@ import { Screens } from './sections/Screens'
 const NAV = [
   { group: 'Foundations', items: [['color', 'Color'], ['type', 'Typography'], ['spacing', 'Spacing'], ['shadow', 'Elevation'], ['motion', 'Motion']] },
   { group: 'Components', items: [['buttons', 'Buttons'], ['player-card', 'Player card'], ['tactic-card', 'Tactic card'], ['deck', 'Card back'], ['crests', 'Crests & flags'], ['chips', 'Chips & badges']] },
-  { group: 'Patterns', items: [['scoreboard', 'Scoreboard & clock'], ['piles', 'Card piles'], ['limits', 'Hand & tactical limits'], ['meters', 'Meters & gauges'], ['lanes', 'Lanes & clash']] },
+  { group: 'Patterns', items: [['scoreboard', 'Scoreboard & clock'], ['piles', 'Card piles'], ['limits', 'Hand & tactical limits'], ['starcore', 'Field cost & star core'], ['meters', 'Meters & gauges'], ['lanes', 'Lanes & clash']] },
   { group: 'Run & meta', items: [['bracket', 'Run map'], ['builder', 'Squad builder'], ['inputs', 'Filters & inputs'], ['overlays', 'Modals & overlays']] },
 ] as const
 
@@ -74,11 +74,13 @@ export function DesignSystemGallery() {
         <main className="ds-main">
           <div className="ds-wrap">
             <header className="ds-hero">
-              <div className="kicker">Design system · v8</div>
+              <div className="kicker">Design system · v10</div>
               <h1>World Cup Clash</h1>
               <p>
                 The complete visual language for the roguelike World Cup card game — built on
-                Hiedra's purple accent, re-skinned for a dark stadium-night theme.
+                Hiedra's purple accent, re-skinned for a dark stadium-night theme. Updated for the
+                v10 balance pass: a gentle per-round field cost, the star-core stamina discount,
+                diminishing returns on stacked lanes, and sudden-death golden goal.
               </p>
               <div className="meta">
                 <span className="pill"><b>Inter</b> · 400–800</span>
