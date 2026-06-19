@@ -18,3 +18,54 @@
 @media (prefers-reduced-motion: reduce) {
   .cap-chip5.star { animation: none; }
 }
+
+/* ============================================================
+   v10 — the two balance levers shown at the LANE-GROUP level
+   (not per card): a stacking "handicap zone" + a star-core saving.
+   ============================================================ */
+
+/* The handicap zone frames the WHOLE lane (an inset ring + faint wash). */
+.lane4.fx-stacked {
+  box-shadow: inset 0 0 0 2px rgba(232, 138, 74, 0.55);
+  background:
+    repeating-linear-gradient(135deg, rgba(232, 138, 74, 0.09) 0 9px, rgba(232, 138, 74, 0.03) 9px 18px);
+}
+.lane4.fx-stacked.atk-lane,
+.lane4.fx-stacked.def-lane { border-color: rgba(232, 138, 74, 0.5); }
+/* A premium-anchored lane reads as a positive core — gold ring instead of amber. */
+.lane4.fx-core {
+  box-shadow: inset 0 0 0 2px rgba(232, 200, 115, 0.6);
+  background: rgba(232, 200, 115, 0.08);
+  border-color: rgba(232, 200, 115, 0.5);
+}
+.lane4.fx-stacked.fx-core {
+  box-shadow: inset 0 0 0 2px rgba(232, 200, 115, 0.6),
+    inset 0 0 0 4px rgba(232, 138, 74, 0.32);
+}
+
+/* Stacked lanes overlap tighter (the JS sets --ovl so a full lane always fits).
+   Overrides the older fixed -0.62 rule from css/v4.css — this file loads after it. */
+.lane4-cards.crowded > * + * { margin-top: var(--ovl, calc(var(--lw, 100px) * -0.62)); }
+
+/* The label cluster floats at the top of the lane. */
+.lane4 .lane-fx4 {
+  position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+  z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  pointer-events: none;
+}
+.lane4 .fx-pill {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.04em;
+  padding: 3px 9px; border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+.lane4 .fx-pill svg { width: 14px; height: 14px; flex: none; }
+.lane4 .fx-pill.stack {
+  color: #ffc59a; background: rgba(40, 18, 8, 0.92);
+  border: 1px solid rgba(232, 138, 74, 0.6);
+}
+.lane4 .fx-pill.core {
+  color: #ffe6a3; background: rgba(40, 30, 6, 0.92);
+  border: 1px solid rgba(232, 200, 115, 0.6);
+}

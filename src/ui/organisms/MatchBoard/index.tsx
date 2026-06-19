@@ -4,6 +4,7 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import { useDraggable } from '@dnd-kit/core'
 import type { MatchState, PlayerCard, TacticalCard, Formation, Card } from '../../../engine/types'
 import type { Intent } from '../../../engine/board'
+import type { LaneFx } from '../../../engine/effectiveStats'
 import { Scoreboard } from '../Scoreboard'
 import { ExtraTimeBanner } from '../ExtraTime'
 import { Lane } from '../Lanes'
@@ -77,6 +78,11 @@ interface MatchBoardProps {
   onCardClick?: (card: Card) => void
   canCommit?: boolean
   opponentIntent?: Intent | null
+  /**
+   * Engine `laneFx` helper, injected by the orchestration tier so the board can show the two v10
+   * balance levers without importing engine runtime. Omit to hide the lane-group indicators.
+   */
+  laneFx?: (cards: PlayerCard[], lane: 'attack' | 'defense') => LaneFx | null
 }
 
 /**
@@ -90,6 +96,7 @@ export function MatchBoard({
   onCardClick,
   canCommit = false,
   opponentIntent,
+  laneFx,
 }: MatchBoardProps) {
   const p0 = match.players[0]!
   const p1 = match.players[1]!
@@ -152,6 +159,9 @@ export function MatchBoard({
 
   const handCards = p0.hand.filter((c) => c.type === 'player') as PlayerCard[]
 
+  const attackFx = laneFx ? laneFx(attackCards, 'attack') : null
+  const defenseFx = laneFx ? laneFx(defenseCards, 'defense') : null
+
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <div className="match-board">
@@ -212,7 +222,7 @@ export function MatchBoard({
         <FormationPicker selected={formation} onSelect={setFormation} />
 
         <div className="board-lanes">
-          <Lane id="attack-lane" kind="atk" label="ATTACK">
+          <Lane id="attack-lane" kind="atk" label="ATTACK" lw={80} fx={attackFx} count={attackCards.length}>
             {attackCards.map((card) => (
               <div key={card.id} onClick={() => handleRemoveFromAttack(card)} style={{ cursor: 'pointer' }}>
                 <PlayerCardComponent
@@ -224,7 +234,7 @@ export function MatchBoard({
               </div>
             ))}
           </Lane>
-          <Lane id="defense-lane" kind="def" label="DEFENSE">
+          <Lane id="defense-lane" kind="def" label="DEFENSE" lw={80} fx={defenseFx} count={defenseCards.length}>
             {defenseCards.map((card) => (
               <div key={card.id} onClick={() => handleRemoveFromDefense(card)} style={{ cursor: 'pointer' }}>
                 <PlayerCardComponent

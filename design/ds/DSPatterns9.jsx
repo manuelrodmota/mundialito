@@ -152,33 +152,51 @@ function Patterns() {
             ))}
           </div>
         </Frame>
-        <Sub>Star-core discount</Sub>
+        <Sub>Star core — a lane saving, shown on the group</Sub>
+        <Note>Quality vs quantity is a <i>lane</i> relationship, so it reads on the group, not on each card — the cards keep their own honest cost chip. A premium anchors the lane and every other card in it is half-price; the lane flies a gold <b>★ −N⚡ star core</b> tab.</Note>
         <div className="ds-grid cols-2">
-          <Tile label="All commons — no discount" sub="three commons in a lane = 2 + 2 + 2">
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span className="chip">2</span><span className="chip">2</span><span className="chip">2</span>
-              <span className="res l" style={{ marginLeft: "auto" }}>= 6 stamina</span>
+          <Tile label="All commons — no discount" sub="three commons = 2 + 2 + 2 = 6 stamina">
+            <div className="lane4 mine atk-lane" style={{ width: 150, minHeight: 230, "--lw": "84px", margin: "0 auto" }}>
+              <div className="lane4-cards crowded">
+                <PCard card={dsSamples.common} size={84} />
+                <PCard card={dsSamples.common} size={84} />
+                <PCard card={dsSamples.common} size={84} />
+              </div>
+              <div className="ltag4">Your attack</div>
             </div>
           </Tile>
-          <Tile label="Star core — support half-price" sub="legendary anchor pays full; the rest halve (min 1)">
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span className="chip" style={{ borderColor: "var(--gold)", color: "#ffd9a0" }}>★ 4</span><span className="chip">1</span><span className="chip">1</span>
-              <span className="res dmg" style={{ marginLeft: "auto" }}>= 6 stamina</span>
+          <Tile label="Star core — support half-price" sub="legendary + 2 commons = 4 + 1 + 1 = 6 (was 8)">
+            <div className="lane4 mine atk-lane fx-core" style={{ width: 150, minHeight: 250, "--lw": "84px", margin: "0 auto" }}>
+              <div className="lane-fx4"><span className="fx-pill core">★ −2⚡ star core</span></div>
+              <div className="lane4-cards crowded" style={{ "--ovl": "-92px" }}>
+                <PCard card={dsSamples.legendary} size={84} />
+                <PCard card={dsSamples.common} size={84} />
+                <PCard card={dsSamples.common} size={84} />
+              </div>
+              <div className="ltag4">Your attack</div>
             </div>
           </Tile>
         </div>
-        <Note>The discount is holistic, not per-card: stamina is recomputed from the committed lanes each round, and placement affordability uses the <i>marginal</i> cost — adding a star can retroactively halve its lane-mates. The <Code>.cap-chip5.star</Code> chip (shown above) lights up while a lane holds a premium.</Note>
-        <Sub>Diminishing returns on stacking</Sub>
-        <Frame center caption={<span>A lane’s contributions are sorted high→low and weighted, so the 4th–5th body adds little.</span>}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-            {[["1st", "1.00"], ["2nd", "0.85"], ["3rd", "0.70"], ["4th", "0.55"], ["5th", "0.40"], ["6th", "0.25"]].map(([ord, w]) => (
-              <div key={ord} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                <span className="chip" style={{ opacity: 0.4 + 0.6 * parseFloat(w) }}><b>{ord}</b></span>
-                <span style={{ fontSize: 12, color: "var(--txt-dim)", fontWeight: 700 }}>×{w}</span>
-              </div>
-            ))}
+        <Note>The discount is holistic: stamina is recomputed from the committed lanes each round, and placement uses the <i>marginal</i> cost — adding a star can retroactively halve its lane-mates. The <Code>.cap-chip5.star</Code> chip in the action dock also lights up while a lane holds a premium.</Note>
+        <Sub>Diminishing returns — a handicap zone around the group</Sub>
+        <Frame center pitch caption={<span>Stack the same tier and the whole lane is framed by an amber zone with a <b>−N% stacked</b> tab — the stacked-cards glyph and warm color read as a penalty, not a buff. Driven by <Code>window.laneDecor</Code>, so the readout can’t drift from the engine math.</span>}>
+          <div className="lane4 mine atk-lane fx-stacked" style={{ width: 160, minHeight: 300, "--lw": "86px", margin: "0 auto" }}>
+            <div className="lane-fx4">
+              <span className="fx-pill stack">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f0935a" strokeWidth="2.2" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="8.5" width="12" height="12.5" rx="2.2"/><rect x="9" y="3" width="12" height="12.5" rx="2.2" fill="rgba(40,18,8,0.92)"/></svg>
+                −22% stacked
+              </span>
+            </div>
+            <div className="lane4-cards crowded" style={{ "--ovl": "-96px" }}>
+              <PCard card={dsSamples.common} size={86} />
+              <PCard card={dsSamples.common} size={86} />
+              <PCard card={dsSamples.common} size={86} />
+              <PCard card={dsSamples.common} size={86} />
+            </div>
+            <div className="ltag4">Your attack</div>
           </div>
         </Frame>
+        <Note>Contributions are weighted high→low (×1.00 / 0.85 / 0.70 / 0.55 / 0.40 / 0.25), so stacking the same tier doesn’t grow a lane linearly — four equal bodies output ~78% of their raw stats. A few strong cards beat a wall of commons.</Note>
       </Section>
 
       {/* ============ EXTRA TIME ============ */}
