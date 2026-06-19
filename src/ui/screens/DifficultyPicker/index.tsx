@@ -1,5 +1,4 @@
 import type { Difficulty } from '../../quickplay/useQuickplayMatch'
-import { Button } from '../../atoms/Button'
 
 interface DifficultyOption {
   difficulty: Difficulty
@@ -32,36 +31,52 @@ export function DifficultyPicker({
   loading = false,
 }: DifficultyPickerProps) {
   return (
-    <div className="difficulty-picker">
-      <div className="dp-header">
-        <Button variant="ghost" onClick={onBack}>Back</Button>
-        <h2>Choose Your Opponent</h2>
+    <div className="screen menu">
+      <div className="stadium-bg"></div>
+      <div className="logo-block">
+        <div className="kicker">Quickplay</div>
+        <h1>Choose difficulty</h1>
+        <div className="sub">Difficulty sets your opponent&apos;s tier — from developing sides (D) up to world champions (S).</div>
       </div>
 
-      <div className="dp-options">
-        {DIFFICULTY_OPTIONS.map(({ difficulty, label, tier, description }) => (
-          <button
-            key={difficulty}
-            type="button"
-            className={`dp-option${selected === difficulty ? ' selected' : ''}`}
-            onClick={() => onSelect(difficulty)}
-            data-difficulty={difficulty}
-          >
-            <div className="dp-tier">{tier}</div>
-            <div className="dp-label">{label}</div>
-            <div className="dp-desc">{description}</div>
-          </button>
-        ))}
+      <div className="actions">
+        {DIFFICULTY_OPTIONS.map(({ difficulty, label, tier, description }) => {
+          const isSelected = selected === difficulty
+          const btnCls = [
+            'btn',
+            'dp-option',
+            isSelected ? 'btn-gold selected' : 'btn-primary',
+          ].join(' ')
+          return (
+            <button
+              key={difficulty}
+              type="button"
+              className={btnCls}
+              onClick={() => onSelect(difficulty)}
+              data-difficulty={difficulty}
+            >
+              <span className="dp-tier">{tier}</span>
+              {' '}
+              <span className="dp-label">{label}</span>
+              <span className="dp-desc"> — {description}</span>
+            </button>
+          )
+        })}
       </div>
 
-      <Button
-        variant="gold"
-        size="big"
-        onClick={onConfirm}
-        disabled={loading}
-      >
-        {loading ? 'Finding opponent…' : 'Kick Off'}
-      </Button>
+      <div className="actions" style={{ flexDirection: 'row', width: 'auto', marginTop: 8 }}>
+        <button
+          type="button"
+          className="btn btn-gold btn-big"
+          onClick={onConfirm}
+          disabled={loading}
+        >
+          {loading ? 'Finding opponent…' : 'Kick off'}
+        </button>
+        <button type="button" className="btn btn-ghost btn-big" onClick={onBack}>
+          Back
+        </button>
+      </div>
     </div>
   )
 }

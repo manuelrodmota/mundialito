@@ -16,7 +16,6 @@ import { TacticalSlot } from '../TacticalSlot'
 import { IntentStrip } from '../IntentStrip'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
-import { Button } from '../../atoms/Button'
 
 const ROUND_TO_MINUTE = (round: number, extraTime: boolean): string => {
   if (extraTime) return `90+${(round - 10) * 9}'`
@@ -86,8 +85,8 @@ interface MatchBoardProps {
 }
 
 /**
- * Presentational match board — renders MatchState + owns the single dnd-kit DndContext.
- * Receives all data as props; imports the engine via `import type` only.
+ * Presentational match board — full pitch layout mirroring Board9.jsx.
+ * Owns the single dnd-kit DndContext; imports the engine via `import type` only.
  */
 export function MatchBoard({
   match,
@@ -162,110 +161,163 @@ export function MatchBoard({
   const attackFx = laneFx ? laneFx(attackCards, 'attack') : null
   const defenseFx = laneFx ? laneFx(defenseCards, 'defense') : null
 
+  const committed = attackCards.length + defenseCards.length
+
   return (
     <DndContext onDragEnd={handleDragEnd}>
-      <div className="match-board">
+      <div className={`screen board${match.extraTime ? ' et-mode' : ''}`}>
+        <div className="stadium-bg" />
+
+        {/* opponent top strip */}
+        <div className="side-strip top">
+          <div className="opp-id">
+            <span className="nm">{match.opponent.name}</span>
+            <span className="sub3">{match.opponent.tier}</span>
+          </div>
+
+          <Scoreboard
+            them={p1.goals}
+            you={p0.goals}
+            code={match.opponent.nation}
+            minute={minute}
+            phase={phase}
+            mercy={mercyLabel}
+            mercyHot={mercyHot}
+            et={match.extraTime}
+            xg={{
+              code: match.opponent.nation,
+              themXg: p1.xg % 1,
+              themHeat: fatigueHeat(p1.fatigue),
+              youXg: p0.xg % 1,
+              youClose: (p0.xg % 1) > 0.7,
+            }}
+          />
+
+          <div className="board-meters">
+            <XGMeter
+              goals={p1.goals}
+              xg={p1.xg % 1}
+              heat={fatigueHeat(p1.fatigue)}
+              label={match.opponent.name}
+            />
+            <XGMeter
+              goals={p0.goals}
+              xg={p0.xg % 1}
+              heat={fatigueHeat(p0.fatigue)}
+              label="YOU"
+              mine
+            />
+          </div>
+
+          <div className="board-chips">
+            <CapChip kind="players" current={attackCards.length + defenseCards.length} max={5} />
+            <CapChip kind="tactics" current={p0.tacticalsThisHalf} max={2} />
+            {showStarCore && <CapChip kind="star" />}
+          </div>
+        </div>
+
+        {/* ET banner */}
         {match.extraTime && <ExtraTimeBanner />}
 
-        <Scoreboard
-          them={p1.goals}
-          you={p0.goals}
-          code={match.opponent.nation}
-          minute={minute}
-          phase={phase}
-          mercy={mercyLabel}
-          mercyHot={mercyHot}
-          et={match.extraTime}
-          xg={{
-            code: match.opponent.nation,
-            themXg: p1.xg % 1,
-            themHeat: fatigueHeat(p1.fatigue),
-            youXg: p0.xg % 1,
-            youClose: (p0.xg % 1) > 0.7,
-          }}
-        />
+        {/* pitch */}
+        <div className="pitch-wrap4">
+          <div className="pitch4">
+            <div className="dirhint4 l">
+              <span className="who4">You attack</span>
+            </div>
+            <div className="dirhint4 r">
+              <span className="who4">They attack</span>
+            </div>
 
-        <div className="board-meters">
-          <XGMeter
-            goals={p1.goals}
-            xg={p1.xg % 1}
-            heat={fatigueHeat(p1.fatigue)}
-            label={match.opponent.name}
-          />
-          <XGMeter
-            goals={p0.goals}
-            xg={p0.xg % 1}
-            heat={fatigueHeat(p0.fatigue)}
-            label="YOU"
-            mine
-          />
-        </div>
-
-        <div className="board-chips">
-          <CapChip kind="players" current={attackCards.length + defenseCards.length} max={5} />
-          <CapChip kind="tactics" current={p0.tacticalsThisHalf} max={2} />
-          {showStarCore && <CapChip kind="star" />}
-        </div>
-
-        {opponentIntent && (
-          <IntentStrip opponentIntent={opponentIntent} />
-        )}
-
-        <TacticalSlot
-          activeTactical={activeTactical ?? null}
-          tacticalsThisHalf={p0.tacticalsThisHalf}
-          canPlayTactical={canPlayTactical}
-          availableTacticals={availableTacticals}
-          onPlayTactical={(tac) => onPlayTactical?.(tac)}
-        />
-
-        <FormationPicker selected={formation} onSelect={setFormation} />
-
-        <div className="board-lanes">
-          <Lane id="attack-lane" kind="atk" label="ATTACK" lw={80} fx={attackFx} count={attackCards.length}>
-            {attackCards.map((card) => (
-              <div key={card.id} onClick={() => handleRemoveFromAttack(card)} style={{ cursor: 'pointer' }}>
-                <PlayerCardComponent
-                  card={card}
-                  size={80}
-                  isCaptain={card.id === p0.captainId}
-                  onClick={() => onCardClick?.(card)}
-                />
+            {opponentIntent && (
+              <div className="intent">
+                <IntentStrip opponentIntent={opponentIntent} />
               </div>
-            ))}
-          </Lane>
-          <Lane id="defense-lane" kind="def" label="DEFENSE" lw={80} fx={defenseFx} count={defenseCards.length}>
-            {defenseCards.map((card) => (
-              <div key={card.id} onClick={() => handleRemoveFromDefense(card)} style={{ cursor: 'pointer' }}>
-                <PlayerCardComponent
-                  card={card}
-                  size={80}
-                  isCaptain={card.id === p0.captainId}
-                  onClick={() => onCardClick?.(card)}
-                />
+            )}
+
+            <div className="p4-grid">
+              <Lane id="defense-lane" kind="def" label="DEFENSE" lw={80} fx={defenseFx} count={defenseCards.length}>
+                {defenseCards.map((card) => (
+                  <div key={card.id} onClick={() => handleRemoveFromDefense(card)} style={{ cursor: 'pointer' }}>
+                    <PlayerCardComponent
+                      card={card}
+                      size={80}
+                      isCaptain={card.id === p0.captainId}
+                      onClick={() => onCardClick?.(card)}
+                    />
+                  </div>
+                ))}
+              </Lane>
+
+              <Lane id="attack-lane" kind="atk" label="ATTACK" lw={80} fx={attackFx} count={attackCards.length}>
+                {attackCards.map((card) => (
+                  <div key={card.id} onClick={() => handleRemoveFromAttack(card)} style={{ cursor: 'pointer' }}>
+                    <PlayerCardComponent
+                      card={card}
+                      size={80}
+                      isCaptain={card.id === p0.captainId}
+                      onClick={() => onCardClick?.(card)}
+                    />
+                  </div>
+                ))}
+              </Lane>
+
+              <div className="p4-mid" />
+
+              {/* opponent lanes — face-down placeholders */}
+              <div className="lane4 opp atk-lane">
+                <div className="ltag4">Their attack</div>
               </div>
+              <div className="lane4 opp def-lane">
+                <div className="ltag4">Their defense</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* action dock */}
+        <div className="hand-dock" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '6px 26px', position: 'relative', zIndex: 5, minHeight: 56 }}>
+          <TacticalSlot
+            activeTactical={activeTactical ?? null}
+            tacticalsThisHalf={p0.tacticalsThisHalf}
+            canPlayTactical={canPlayTactical}
+            availableTacticals={availableTacticals}
+            onPlayTactical={(tac) => onPlayTactical?.(tac)}
+          />
+
+          <FormationPicker selected={formation} onSelect={setFormation} />
+
+          {canCommit && (
+            <button className="btn btn-gold" onClick={handleCommit}>
+              {committed > 0 ? 'Lock in & reveal' : 'Pass round'}
+            </button>
+          )}
+        </div>
+
+        {/* hand dock */}
+        <div className="hand-dock">
+          <div className="pile-col7 left">
+            <DeckPile kind="draw" count={p0.drawPile.length} label="Draw" />
+            <DeckPile kind="locked" count={p0.locked.length} label="Bench" cue="returns at HT" />
+          </div>
+
+          <div className="fan2">
+            {handCards.map((card) => (
+              <DraggableCard key={card.id} card={card} isCaptain={card.id === p0.captainId} />
             ))}
-          </Lane>
+          </div>
+
+          <div className="pile-col7 right">
+            <DeckPile kind="discard" count={p0.discard.length} label="Discard" />
+            <DeckPile kind="exiled" count={p0.exiled.length} label="Exiled" />
+          </div>
         </div>
 
-        <div className="board-hand">
-          {handCards.map((card) => (
-            <DraggableCard key={card.id} card={card} isCaptain={card.id === p0.captainId} />
-          ))}
+        {/* player bottom strip */}
+        <div className="side-strip bottom">
+          <div className="crest">YOU</div>
+          <span className="fchip" data-f={formation}>{formation}</span>
         </div>
-
-        <div className="board-piles">
-          <DeckPile kind="draw" count={p0.drawPile.length} label="Draw" />
-          <DeckPile kind="discard" count={p0.discard.length} label="Discard" />
-          <DeckPile kind="locked" count={p0.locked.length} label="Bench" cue="returns at HT" />
-          <DeckPile kind="exiled" count={p0.exiled.length} label="Exiled" />
-        </div>
-
-        {canCommit && (
-          <Button variant="primary" onClick={handleCommit}>
-            Commit Turn
-          </Button>
-        )}
       </div>
     </DndContext>
   )
