@@ -11,6 +11,15 @@ vi.mock('framer-motion', async (importOriginal) => {
   }
 })
 
+vi.mock('./ui/screens/Quickplay', () => ({
+  Quickplay: ({ onBack }: { onBack: () => void }) => (
+    <div>
+      <h1>Quickplay</h1>
+      <button type="button" onClick={onBack}>Back to menu</button>
+    </div>
+  ),
+}))
+
 describe('App', () => {
   it('shows the main menu as the default screen', () => {
     render(<App />)
@@ -18,15 +27,14 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Arcade Run' })).toBeInTheDocument()
   })
 
-  it('transitions to the Quickplay placeholder when Quickplay is clicked', async () => {
+  it('transitions to the Quickplay screen when Quickplay is clicked', async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole('button', { name: 'Quickplay' }))
     expect(screen.getByRole('heading', { name: 'Quickplay' })).toBeInTheDocument()
-    expect(screen.getByText(/WCC-023/)).toBeInTheDocument()
   })
 
-  it('returns to the menu from the Quickplay placeholder', async () => {
+  it('returns to the menu from the Quickplay screen', async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole('button', { name: 'Quickplay' }))
