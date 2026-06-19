@@ -5,6 +5,10 @@ interface FiltersProps {
   onPositionChange?: (value: string) => void
   rarityValue?: string
   onRarityChange?: (value: string) => void
+  /** Label for the "any rarity" option. v9 builder uses "All premiums" (commons aren't hand-pickable). */
+  rarityAllLabel?: string
+  /** Selectable rarity options. Defaults to all four; v9 builder passes premium-only (no Common). */
+  rarityOptions?: readonly string[]
   ratingMin?: number
   onRatingMinChange?: (value: number) => void
 }
@@ -17,6 +21,8 @@ export function Filters({
   onPositionChange,
   rarityValue = 'all',
   onRarityChange,
+  rarityAllLabel = 'All rarities',
+  rarityOptions = ['Legendary', 'Epic', 'Rare', 'Common'],
   ratingMin = 60,
   onRatingMinChange,
 }: FiltersProps) {
@@ -36,11 +42,10 @@ export function Filters({
         <option>GK</option>
       </select>
       <select value={rarityValue} onChange={(e) => onRarityChange?.(e.target.value)}>
-        <option value="all">All rarities</option>
-        <option>Legendary</option>
-        <option>Epic</option>
-        <option>Rare</option>
-        <option>Common</option>
+        <option value="all">{rarityAllLabel}</option>
+        {rarityOptions.map((r) => (
+          <option key={r}>{r}</option>
+        ))}
       </select>
       <div className="range-wrap">
         <span>Rating {ratingMin}+</span>

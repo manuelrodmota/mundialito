@@ -27,4 +27,10 @@ describe('CapChip', () => {
     const { container } = render(<CapChip kind="tactics" current={2} max={2} />)
     expect(container.querySelector('.full')).toBeTruthy()
   })
+
+  it('renders the star-core variant with .star class and label', () => {
+    const { container } = render(<CapChip kind="star" />)
+    expect(container.querySelector('.cap-chip5.star')).toBeTruthy()
+    expect(screen.getByText(/star core/i)).toBeTruthy()
+  })
 })
