@@ -39,7 +39,9 @@ This project is **World Cup Clash**, a **Slay the Spire–style arcade roguelike
 | Static asset | `src/assets/{name}` | `src/assets/hero.png` |
 | Match engine (pure TS, framework-agnostic) | `src/engine/{name}.ts` | `src/engine/engine.ts` |
 | Co-located engine test (Vitest) | `src/engine/{name}.test.ts` | `src/engine/match.test.ts` |
-| UI component (atomic design) | `src/ui/{atoms\|molecules\|organisms}/{Name}/index.tsx` | `src/ui/atoms/Button/index.tsx` |
+| UI component — presentational (atomic design) | `src/ui/{atoms\|molecules\|organisms}/{Name}/index.tsx` | `src/ui/atoms/Button/index.tsx` |
+| UI screen — stateful, data-aware container | `src/ui/screens/{Name}/index.tsx` | `src/ui/screens/Quickplay/index.tsx` |
+| UI orchestration — hook/helper wiring engine runtime + repos | `src/ui/{mode}/{name}.ts` | `src/ui/quickplay/useQuickplayMatch.ts` |
 | Co-located component test | `src/ui/.../{Name}/{Name}.test.tsx` | `src/ui/atoms/Button/Button.test.tsx` |
 | CSS design tokens | `src/ui/tokens/{name}.css` | `src/ui/tokens/index.css` |
 | Typed data-access layer (Supabase repos/mappers) | `src/data/remote/{name}.ts` | `src/data/remote/players.repo.ts` |
@@ -54,9 +56,12 @@ project/
     ├── assets/  # Static asset
     ├── engine/  # Pure TS match engine — no JSX/DOM; public surface via index.ts; co-located *.test.ts
     ├── data/    # Game data: static pool (players/tacticals/opponents) + remote/ typed Supabase repos+mappers (barrel remote/index.ts)
-    └── ui/      # Presentational React component library (atomic design); barrel src/ui/index.ts
-                 #   atoms/ molecules/ organisms/ (one dir per component: index.tsx + *.test.tsx),
-                 #   plus tokens/ (CSS), data/, jersey/ (procedural SVG), motion/, gallery/ (#ds route)
+    └── ui/      # React UI; barrel src/ui/index.ts. Two tiers:
+                 #   PRESENTATIONAL (engine import type-only): atoms/ molecules/ organisms/
+                 #     (one dir per component: index.tsx + *.test.tsx), plus tokens/ (CSS),
+                 #     data/, jersey/ (procedural SVG), motion/, gallery/ (#ds route)
+                 #   ORCHESTRATION (engine runtime + data repos OK): screens/{Name}/ stateful
+                 #     containers + {mode}/ hooks/helpers (e.g. quickplay/useQuickplayMatch.ts)
 ```
 
 ## Services & Ports

@@ -70,6 +70,17 @@ const client = {
 expect(await fetchPlayers(client)).toEqual(/* mapped PlayerCards */);
 ```
 
+## Mode-Flow Integration Tests Run the Real Engine — Fixed Seed, Static Opponent, No Supabase
+
+A mode's orchestration tier (`src/ui/{mode}/`) gets a fixed-seed integration test that drives the *real* engine end-to-end with no mocks of game logic and no live data: build the deck with `build{Mode}Deck`, pick a `data/opponents` static opponent, and loop `startRound → decideTurn → resolveRound` to a decisive result (`quickplayFlow.test.tsx` is the reference). Assert a winner is reached (`winner` not null, `=== 0 || === 1` — no draw), it bounds within max rounds (guard against infinite loops), and the same seed reproduces identical goals. Screen-container tests, by contrast, still mock the Supabase client and seed the rng (see the data-layer rule above).
+
+```tsx
+// src/ui/{mode}/{mode}Flow.test.tsx — real engine, fixed seed, static opponent
+const m1 = runMatchToEnd(FIXED_SEED);
+expect(m1.winner === 0 || m1.winner === 1).toBe(true); // decisive, no draw
+expect(runMatchToEnd(FIXED_SEED).players[0]!.goals).toBe(m1.players[0]!.goals); // reproducible
+```
+
 ## Coverage Expectations
 
 - No coverage gate exists today — establish one when the first test file is added

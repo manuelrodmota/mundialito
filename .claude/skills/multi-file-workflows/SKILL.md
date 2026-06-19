@@ -45,6 +45,18 @@ export function {ComponentName}({ }: {ComponentName}Props) {
 
 > **Gotcha**: A component not re-exported from its layer barrel is invisible to `src/ui/index.ts` consumers even though the file compiles — wire the barrel in the same change.
 
+## Adding a Stateful Screen / Mode Flow (`src/ui/screens/` + `src/ui/{mode}/`)
+
+Use this for data-aware containers that wire the engine + repos, NOT presentational components (those follow the workflow above).
+
+1. Put pure orchestration in `src/ui/{mode}/` — a hook (`use{Mode}Match.ts`) and/or helper (`build{Mode}Deck.ts`). This tier is the ONLY `src/ui/**` place allowed to import engine runtime + Supabase repos (see code-conventions). Thread one seeded `makeRng` for determinism; take a `SupabaseClient` rather than calling `getSupabaseClient()` deep inside.
+2. Create the screen container `src/ui/screens/{Name}/index.tsx` — it consumes the hook and renders presentational organisms (passing data down as props).
+3. Add co-located tests: `src/ui/{mode}/{name}.test.ts(x)` for the hook/helper and `src/ui/screens/{Name}/{Name}.test.tsx` for the container (see testing-conventions — mock the Supabase client, seed the rng).
+4. Re-export the screen from `src/ui/screens/index.ts` (`src/ui/index.ts` already `export *`s `./screens`, so no edit there).
+5. Run `npm run test` and `npm run build` — both must stay green.
+
+> **Gotcha**: keep engine runtime + data-repo imports out of the presentational organisms — if a `src/ui/{mode}/` or `screens/` import leaks into an `atoms/molecules/organisms` file you have crossed the tier boundary. The engine mutates `MatchState` in place, so the hook must publish a state snapshot (not the live ref) for render-safe reads (see code-conventions).
+
 ## Adding a New Static Asset
 
 1. Place the file in `src/assets/{filename}`

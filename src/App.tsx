@@ -3,6 +3,7 @@ import './App.css'
 import './ui/tokens/index.css'
 import { MainMenu } from './ui/organisms/MainMenu'
 import { PlaceholderScreen } from './ui/organisms/PlaceholderScreen'
+import { Quickplay } from './ui/screens/Quickplay'
 
 const DesignSystemGallery = lazy(() =>
   import('./ui/gallery/DesignSystemGallery').then((m) => ({
@@ -42,11 +43,7 @@ function App() {
 
   if (screen === 'quickplay') {
     return (
-      <PlaceholderScreen
-        title="Quickplay"
-        note="Difficulty picker coming soon (WCC-023)"
-        onBack={() => setScreen('menu')}
-      />
+      <Quickplay onBack={() => setScreen('menu')} />
     )
   }
 

@@ -73,16 +73,35 @@ const pick = Math.floor(Math.random() * deck.length);
 const pick = Math.floor(rng.next() * deck.length);
 ```
 
-### `src/ui/**` components are presentational and import the engine via `import type` only
+### Only the UI orchestration tier imports engine runtime; presentational components are `import type` only
 
-UI components must not pull engine runtime code into the bundle — they only borrow its types. Every reference to `src/engine/**` from `src/ui/**` is a type import.
+`src/ui/` has two tiers. **Presentational** components (`atoms/` `molecules/` `organisms/`) must not pull engine runtime or data repos into the bundle — every `src/engine/**` reference is a type import, and they never touch `src/data/**`. **Orchestration** files (`src/ui/screens/{Name}/` stateful containers + `src/ui/{mode}/` hooks/helpers, e.g. `quickplay/useQuickplayMatch.ts`) are the *only* `src/ui/**` files allowed to import engine runtime (`makeRng`, `newMatch`, …) and Supabase repos.
 
 ```typescript
-// WRONG — drags engine runtime into the UI bundle
-import { PlayerCard } from '../../../engine/types';
+// WRONG — inside an organism: drags engine runtime + data layer into a presentational component
+import { newMatch } from '../../../engine';
+import { fetchPlayers } from '../../../data/remote/players.repo';
 
-// CORRECT — types only, erased at build time
+// CORRECT — organism borrows types only, erased at build time
 import type { PlayerCard } from '../../../engine/types';
+
+// CORRECT — orchestration tier (screens/ + {mode}/) may import runtime + repos
+import { newMatch, makeRng } from '../../../engine';
+import { fetchPlayers } from '../../../data/remote/players.repo';
+```
+
+### Drive an in-place-mutated engine MatchState through a ref + a separate state snapshot
+
+The engine mutates `MatchState` in place; reading a ref during render is a React 19 error. In orchestration hooks, hold the live match in a `useRef` (mutated between ticks) and publish a shallow-cloned `useState` snapshot after each engine call so renders read stable data (`useQuickplayMatch.ts` `matchRef` + `matchSnapshot` is the reference).
+
+```typescript
+// WRONG — render reads the mutating ref; React flags it and the UI misses updates
+return { match: matchRef.current };
+
+// CORRECT — ref for mutation, snapshot for render-safe reads
+const [snapshot, setSnapshot] = useState<MatchState | null>(null);
+const sync = () => setSnapshot(matchRef.current ? { ...matchRef.current } : null);
+resolveRound(matchRef.current, rng); sync();
 ```
 
 ### Only the Supabase anon key is browser-safe; never expose the service-role key
