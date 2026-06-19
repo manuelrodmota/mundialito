@@ -2,9 +2,9 @@
 document_type: architecture
 summary: >-
   This repository is a **single-service polyrepo** — there is no monorepo
-  tooling, no workspaces, and no sibling packages. The entire project is a pure
-  client-...
-last_updated: '2026-06-19T15:38:24.000Z'
+  tooling, no workspaces, and no sibling packages. The client is a Vite + React
+  SPA backed by a Supabase data API (read-only player/team data).
+last_updated: '2026-06-19T17:21:35.000Z'
 tags:
   - architecture
   - topology
@@ -18,15 +18,16 @@ tags:
 
 This repository is a **single-service polyrepo** — there is no monorepo tooling, no workspaces, and no sibling packages. The entire project is a pure client-side single-page application (SPA) scaffolded with Vite and React. The package manager is `pnpm`.
 
-The top-level layout is minimal. Application source lives under `src/`: the React entry point, one top-level component, CSS, and static assets, plus three pure-logic / presentation subdirectories — `src/engine/` (a framework-agnostic TypeScript layer: canonical v10 domain types + tuning constants + a seeded PRNG, plus the full match-resolution engine + opponent AI — built fresh from the GDD rules, not ported), `src/data/` (static game data — player pool, tactical catalog, opponent teams, derived from the GDD), and `src/ui/` (the presentational React component library + design-token layer). The throwaway Monte-Carlo simulator (`src/sim/` + `tsconfig.sim.json`) was retired. No backend, no shared library packages, and no sub-workspace directories exist in the repository root.
+The top-level layout is minimal. Application source lives under `src/`: the React entry point, one top-level component, CSS, and static assets, plus three pure-logic / presentation subdirectories — `src/engine/` (a framework-agnostic TypeScript layer: canonical v10 domain types + tuning constants + a seeded PRNG, plus the full match-resolution engine + opponent AI — built fresh from the GDD rules, not ported), `src/data/` (static game data — player pool, tactical catalog, opponent teams, derived from the GDD), and `src/ui/` (the presentational React component library + design-token layer). The throwaway Monte-Carlo simulator (`src/sim/` + `tsconfig.sim.json`) was retired. A `supabase/` directory (config, SQL migrations, CSV seed/import scripts) defines a **Supabase Postgres data backend** for the player/team data — local-first via Docker, consumed read-only by the browser through `src/data/remote/`. No bespoke server code or shared library packages live in the repo; the backend is managed Supabase (PostgREST), configured from `supabase/`.
 
 | Workspace / Directory | Contents |
 |-----------------------|----------|
 | `src/` | React components, stylesheets, entry point, static assets |
 | `src/assets/` | Static asset files (images, fonts, etc.) |
 | `src/engine/` | Pure framework-agnostic TS, no DOM/I/O, deterministic given a seed: canonical v10 `types.ts` + `constants.ts` + seeded `rng.ts`, plus the full match engine + AI built fresh from the GDD rules (not ported) — `xg`, `effectiveStats`, `synergies`, `fatigue`, `cards`, `validateLineup`, `board`, `tacticals`, `status`, `momentum`, `checkWin`, the `match` state machine (`resolveRound`), and `ai`; public surface via `index.ts` |
-| `src/data/` | Static game data — player pool (296), tactical catalog (19), opponent teams (38); derived from the GDD; co-located Vitest tests |
+| `src/data/` | Game data: `src/data/remote/` = typed Supabase access layer (client, generated `database.types.ts`, DB→`PlayerCard` mappers, deck-builder + opponent repos) — the primary source; `tacticals.ts` + a static fallback pool stay in-bundle; co-located Vitest tests (mock the Supabase client) |
 | `src/ui/` | Presentational React 19 component library (atoms / molecules / organisms per atomic-design) + CSS design-token layer (`tokens/`) + per-nation procedural SVG jersey kit + `#ds` design-system gallery; must not import `src/engine/` (type-only imports allowed) |
+| `supabase/` | Supabase data backend: `config.toml`, SQL `migrations/` (6 tables + read-only RLS), `scripts/` (idempotent CSV seed + squads↔ratings normalization), `seed/*.csv` (source datasets), `README.md` (local workflow + cloud handoff). CLI local state (`.temp`/`.branches`/`out`) git-ignored |
 | `public/` | (not determined by analysis) |
 
 ---
@@ -43,23 +44,21 @@ The `javascript-scripts` group identified by static analysis is a library-type a
 
 ## Service Communication
 
-This project is a pure frontend SPA with no server-side code and no inter-service calls within the repository. There is one service boundary: the browser running mundialito-client.
-
-Any communication to a backend API would cross that single boundary as outbound HTTP/HTTPS requests from the browser. No such calls have been identified by static analysis of the current source at the time of writing.
+The repo holds no bespoke server code. There is one service boundary: the browser running mundialito-client, which now reads its player/team data from a **Supabase PostgREST API** over HTTPS (the first such call — added by the data-backend layer).
 
 | Source | Target | Protocol | Data Shape |
 |--------|--------|----------|------------|
-| (not determined by analysis) | (not determined by analysis) | (not determined by analysis) | (not determined by analysis) |
+| mundialito-client (browser, `src/data/remote/`) | Supabase PostgREST | HTTPS REST (anon key) | JSON rows (player_ratings, squad_members, campaign_teams, …) → mapped to `PlayerCard`/`OpponentTeam` |
 
 ---
 
 ## External Integrations
 
-No external vendor integrations, third-party SDKs, or API client wrappers have been identified in the codebase. The runtime dependencies are all client-side UI libraries: React 19, **Framer Motion** (animation), **dnd-kit** (`@dnd-kit/core` — drag-to-lane), and `@fontsource-variable/inter` (bundled typeface). The toolchain adds Vite, TypeScript, ESLint, and the **Vitest + React Testing Library + jsdom** test stack. None of these reach an external network service.
+**Supabase** is the one external integration — `@supabase/supabase-js` is the client wrapper, used read-only from `src/data/remote/` for the player/team data. The other runtime deps are client-side UI libraries (React 19, **Framer Motion**, **dnd-kit**, `@fontsource-variable/inter`); the toolchain adds Vite, TypeScript, ESLint, the **Vitest + RTL + jsdom** test stack, and the **Supabase CLI** (+ `csv-parse`/`tsx` for the seed import). Only Supabase reaches a network service.
 
 | Vendor | Client Wrapper Path | Auth Mechanism | Environments |
 |--------|---------------------|----------------|--------------|
-| (not determined by analysis) | — | — | — |
+| Supabase | `src/data/remote/client.ts` (`@supabase/supabase-js`) | anon API key (`VITE_SUPABASE_ANON_KEY`), read-only RLS; service-role key is local/seed-only, never `VITE_*` | local (Docker, `supabase start`) · hosted (WCC-050 handoff) |
 
 ---
 
@@ -95,7 +94,7 @@ Because mundialito-client is a pure SPA, the only meaningful request lifecycle i
 
 ## Data Architecture
 
-The application has no data layer. There is no ORM, no local database (IndexedDB, localStorage abstraction, SQLite WASM, etc.), and no dedicated state management library. All state is local to React components using built-in primitives (`useState`, `useContext`, `useReducer`). There are no queues, caches, or object stores.
+Player/team reference data lives in a **Supabase Postgres database** (tables: `teams`, `tournaments`, `players`, `player_ratings` [the card pool], `squad_members`, `campaign_teams`), seeded from the CSVs under `supabase/seed/` and read **read-only** by the browser via PostgREST (`src/data/remote/` repositories map rows → `PlayerCard`/`OpponentTeam`). Schema is managed by SQL migrations under `supabase/migrations/`. There is still no client-side ORM/IndexedDB and no dedicated state-management library — transient UI state stays in React primitives (`useState`/`useContext`/`useReducer`); `src/data/tacticals.ts` and a static fallback pool remain in-bundle.
 
 | Store | Technology | Ownership | Schema Management | Local Dev Story |
 |-------|-----------|-----------|-------------------|-----------------|
