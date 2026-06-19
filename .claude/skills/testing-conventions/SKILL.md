@@ -42,14 +42,17 @@ vi.mock('framer-motion', async (orig) => ({
 
 ## Engine Reproducibility Check
 
-The match engine is deterministic given a seed. Verify engine/sim changes with the fixed-seed self-check rather than ad-hoc runs:
+The match engine is deterministic given a seed. Assert this with co-located Vitest tests (`src/engine/{name}.test.ts`), not an ad-hoc harness — run two identical seeded runs and `toEqual` the results (`src/engine/match.test.ts` "fixed-seed determinism: same seed → byte-identical final state" and `src/engine/rng.test.ts` are the references).
 
-```bash
-npm run sim:check   # runs the same seeded match twice, asserts byte-identical results + stable RNG sequence
+```ts
+// src/engine/match.test.ts — run the same seed twice, assert deep-equal final state
+const m1 = runFullMatch(123);
+const m2 = runFullMatch(123);
+expect(m1).toEqual(m2);
 ```
 
-- Always thread the same seeded `Rng` through a run; never read `Math.random()` in engine/sim code (it breaks reproducibility)
-- When adding engine behaviour, extend `src/sim/selfcheck.ts` to assert the new output field stays stable across identical seeds
+- Always thread the same seeded `Rng` through a run; never read `Math.random()` in engine code (it breaks reproducibility)
+- When adding engine behaviour, extend the co-located test to assert the new output field stays stable across identical seeds
 
 ## Coverage Expectations
 

@@ -4,7 +4,7 @@ summary: >-
   This repository is a **single-service polyrepo** — there is no monorepo
   tooling, no workspaces, and no sibling packages. The entire project is a pure
   client-...
-last_updated: '2026-06-19T01:49:09.000Z'
+last_updated: '2026-06-19T15:38:24.000Z'
 tags:
   - architecture
   - topology
@@ -18,13 +18,13 @@ tags:
 
 This repository is a **single-service polyrepo** — there is no monorepo tooling, no workspaces, and no sibling packages. The entire project is a pure client-side single-page application (SPA) scaffolded with Vite and React. The package manager is `pnpm`.
 
-The top-level layout is minimal. Application source lives under `src/`: the React entry point, one top-level component, CSS, and static assets, plus three pure-logic / presentation subdirectories — `src/engine/` (a framework-agnostic TypeScript layer: canonical v10 domain types + tuning constants + a seeded PRNG; the match-resolution engine itself is to be built fresh from the GDD rules), `src/data/` (static game data — player pool, tactical catalog, opponent teams, derived from the GDD), and `src/ui/` (the presentational React component library + design-token layer). The throwaway Monte-Carlo simulator (`src/sim/` + `tsconfig.sim.json`) was retired. No backend, no shared library packages, and no sub-workspace directories exist in the repository root.
+The top-level layout is minimal. Application source lives under `src/`: the React entry point, one top-level component, CSS, and static assets, plus three pure-logic / presentation subdirectories — `src/engine/` (a framework-agnostic TypeScript layer: canonical v10 domain types + tuning constants + a seeded PRNG, plus the full match-resolution engine + opponent AI — built fresh from the GDD rules, not ported), `src/data/` (static game data — player pool, tactical catalog, opponent teams, derived from the GDD), and `src/ui/` (the presentational React component library + design-token layer). The throwaway Monte-Carlo simulator (`src/sim/` + `tsconfig.sim.json`) was retired. No backend, no shared library packages, and no sub-workspace directories exist in the repository root.
 
 | Workspace / Directory | Contents |
 |-----------------------|----------|
 | `src/` | React components, stylesheets, entry point, static assets |
 | `src/assets/` | Static asset files (images, fonts, etc.) |
-| `src/engine/` | Pure framework-agnostic TS: canonical v10 `types.ts` + `constants.ts` + seeded `rng.ts`; public surface via `index.ts`; no DOM/I/O. The match-resolution engine is built fresh from the rules (not ported), pending |
+| `src/engine/` | Pure framework-agnostic TS, no DOM/I/O, deterministic given a seed: canonical v10 `types.ts` + `constants.ts` + seeded `rng.ts`, plus the full match engine + AI built fresh from the GDD rules (not ported) — `xg`, `effectiveStats`, `synergies`, `fatigue`, `cards`, `validateLineup`, `board`, `tacticals`, `status`, `momentum`, `checkWin`, the `match` state machine (`resolveRound`), and `ai`; public surface via `index.ts` |
 | `src/data/` | Static game data — player pool (296), tactical catalog (19), opponent teams (38); derived from the GDD; co-located Vitest tests |
 | `src/ui/` | Presentational React 19 component library (atoms / molecules / organisms per atomic-design) + CSS design-token layer (`tokens/`) + per-nation procedural SVG jersey kit + `#ds` design-system gallery; must not import `src/engine/` (type-only imports allowed) |
 | `public/` | (not determined by analysis) |
