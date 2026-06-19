@@ -1,0 +1,35 @@
+/* WORLD CUP CLASH v8 — hand & tactical limits (GDD v8 §0, §6, §12)
+   - tactical-plays-this-half counter chip in the action dock
+   - locker swap rows for the ~4 tactical deck cap */
+
+/* the tactical-cap chip sits beside the player-cap chip; tinted brand to read as "tactics" */
+.cap-chip5.tac {
+  color: #c7b3f0;
+  border-color: rgba(127, 86, 217, 0.45);
+  background: rgba(127, 86, 217, 0.14);
+}
+.cap-chip5.tac b { color: #efe7ff; }
+/* allowance spent for the half — warn red */
+.cap-chip5.tac.full {
+  color: #ff9d93;
+  border-color: rgba(255, 141, 132, 0.55);
+  background: rgba(255, 141, 132, 0.14);
+}
+
+/* ---- locker: swap one tactical out when the run deck is at the cap ---- */
+.pick-row.tactic-row.swappable {
+  cursor: pointer;
+  transition: border-color 140ms var(--ease-out, ease), background 140ms var(--ease-out, ease);
+}
+.pick-row.tactic-row.swappable:hover {
+  border-color: rgba(255, 141, 132, 0.55);
+  background: rgba(255, 141, 132, 0.08);
+}
+.pick-row.tactic-row.swapping-out {
+  border-color: rgba(255, 141, 132, 0.7);
+  background: rgba(255, 141, 132, 0.14);
+}
+.pick-row.tactic-row.swapping-out .nm {
+  text-decoration: line-through;
+  color: #ff8d84;
+}

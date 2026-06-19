@@ -1,11 +1,32 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
 
+const DesignSystemGallery = lazy(() =>
+  import('./ui/gallery/DesignSystemGallery').then((m) => ({
+    default: m.DesignSystemGallery,
+  }))
+)
+
+function isGalleryRoute(): boolean {
+  return (
+    window.location.hash === '#ds' ||
+    new URLSearchParams(window.location.search).has('ds')
+  )
+}
+
 function App() {
   const [count, setCount] = useState(0)
+
+  if (isGalleryRoute()) {
+    return (
+      <Suspense fallback={<div style={{ color: '#fff', padding: 40 }}>Loading gallery…</div>}>
+        <DesignSystemGallery />
+      </Suspense>
+    )
+  }
 
   return (
     <>

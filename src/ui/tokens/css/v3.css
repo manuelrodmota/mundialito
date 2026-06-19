@@ -1,0 +1,206 @@
+/* WORLD CUP CLASH v3 — run map, locker room, formations */
+
+/* ---------- nation crest ---------- */
+.crest3 {
+  width: var(--cs, 46px); height: var(--cs, 46px); border-radius: 50%;
+  overflow: hidden; flex: none; position: relative;
+  display: flex; flex-direction: row;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.crest3 i { flex: 1; }
+/* crest image variant — federation badge on a light plate */
+.crest3.has-img {
+  background: radial-gradient(circle at 50% 42%, #ffffff, #e9ecf1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.crest3.has-img img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.22));
+}
+.crest3 .yr {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  font-size: calc(var(--cs, 46px) * 0.24); font-weight: 800; text-align: center;
+  color: #fff; background: rgba(8, 11, 18, 0.72); padding: 1px 0;
+  letter-spacing: 0.04em;
+}
+
+.tier-stars { display: inline-flex; gap: 2px; }
+.tier-stars i {
+  width: 9px; height: 9px; background: var(--gold);
+  clip-path: polygon(50% 0, 63% 35%, 100% 38%, 71% 60%, 81% 100%, 50% 76%, 19% 100%, 29% 60%, 0 38%, 37% 35%);
+}
+.tier-stars i.off { background: rgba(255, 255, 255, 0.18); }
+
+/* formation chip (side strips / intent) */
+.fchip {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
+  padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--line); color: var(--txt-dim);
+  background: rgba(255, 255, 255, 0.06);
+}
+.fchip[data-f="offensive"] { color: #ff9d92; border-color: rgba(232, 85, 74, 0.5); }
+.fchip[data-f="defensive"] { color: #82c0f2; border-color: rgba(62, 148, 222, 0.5); }
+
+/* ---------- formation picker ---------- */
+.formation-picker { display: flex; gap: 6px; align-items: stretch; }
+.formation-picker button {
+  font: inherit; cursor: pointer; text-align: left;
+  display: flex; flex-direction: column; gap: 1px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line);
+  border-radius: 10px; padding: 6px 12px; color: var(--txt-dim);
+  transition: background 140ms, border-color 140ms;
+  min-width: 92px;
+}
+.formation-picker button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
+.formation-picker button:disabled { opacity: 0.55; cursor: default; }
+.formation-picker button b { font-size: 13.5px; color: var(--txt); letter-spacing: 0.02em; }
+.formation-picker button span { font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.formation-picker button i { font-style: normal; font-size: 10px; font-weight: 600; color: var(--txt-dim); white-space: nowrap; }
+.formation-picker button.on { border-color: var(--gold); background: rgba(232, 200, 115, 0.1); }
+.formation-picker button.on b { color: var(--gold); }
+.formation-picker button.on[data-f="offensive"] { border-color: rgba(232, 85, 74, 0.7); background: rgba(232, 85, 74, 0.1); }
+.formation-picker button.on[data-f="offensive"] b { color: #ff9d92; }
+.formation-picker button.on[data-f="defensive"] { border-color: rgba(62, 148, 222, 0.7); background: rgba(62, 148, 222, 0.1); }
+.formation-picker button.on[data-f="defensive"] b { color: #82c0f2; }
+.fp-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--txt-dim); align-self: center; margin-right: 2px;
+}
+
+/* ---------- bracket / run map ---------- */
+.bracket-screen { align-items: center; justify-content: center; gap: 34px; padding: 30px; }
+.bracket-head { text-align: center; z-index: 1; }
+.bracket-head .kicker { color: var(--gold); font-weight: 700; letter-spacing: 0.3em; font-size: 12px; text-transform: uppercase; }
+.bracket-head h2 { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; margin-top: 6px; }
+.bracket-head .sub { color: var(--txt-dim); font-size: 13.5px; margin-top: 6px; }
+
+.ladder { display: flex; align-items: flex-start; z-index: 1; }
+.ladder .seg { display: flex; align-items: center; }
+.ladder .link {
+  width: clamp(18px, 3.4vw, 56px); height: 3px; margin-top: 26px;
+  background: rgba(255, 255, 255, 0.12); border-radius: 2px;
+}
+.ladder .link.done { background: linear-gradient(90deg, #3fbf6f, #92e3ae); }
+.lnode { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 92px; }
+.lnode .dot {
+  width: 56px; height: 56px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.16);
+  color: var(--txt-dim); font-weight: 800; font-size: 17px;
+  position: relative; transition: border-color 200ms;
+}
+.lnode.done .dot { border-color: #3fbf6f; }
+.lnode.done .dot::after {
+  content: ""; position: absolute; right: -3px; bottom: -3px; width: 19px; height: 19px;
+  border-radius: 50%; background: #3fbf6f;
+  clip-path: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,.5);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23062b16' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+  background-size: 60%; background-position: center; background-repeat: no-repeat;
+}
+.lnode.now .dot {
+  border-color: var(--gold); color: var(--gold);
+  box-shadow: 0 0 22px rgba(232, 200, 115, 0.35);
+  animation: nodePulse 1.8s ease-in-out infinite;
+}
+@keyframes nodePulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(232, 200, 115, 0.2); }
+  50% { box-shadow: 0 0 26px rgba(232, 200, 115, 0.45); }
+}
+.lnode.final .dot { border-style: double; border-width: 4px; }
+.lnode .stage { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; color: var(--txt-dim); text-transform: uppercase; }
+.lnode.now .stage { color: var(--gold); }
+.lnode .beaten { font-size: 10.5px; font-weight: 600; color: #7ec898; text-align: center; line-height: 1.3; min-height: 14px; }
+
+/* next-match panel */
+.next-panel {
+  display: flex; align-items: center; gap: 22px; z-index: 1;
+  background: rgba(12, 16, 26, 0.85); border: 1px solid var(--line);
+  border-radius: 16px; padding: 22px 28px; max-width: 660px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+.next-panel.final-panel { border-color: rgba(232, 200, 115, 0.5); box-shadow: 0 0 50px rgba(232, 200, 115, 0.12), 0 18px 50px rgba(0, 0, 0, 0.45); }
+.next-panel .meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.next-panel .vs { font-size: 11px; font-weight: 800; letter-spacing: 0.22em; color: var(--txt-dim); text-transform: uppercase; }
+.next-panel h3 { font-size: 24px; font-weight: 800; letter-spacing: -0.01em; }
+.next-panel .chips { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.next-panel .blurb { color: var(--txt-dim); font-size: 13px; line-height: 1.55; }
+.next-panel .actions3 { display: flex; flex-direction: column; gap: 9px; align-items: stretch; }
+
+.deck-chip-row { display: flex; gap: 8px; align-items: center; z-index: 1; }
+
+/* ---------- locker room ---------- */
+.locker { padding: 0; }
+.locker-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 30px; border-bottom: 1px solid var(--line);
+  background: rgba(12, 16, 26, 0.85); backdrop-filter: blur(8px); z-index: 5;
+}
+.locker-head h2 { font-size: 20px; font-weight: 800; }
+.locker-head .hint { color: var(--txt-dim); font-size: 13px; margin-top: 2px; }
+.locker-body {
+  flex: 1; min-height: 0; z-index: 1;
+  display: grid; grid-template-columns: 1fr 1.4fr 330px; gap: 0;
+}
+.locker-col {
+  padding: 22px 26px; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.locker-col + .locker-col { border-left: 1px solid var(--line); }
+.locker-col h4 { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+.locker-col .note3 { font-size: 12.5px; color: var(--txt-dim); line-height: 1.55; }
+.reward-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 8px; }
+
+.offer-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.offer-card { position: relative; cursor: pointer; border-radius: 12px; transition: transform 160ms; }
+.offer-card:hover { transform: translateY(-4px); }
+.offer-card.chosen { outline: 3px solid var(--gold); outline-offset: 3px; }
+.offer-card.dimmed { filter: grayscale(0.6) brightness(0.55); }
+.offer-card .pick-tag {
+  position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 4;
+  background: var(--gold); color: #3a2a05; font-size: 10px; font-weight: 800;
+  padding: 3px 10px; border-radius: 999px; letter-spacing: 0.08em; white-space: nowrap;
+}
+
+/* ---------- trophy / run-over ---------- */
+.trophy-cup { width: 130px; height: 130px; filter: drop-shadow(0 8px 30px rgba(232, 200, 115, 0.45)); }
+.run-list { display: flex; flex-direction: column; gap: 6px; max-height: 30vh; overflow-y: auto; }
+.run-list .rrow {
+  display: flex; align-items: center; gap: 10px; font-size: 13px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 16px 6px 8px;
+}
+.run-list .rrow .st { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; color: var(--txt-dim); width: 46px; text-transform: uppercase; }
+.run-list .rrow .nm { font-weight: 700; }
+.run-list .rrow .res { margin-left: auto; font-weight: 800; font-size: 11px; letter-spacing: 0.08em; }
+.run-list .rrow .res.w { color: #7ec898; }
+.run-list .rrow .res.l { color: #ff8d84; }
+
+/* opponent identity in match strip */
+.opp-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: none; }
+.opp-id .nm { font-weight: 800; font-size: 14px; white-space: nowrap; }
+.opp-id .sub3 { display: flex; gap: 8px; align-items: center; font-size: 10.5px; color: var(--txt-dim); font-weight: 600; }
+
+/* keep the strips tidy when chips pile up */
+.side-strip .morale-block { flex: none; min-width: 190px; }
+.side-strip .crest3, .side-strip .fchip { flex: none; }
+.side-strip .count-chips { flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; min-width: 0; }
+
+/* stage tag on the board */
+.stage-tag {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--gold); border: 1px solid rgba(232, 200, 115, 0.4);
+  background: rgba(232, 200, 115, 0.08);
+  padding: 4px 11px; border-radius: 999px; white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lnode.now .dot { animation: none; }
+}

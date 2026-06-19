@@ -13,6 +13,7 @@ version: 1.0
 - Stylesheet files: match the component name — `MyComponent.css`
 - CSS class names: kebab-case — `.hero-banner`, not `.heroBanner`
 - Asset files: kebab-case in `src/assets/` — `hero.png`, `logo-dark.svg`
+- UI library components live under `src/ui/{atoms|molecules|organisms}/{Name}/` as `index.tsx` (one PascalCase dir per component) with the test co-located as `{Name}.test.tsx`; each layer has its own barrel (`atoms/index.ts`, …) re-exported from `src/ui/index.ts`
 
 ## Code-Style Conventions
 
@@ -70,4 +71,29 @@ const pick = Math.floor(Math.random() * deck.length);
 
 // CORRECT — deterministic given the seed
 const pick = Math.floor(rng.next() * deck.length);
+```
+
+### `src/ui/**` components are presentational and import the engine via `import type` only
+
+UI components must not pull engine runtime code into the bundle — they only borrow its types. Every reference to `src/engine/**` from `src/ui/**` is a type import.
+
+```typescript
+// WRONG — drags engine runtime into the UI bundle
+import { PlayerCard } from '../../../engine/types';
+
+// CORRECT — types only, erased at build time
+import type { PlayerCard } from '../../../engine/types';
+```
+
+### Framer Motion components must honor reduced motion
+
+Any component with a non-trivial Framer Motion animation reads `useReducedMotion()` and degrades to a static/instant variant when it returns true — don't ship motion that ignores the OS preference.
+
+```tsx
+// WRONG — always animates regardless of OS setting
+return <motion.div variants={goalBlast} animate="visible" />;
+
+// CORRECT — branch on the preference
+const shouldReduceMotion = useReducedMotion();
+return <motion.div variants={shouldReduceMotion ? fadeIn : goalBlast} animate="visible" />;
 ```

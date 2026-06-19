@@ -9,46 +9,35 @@ version: 1.0
 
 ## Testing Philosophy
 
-No test runner is currently configured in this project. When a test suite is added, the recommendation is **Vitest** (first-party Vite integration, same config as the build tool) with **React Testing Library** for component tests.
+Tests run on **Vitest** with **React Testing Library** in a **jsdom** environment. Config lives in `vitest.config.ts` (globals on, `setupFiles: ['./src/setupTests.ts']` which loads `@testing-library/jest-dom`, v8 coverage). Run with `npm run test` (once), `npm run test:watch`, or `npm run coverage`.
 
-## Planned Setup (add when ready)
+## Test Placement
 
-Install:
+- **Co-locate** each component test beside its source: `src/ui/{layer}/{Name}/{Name}.test.tsx` next to `index.tsx` — do NOT use a central `src/__tests__/` directory
+- Vitest discovers `src/**/*.test.ts` and `src/**/*.test.tsx`
 
-```bash
-npm install -D vitest @testing-library/react @testing-library/user-event jsdom
-```
-
-`vite.config.ts` extension:
-
-```typescript
-// vite.config.ts
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./src/setupTests.ts'],
-  },
-});
-```
-
-## Unit Test Patterns (target convention)
+## Unit Test Patterns
 
 ```tsx
-// src/__tests__/{ComponentName}.test.tsx
+// src/ui/atoms/{Name}/{Name}.test.tsx
 import { render, screen } from '@testing-library/react';
-import { {ComponentName} } from '../{ComponentName}';
+import { {Name} } from './index';
 
-describe('{ComponentName}', () => {
+describe('{Name}', () => {
   it('renders expected content', () => {
-    render(<{ComponentName} />);
+    render(<{Name} />);
     expect(screen.getByRole('...')).toBeInTheDocument();
   });
 });
+```
+
+When asserting reduced-motion behaviour, mock the hook rather than the OS query:
+
+```tsx
+vi.mock('framer-motion', async (orig) => ({
+  ...(await orig<typeof import('framer-motion')>()),
+  useReducedMotion: () => true,
+}));
 ```
 
 ## Engine Reproducibility Check

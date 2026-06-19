@@ -4,7 +4,7 @@ summary: >-
   This repository is a **single-service polyrepo** — there is no monorepo
   tooling, no workspaces, and no sibling packages. The entire project is a pure
   client-...
-last_updated: '2026-06-17T20:18:56.000Z'
+last_updated: '2026-06-19T01:49:09.000Z'
 tags:
   - architecture
   - topology
@@ -18,14 +18,15 @@ tags:
 
 This repository is a **single-service polyrepo** — there is no monorepo tooling, no workspaces, and no sibling packages. The entire project is a pure client-side single-page application (SPA) scaffolded with Vite and React. The package manager is `pnpm`.
 
-The top-level layout is minimal. Application source lives under `src/`: the React entry point, one top-level component, CSS, and static assets, plus two pure-logic subdirectories added for the game engine — `src/engine/` (a framework-agnostic TypeScript match engine, no DOM/JSX) and `src/sim/` (a Node-only Monte-Carlo simulator harness, excluded from the browser build). No backend, no shared library packages, and no sub-workspace directories exist in the repository root.
+The top-level layout is minimal. Application source lives under `src/`: the React entry point, one top-level component, CSS, and static assets, plus three pure-logic / presentation subdirectories — `src/engine/` (a framework-agnostic TypeScript layer: canonical v10 domain types + tuning constants + a seeded PRNG; the match-resolution engine itself is to be built fresh from the GDD rules), `src/data/` (static game data — player pool, tactical catalog, opponent teams, derived from the GDD), and `src/ui/` (the presentational React component library + design-token layer). The throwaway Monte-Carlo simulator (`src/sim/` + `tsconfig.sim.json`) was retired. No backend, no shared library packages, and no sub-workspace directories exist in the repository root.
 
 | Workspace / Directory | Contents |
 |-----------------------|----------|
 | `src/` | React components, stylesheets, entry point, static assets |
 | `src/assets/` | Static asset files (images, fonts, etc.) |
-| `src/engine/` | Pure framework-agnostic TS v8 match engine (no DOM/I/O); public surface via `index.ts`; type-checked by the browser app project |
-| `src/sim/` | Node-only headless Monte-Carlo match simulator (policies, seeded runner, rosters, self-check); own `tsconfig.sim.json` project; `out/` git-ignored |
+| `src/engine/` | Pure framework-agnostic TS: canonical v10 `types.ts` + `constants.ts` + seeded `rng.ts`; public surface via `index.ts`; no DOM/I/O. The match-resolution engine is built fresh from the rules (not ported), pending |
+| `src/data/` | Static game data — player pool (296), tactical catalog (19), opponent teams (38); derived from the GDD; co-located Vitest tests |
+| `src/ui/` | Presentational React 19 component library (atoms / molecules / organisms per atomic-design) + CSS design-token layer (`tokens/`) + per-nation procedural SVG jersey kit + `#ds` design-system gallery; must not import `src/engine/` (type-only imports allowed) |
 | `public/` | (not determined by analysis) |
 
 ---
@@ -54,7 +55,7 @@ Any communication to a backend API would cross that single boundary as outbound 
 
 ## External Integrations
 
-No external vendor integrations, third-party SDKs, or API client wrappers have been identified in the codebase. The dependency manifest (`package.json`) declares only Vite, React 19, TypeScript, and ESLint toolchain packages.
+No external vendor integrations, third-party SDKs, or API client wrappers have been identified in the codebase. The runtime dependencies are all client-side UI libraries: React 19, **Framer Motion** (animation), **dnd-kit** (`@dnd-kit/core` — drag-to-lane), and `@fontsource-variable/inter` (bundled typeface). The toolchain adds Vite, TypeScript, ESLint, and the **Vitest + React Testing Library + jsdom** test stack. None of these reach an external network service.
 
 | Vendor | Client Wrapper Path | Auth Mechanism | Environments |
 |--------|---------------------|----------------|--------------|
@@ -129,6 +130,9 @@ vite
 # Type-check + production build
 tsc -b && vite build
 
+# Unit tests (Vitest) — co-located *.test.ts / *.test.tsx
+pnpm test
+
 # Lint
 eslint .
 ```
@@ -146,12 +150,11 @@ There is no Makefile, Justfile, Taskfile, or shell script automation layer. All 
 | Command | Description | When Used |
 |---------|-------------|-----------|
 | `vite` | Start Vite dev server on port 5173 | Local development |
-| `tsc -b && vite build` | Type-check (app + node + sim projects) and emit production bundle to `dist/` | CI build, release |
+| `tsc -b && vite build` | Type-check (app + node projects) and emit production bundle to `dist/` | CI build, release |
+| `pnpm test` | Run the Vitest suite once (`vitest run`); `pnpm coverage` for a v8 coverage report | Pre-commit, CI test step |
 | `eslint .` | Run ESLint across the whole repository | Pre-commit, CI lint step |
-| `npm run sim` | Run the headless Monte-Carlo match simulator (`tsx src/sim/run.ts`; `SIM_N` / `SIM_OUT` env vars) | Balance tuning |
-| `npm run sim:check` | Fixed-seed reproducibility self-check (`tsx src/sim/selfcheck.ts`) | Engine regression check |
 
-The TypeScript build is split into three referenced projects: `tsconfig.app.json` (browser SPA + `src/engine/`), `tsconfig.node.json` (Vite config), and `tsconfig.sim.json` (Node-only `src/sim/`). `src/sim/**` is excluded from the app project so the Node-only simulator never breaks the browser type-check/bundle.
+The TypeScript build is split into two referenced projects: `tsconfig.app.json` (browser SPA + `src/engine/` + `src/data/` + `src/ui/`) and `tsconfig.node.json` (Vite/Vitest config). The earlier `tsconfig.sim.json` Node-only project was removed when the throwaway simulator was retired.
 
 No CI provider configuration file (GitHub Actions, CircleCI, GitLab CI, Bitrise, etc.) has been detected in the repository. CI is (not determined by analysis).
 
