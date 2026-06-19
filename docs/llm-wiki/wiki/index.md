@@ -14,7 +14,7 @@ Summary catalog of every page in this wiki. Each line carries the page summary, 
 
 ## Architecture
 
-- [ARCHITECTURE](ARCHITECTURE.md) — *architecture* — This repository is a **single-service polyrepo** — there is no monorepo tooling, no workspaces, and no sibling packages. The entire project is a pure client-... **Tags:** architecture, topology, typescript, react, javascript.
+- [ARCHITECTURE](ARCHITECTURE.md) — *architecture* — This repository is a **single-service polyrepo** — no monorepo tooling, no workspaces. The client is a Vite + React SPA backed by a **Supabase** data API (read-only player/team data). **Tags:** architecture, topology, typescript, react, javascript, supabase.
 
 ## Services catalog
 

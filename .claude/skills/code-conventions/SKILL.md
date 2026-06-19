@@ -85,6 +85,30 @@ import { PlayerCard } from '../../../engine/types';
 import type { PlayerCard } from '../../../engine/types';
 ```
 
+### Only the Supabase anon key is browser-safe; never expose the service-role key
+
+The browser client reads `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (Vite inlines `VITE_*` into the bundle). The service-role key bypasses RLS — it is server/seed-only and must never be a `VITE_*` var or committed.
+
+```ts
+// WRONG — inlined into the client bundle, leaks an RLS-bypassing key to every browser
+const key = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+
+// CORRECT — browser uses the anon key; seed/import scripts read SUPABASE_SERVICE_ROLE_KEY (non-VITE_, never committed)
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+```
+
+### `src/data/**` may import the engine; the engine must never import `src/data/**`
+
+The dependency arrow is one-way: data-layer mappers may pull engine types/constants (e.g. `PlayerCard`), but `src/engine/**` stays pure and self-contained — no import of `src/data/**` (which would drag the data/Supabase layer into the headless engine).
+
+```ts
+// WRONG — inside src/engine/**: couples the pure engine to the data layer
+import { players } from "../data/players.ts";
+
+// CORRECT — inside src/data/remote/mappers.ts: data borrows engine types
+import type { PlayerCard } from "../../engine/types.ts";
+```
+
 ### Framer Motion components must honor reduced motion
 
 Any component with a non-trivial Framer Motion animation reads `useReducedMotion()` and degrades to a static/instant variant when it returns true — don't ship motion that ignores the OS preference.

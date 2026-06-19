@@ -30,3 +30,8 @@ coverage
 .codex-backups/
 qubika-agentic-framework/
 .mcp.json
+
+# Supabase local env (contains service-role key — never commit)
+.env.local
+supabase/.temp/
+supabase/out/

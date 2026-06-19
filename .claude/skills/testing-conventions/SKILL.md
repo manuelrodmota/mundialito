@@ -54,6 +54,22 @@ expect(m1).toEqual(m2);
 - Always thread the same seeded `Rng` through a run; never read `Math.random()` in engine code (it breaks reproducibility)
 - When adding engine behaviour, extend the co-located test to assert the new output field stays stable across identical seeds
 
+## Data Layer (Supabase) Tests Mock the Client — Never Hit a Live DB
+
+Repository tests (`src/data/remote/*.repo.test.ts`) must pass with the Supabase stack down, so `npm run test` stays green in CI/local with no Docker. Pass a hand-rolled mock `SupabaseClient` (chainable `vi.fn().mockReturnThis()` query builder, terminal method resolves `{ data, error }`) into the repo function — never the real `getSupabaseClient()`. Pure mapper/derive tests need no client at all.
+
+```ts
+// src/data/remote/players.repo.test.ts — mock the query builder, assert mapped output
+const client = {
+  from: vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    range: vi.fn().mockResolvedValue({ data: rows, error: null }),
+  }),
+} as unknown as SupabaseClient<Database>;
+expect(await fetchPlayers(client)).toEqual(/* mapped PlayerCards */);
+```
+
 ## Coverage Expectations
 
 - No coverage gate exists today — establish one when the first test file is added

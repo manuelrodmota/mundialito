@@ -70,3 +70,13 @@ export function SomeComponent() {
 4. Run `npm run test` and `npm run build` (`tsc -b && vite build`) — both must stay green
 
 > **Gotcha**: engine behaviour must stay deterministic — thread a seeded `Rng` rather than reading `Math.random()`, and assert same-seed reproducibility in the co-located test (`src/engine/match.test.ts` is the reference).
+
+## Adding a Supabase Data-Access Repo / Mapper (`src/data/remote/`)
+
+1. (If the schema changed) add a migration under `supabase/migrations/{ts}_{name}.sql`, then `pnpm db:reset` + `pnpm db:types` to regenerate `src/data/remote/database.types.ts`
+2. Add the repo/mapper at `src/data/remote/{name}.ts`, typed against the generated `Database` types; take a `SupabaseClient<Database>` as a parameter (don't call `getSupabaseClient()` inside)
+3. Re-export the new public symbols from the barrel `src/data/remote/index.ts` (`src/data/index.ts` already `export *`s the barrel, so no edit there)
+4. Add a co-located `src/data/remote/{name}.test.ts` that passes a mock client (see testing-conventions — never a live DB)
+5. Run `npm run test` and `npm run build` — both must stay green with the Supabase stack down
+
+> **Gotcha**: hand-edits to `database.types.ts` are lost on the next `pnpm db:types` — change the SQL migration and regenerate instead. A repo not re-exported from `remote/index.ts` is invisible to `src/data` consumers even though it compiles.

@@ -4,7 +4,7 @@ summary: >-
   `mundialito-client` is a TypeScript single-page application responsible for
   delivering the entire user-facing frontend experience. Built on React 19.2.6
   and ...
-last_updated: '2026-06-19T15:38:24.000Z'
+last_updated: '2026-06-19T17:21:35.000Z'
 tags:
   - service
   - typescript
@@ -56,10 +56,11 @@ src/
     match.ts        # state machine: newMatch / startRound / resolveRound / halftime / beginExtraTime
     ai.ts           # opponent AI heuristic (decideTurn)
     index.ts        # public surface (types + constants + rng + match-engine API)
-  data/             # Static game data, derived from the GDD
-    players.ts / playerPool.ts   # 296 players + toPlayerCard derivation
-    tacticals.ts                 # 19 tactical cards
-    opponents.ts                 # 38 opponent teams
+  data/             # Game data layer
+    remote/         # typed Supabase access (client, database.types, derive, mappers, players.repo, opponents.repo) — primary source
+    players.ts / playerPool.ts   # static fallback pool + shared toPlayerCard derivation
+    tacticals.ts                 # 19 tactical cards (static — not in the CSVs)
+    opponents.ts                 # static fallback opponent teams
   ui/               # Presentational React component library + design-token layer
     tokens/         # ported CSS tokens + v8-ordered class CSS (index.css)
     data/nations.ts # shared nation flag-band map + crest sources
@@ -87,19 +88,15 @@ The lifecycle describes how a user's browser session initializes the application
 
 ## Data Layer
 
-`mundialito-client` owns no server-side data stores, database collections, or message queues — it is a pure frontend application. All transient UI state is held in React component state within the browser session. The static game data (players, tacticals, opponents) is compiled in from `src/data/`. The `src/ui/` components are presentational/stateless — they receive their data via props; no game-match state object is held yet (engine wiring is a later ticket).
+The player/team reference data is owned by a **Supabase Postgres database** (tables `teams` / `tournaments` / `players` / `player_ratings` [card pool] / `squad_members` / `campaign_teams`), seeded from `supabase/seed/*.csv` and read **read-only** by the browser via PostgREST. `src/data/remote/` holds the typed access layer (repositories + DB→`PlayerCard`/`OpponentTeam` mappers); `src/data/tacticals.ts` and a static fallback pool stay compiled in. Transient UI state is still held in React component state; `src/ui/` components are presentational/stateless (data via props).
 
-No IndexedDB, localStorage, or sessionStorage usage has been detected (not determined by analysis).
+No client-side IndexedDB/localStorage/sessionStorage is used; persistence is the remote Supabase DB only.
 
 ---
 
 ## Configuration
 
-(no environment variables consumed)
-
-The `structure_architecture` and `data_flows_integrations` analyzers found no `required_vars` or `infrastructure_services_hints` in the project inspection output. Vite's default behavior applies: the dev server runs on port 5173, and any `VITE_*` variables present in a `.env` file would be inlined at build time — but none are currently declared.
-
-> **Open question:** It is unverified whether the app calls a backend API. If a `VITE_API_URL` or similar variable exists outside the scanned files, the configuration section above is incomplete.
+The client consumes two `VITE_*` env vars (inlined by Vite at build): **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** — the Supabase endpoint + the read-only anon key. They are documented in `.env.example` (with the local-stack defaults from `supabase start`); real values live in `.env.local` (git-ignored). The **service-role key is never a `VITE_*` var** — it is used only locally/server-side by the seed/import script (`SUPABASE_SERVICE_ROLE_KEY`). The dev server still runs on port 5173; the local Supabase stack runs on 54421–54427.
 
 ---
 
@@ -107,9 +104,7 @@ The `structure_architecture` and `data_flows_integrations` analyzers found no `r
 
 **Inbound:** None detected. The application is served statically by Vite; no webhooks or inbound API calls are present.
 
-**Outbound / runtime:** No network integrations. The production `src/` tree no longer relies on any `window.*` global (the `window.WCC_ENGINE` bridge was a `design/` prototype convention). Runtime dependencies are all in-bundle UI libraries: Framer Motion (animation), `@dnd-kit/core` (drag-to-lane), and `@fontsource-variable/inter` (typeface).
-
-No `fetch`, `axios`, or API client patterns were found in the `src/` source files. Whether the application calls a backend REST or GraphQL endpoint cannot be confirmed from current analysis.
+**Outbound / runtime:** **Supabase** — the browser calls the Supabase PostgREST API (read-only, anon key) via `@supabase/supabase-js` from `src/data/remote/client.ts` for player/team data. This is the only network integration. Other runtime deps are in-bundle UI libraries (Framer Motion, `@dnd-kit/core`, `@fontsource-variable/inter`); the `window.WCC_ENGINE` bridge was a retired `design/` prototype convention.
 
 ---
 
