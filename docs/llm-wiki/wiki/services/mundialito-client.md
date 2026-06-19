@@ -4,7 +4,7 @@ summary: >-
   `mundialito-client` is a TypeScript single-page application responsible for
   delivering the entire user-facing frontend experience. Built on React 19.2.6
   and ...
-last_updated: '2026-06-19T17:21:35.000Z'
+last_updated: '2026-06-19T20:33:30.000Z'
 tags:
   - service
   - typescript
@@ -27,7 +27,7 @@ This service does not expose an HTTP API, queue topics, or webhooks — it is a 
 | Entry Point | Role |
 |---|---|
 | `src/main.tsx` | Root Vite entry; mounts the React component tree into the DOM |
-| `src/App.tsx` | Top-level React component; application shell. Renders the `#ds` design-system gallery when the URL hash/query selects it, else the default scaffold (screen tickets replace the default) |
+| `src/App.tsx` | Top-level React component; application shell. Renders the `#ds` design-system gallery when the URL hash/query selects it, else drives a **screen-state machine** (`Screen` union + `useState`, no router) whose default screen is the `MainMenu` mode-select; imports the DS tokens (`src/ui/tokens/index.css`) at the root |
 | `src/assets/` | Static assets fingerprinted by Vite at build time |
 | `src/engine/index.ts` | Public surface of the pure TS engine layer: canonical v10 types, tuning constants, seeded RNG, and the match-resolution API — `newMatch` / `startRound` / `resolveRound` / `halftime` / `beginExtraTime` / `checkWin` / `decideTurn` plus pure helpers (`xgAdd`, `validLineup`, `laneStamina`), all deterministic given a seed |
 | `src/data/index.ts` | Barrel for the static game data (players, tacticals, opponents) + `toPlayerCard` derivation |
@@ -82,7 +82,7 @@ The lifecycle describes how a user's browser session initializes the application
 
 1. **Vite entry** (`src/main.tsx`) — Vite serves `index.html`, which loads the compiled JS bundle. `main.tsx` calls `ReactDOM.createRoot` to mount the React tree into the DOM.
 2. **App shell** (`src/App.tsx`) — The root `App` component renders. No router or auth guard layer has been detected; screen selection is state/hash-driven.
-3. **Screen selection** — `App.tsx` renders the `#ds` design-system gallery when the URL hash/query selects it, otherwise the default scaffold. The match-board screens and their engine wiring are out of scope until later tickets; the production `src/` tree no longer uses the prototype's `window.WCC_ENGINE` global.
+3. **Screen selection** — `App.tsx` renders the `#ds` design-system gallery when the URL hash/query selects it; otherwise a top-level **screen-state machine** (a `Screen` union driven by `useState`, **no router**) selects the active screen, defaulting to the `MainMenu` mode-select. Quickplay / Collection / How-to-Play currently route to a reusable `PlaceholderScreen` (their full screens + engine/data wiring are later tickets); Arcade Run is gated ("coming soon") in MVP. The production `src/` tree no longer uses the prototype's `window.WCC_ENGINE` global.
 
 ---
 
