@@ -1,0 +1,18 @@
+/* World Cup Clash — design-token entry point.
+   Import this once at the gallery root (or app root).
+   Load order mirrors the v8 prototype: tokens → Hiedra foundation → game CSS cascade. */
+@import '@fontsource-variable/inter';
+@import './tokens.css';
+@import './colors_and_type.css';
+@import './css/base.css';
+@import './css/cards.css';
+@import './css/board.css';
+@import './css/v2.css';
+@import './css/v3.css';
+@import './css/v4.css';
+@import './css/v4xg.css';
+@import './css/v5.css';
+@import './css/v6.css';
+@import './css/v7.css';
+@import './css/v8.css';
+@import './css/v9.css';

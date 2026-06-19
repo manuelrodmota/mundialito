@@ -1,0 +1,207 @@
+/* WORLD CUP CLASH — Design System styleguide chrome
+   Overrides the game's body lock so the doc can scroll, and lays out the
+   sidebar + content shell. Game component CSS is loaded separately and
+   untouched. */
+
+html, body { height: auto; overflow: auto !important; }
+body {
+  background: var(--night-0);
+  color: var(--txt);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+#root { height: auto; }
+
+/* ambient backdrop — a faint stadium glow, fixed behind everything */
+.ds-amb {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 18% -6%, rgba(127, 86, 217, 0.16), transparent 70%),
+    radial-gradient(50% 38% at 92% 4%, rgba(232, 200, 115, 0.07), transparent 70%);
+}
+
+/* ---------- layout shell ---------- */
+.ds-shell { position: relative; z-index: 1; display: flex; align-items: flex-start; }
+
+.ds-side {
+  position: sticky; top: 0; align-self: flex-start;
+  width: 264px; height: 100vh; flex: none;
+  border-right: 1px solid var(--line);
+  background: rgba(10, 13, 21, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 28px 22px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.ds-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.ds-brand .mark {
+  width: 40px; height: 40px; border-radius: 11px; flex: none;
+  background: radial-gradient(circle at 35% 30%, #9b77e8, #4d2d99);
+  box-shadow: 0 2px 8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.35);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; color: #fff; font-size: 15px; letter-spacing: -0.04em;
+}
+.ds-brand .t { line-height: 1.25; }
+.ds-brand .t b { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; display: block; line-height: 1.2; }
+.ds-brand .t span { font-size: 11px; color: var(--txt-dim); font-weight: 600; display: block; margin-top: 3px; }
+
+.ds-nav-group { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--txt-dim); margin: 16px 0 4px; padding-left: 12px; }
+.ds-nav a {
+  display: block; text-decoration: none; color: var(--txt-dim);
+  font-size: 13.5px; font-weight: 600; padding: 7px 12px; border-radius: 8px;
+  transition: background var(--dur-micro), color var(--dur-micro);
+}
+.ds-nav a:hover { background: rgba(255,255,255,0.05); color: var(--txt); }
+.ds-nav a.active { background: var(--brand-soft); color: var(--txt); }
+
+.ds-main { flex: 1; min-width: 0; padding: 0 0 120px; }
+.ds-wrap { max-width: 1080px; margin: 0 auto; padding: 0 48px; }
+
+/* ---------- hero ---------- */
+.ds-hero { padding: 80px 0 56px; border-bottom: 1px solid var(--line); }
+.ds-hero .kicker { color: var(--gold); font-weight: 700; letter-spacing: var(--t-kicker-ls); font-size: 12px; text-transform: uppercase; }
+.ds-hero h1 {
+  font-size: clamp(40px, 6vw, 68px); font-weight: 800; letter-spacing: -0.03em; line-height: 1; margin-top: 14px;
+  background: linear-gradient(180deg, #ffffff 30%, #b6bdd1 90%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.ds-hero p { color: var(--txt-dim); font-size: 17px; line-height: 1.6; max-width: 640px; margin-top: 18px; }
+.ds-hero .meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 26px; }
+.ds-hero .meta .pill {
+  font-size: 12px; font-weight: 700; color: var(--txt-dim);
+  border: 1px solid var(--line); background: rgba(255,255,255,0.05);
+  padding: 7px 14px; border-radius: 999px;
+}
+.ds-hero .meta .pill b { color: var(--txt); }
+
+/* ---------- sections ---------- */
+.ds-section { padding: 64px 0 8px; }
+.ds-section > .head { margin-bottom: 28px; }
+.ds-section .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand); }
+.ds-section h2 { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; margin-top: 8px; }
+.ds-section .lede { color: var(--txt-dim); font-size: 15px; line-height: 1.65; max-width: 660px; margin-top: 12px; }
+
+.ds-sub { font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--txt-dim); margin: 40px 0 18px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.ds-note { color: var(--txt-dim); font-size: 13.5px; line-height: 1.6; max-width: 660px; margin: 0 0 18px; }
+.ds-note code, .ds-inline-code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em;
+  background: rgba(255,255,255,0.07); border: 1px solid var(--line);
+  padding: 1px 6px; border-radius: 5px; color: #d7c8f5;
+}
+
+/* ---------- specimen frame: a live component on a representative bg ---------- */
+.ds-frame {
+  border: 1px solid var(--line); border-radius: var(--radius-2xl);
+  background: var(--night-1);
+  overflow: hidden;
+}
+.ds-frame .stage {
+  padding: 40px; display: flex; flex-wrap: wrap; gap: 28px; align-items: center;
+  background:
+    radial-gradient(60% 60% at 50% 0%, rgba(127,86,217,0.10), transparent 70%),
+    var(--night-0);
+}
+.ds-frame .stage.center { justify-content: center; }
+.ds-frame .stage.pitch-bg {
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0 48px, transparent 48px 96px),
+    linear-gradient(180deg, #277249 0%, #1a5434 100%);
+}
+.ds-frame .caption {
+  border-top: 1px solid var(--line); padding: 12px 18px;
+  font-size: 12px; color: var(--txt-dim); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: rgba(255,255,255,0.02);
+}
+.ds-frame .caption b { color: var(--txt); font-weight: 700; }
+
+.ds-grid { display: grid; gap: 18px; }
+.ds-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.ds-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.ds-grid.cols-4 { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+
+/* labelled specimen tile (used for chips, badges, buttons) */
+.ds-tile {
+  border: 1px solid var(--line); border-radius: var(--radius-xl);
+  background: var(--night-1); padding: 24px; display: flex; flex-direction: column; gap: 16px;
+}
+.ds-tile .demo { min-height: 56px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.ds-tile .demo.center { justify-content: center; }
+.ds-tile .lbl { font-size: 12.5px; font-weight: 700; }
+.ds-tile .lbl span { color: var(--txt-dim); font-weight: 500; display: block; margin-top: 3px; font-size: 11.5px; line-height: 1.5; }
+
+/* ---------- color swatches ---------- */
+.swatch {
+  border: 1px solid var(--line); border-radius: var(--radius-xl); overflow: hidden; background: var(--night-1);
+}
+.swatch .chip { height: 76px; }
+.swatch .info { padding: 12px 14px; }
+.swatch .info .nm { font-size: 13px; font-weight: 700; }
+.swatch .info .val { font-size: 11.5px; color: var(--txt-dim); font-family: ui-monospace, monospace; margin-top: 3px; }
+.swatch .info .tok { font-size: 11px; color: #b9a7ec; font-family: ui-monospace, monospace; margin-top: 2px; }
+
+/* ---------- token spec table ---------- */
+.ds-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ds-table th { text-align: left; font-size: 10.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--txt-dim); padding: 0 14px 10px; border-bottom: 1px solid var(--line); }
+.ds-table td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.ds-table tr:last-child td { border-bottom: none; }
+.ds-table .tok { font-family: ui-monospace, monospace; color: #d7c8f5; white-space: nowrap; }
+.ds-table .val { font-family: ui-monospace, monospace; color: var(--txt-dim); white-space: nowrap; }
+.ds-table .desc { color: var(--txt-dim); }
+.ds-table td .dot { width: 18px; height: 18px; border-radius: 5px; display: inline-block; vertical-align: middle; margin-right: 8px; border: 1px solid var(--line); }
+
+/* ---------- code block ---------- */
+.ds-code {
+  background: #0a0e17; border: 1px solid var(--line); border-radius: var(--radius-xl);
+  padding: 18px 20px; overflow-x: auto; margin-top: 4px;
+}
+.ds-code pre { margin: 0; }
+.ds-code code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; line-height: 1.7;
+  color: #c6cbe0; white-space: pre; tab-size: 2;
+}
+.ds-code .k { color: #c79af0; }      /* keyword */
+.ds-code .s { color: #9bd6a0; }      /* string */
+.ds-code .c { color: #6b7488; font-style: italic; }  /* comment */
+.ds-code .p { color: #e8c873; }      /* prop / attr */
+.ds-code .n { color: #82c0f2; }      /* number */
+
+/* type specimen rows */
+.ds-type-row { display: flex; align-items: baseline; gap: 28px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.ds-type-row:last-child { border-bottom: none; }
+.ds-type-row .spec { width: 200px; flex: none; }
+.ds-type-row .spec .nm { font-size: 13px; font-weight: 700; }
+.ds-type-row .spec .det { font-size: 11.5px; color: var(--txt-dim); font-family: ui-monospace, monospace; margin-top: 3px; line-height: 1.5; }
+.ds-type-row .sample { min-width: 0; overflow: hidden; }
+
+/* spacing scale viz */
+.ds-space-row { display: flex; align-items: center; gap: 18px; padding: 9px 0; }
+.ds-space-row .bar { height: 16px; background: linear-gradient(90deg, var(--brand), #c08cf0); border-radius: 3px; }
+.ds-space-row .lab { font-size: 12.5px; }
+.ds-space-row .lab b { font-weight: 700; }
+.ds-space-row .lab span { color: var(--txt-dim); font-family: ui-monospace, monospace; margin-left: 8px; font-size: 11.5px; }
+
+/* radii viz */
+.ds-radius-box { height: 96px; border: 1.5px solid var(--brand); background: var(--brand-soft); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; font-size: 11.5px; color: var(--txt-dim); font-family: ui-monospace, monospace; }
+
+/* shadow viz */
+.ds-shadow-box { height: 96px; border-radius: var(--radius-xl); background: var(--night-2); display: flex; align-items: center; justify-content: center; font-size: 11.5px; color: var(--txt-dim); font-family: ui-monospace, monospace; }
+
+/* motion chips */
+.ds-motion { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* anatomy callouts */
+.ds-anatomy { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
+.ds-anatomy ol { margin: 0; padding-left: 0; list-style: none; counter-reset: a; display: flex; flex-direction: column; gap: 12px; max-width: 340px; }
+.ds-anatomy ol li { counter-increment: a; position: relative; padding-left: 34px; font-size: 13.5px; line-height: 1.5; color: var(--txt-dim); }
+.ds-anatomy ol li b { color: var(--txt); font-weight: 700; }
+.ds-anatomy ol li::before {
+  content: counter(a); position: absolute; left: 0; top: 0;
+  width: 22px; height: 22px; border-radius: 50%; background: var(--brand); color: #fff;
+  font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+}
+
+/* small responsive guard */
+@media (max-width: 920px) {
+  .ds-side { display: none; }
+  .ds-wrap { padding: 0 24px; }
+  .ds-grid.cols-2, .ds-grid.cols-3 { grid-template-columns: 1fr; }
+}

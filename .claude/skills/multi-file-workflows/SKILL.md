@@ -35,6 +35,16 @@ export function {ComponentName}({ }: {ComponentName}Props) {
 
 > **Gotcha**: Omitting the CSS import means styles never load — Vite only bundles CSS that is explicitly imported.
 
+## Adding a New UI Library Component (`src/ui/`)
+
+1. Pick the atomic layer (`atoms` / `molecules` / `organisms`) and create `src/ui/{layer}/{Name}/index.tsx`
+2. Add the co-located test `src/ui/{layer}/{Name}/{Name}.test.tsx`
+3. Re-export the component (and any public types) from that layer's barrel `src/ui/{layer}/index.ts` — `src/ui/index.ts` already re-exports each layer barrel, so no edit there
+4. Reference engine shapes with `import type` only (see code-conventions); keep the component presentational/stateless
+5. Run `npm run test` and `npm run build` — both must stay green
+
+> **Gotcha**: A component not re-exported from its layer barrel is invisible to `src/ui/index.ts` consumers even though the file compiles — wire the barrel in the same change.
+
 ## Adding a New Static Asset
 
 1. Place the file in `src/assets/{filename}`
