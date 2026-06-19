@@ -4,7 +4,7 @@ summary: >-
   `mundialito-client` is a TypeScript single-page application responsible for
   delivering the entire user-facing frontend experience. Built on React 19.2.6
   and ...
-last_updated: '2026-06-19T01:49:09.000Z'
+last_updated: '2026-06-19T15:38:24.000Z'
 tags:
   - service
   - typescript
@@ -16,7 +16,7 @@ service_id: mundialito-client
 
 ## Purpose
 
-`mundialito-client` is a TypeScript single-page application responsible for delivering the entire user-facing frontend experience. Built on React 19.2.6 and served by Vite on port 5173 in development, it acts as a pure client-side SPA with no server-side rendering. The application hosts an interactive card/board game (World Cup Clash). Its source separates three pure-logic / presentation layers: `src/engine/` holds the canonical v10 domain types + tuning constants + a seeded PRNG (the match-resolution engine itself is to be built fresh from the GDD rules, **not** ported from the `design/` prototypes); `src/data/` holds the static game data (player pool, tactical catalog, opponent teams); and `src/ui/` holds the presentational React component library + design-token layer. The UI is presentational/stateless and imports `src/engine/` **types only** (`import type`) — it never depends on engine runtime behaviour.
+`mundialito-client` is a TypeScript single-page application responsible for delivering the entire user-facing frontend experience. Built on React 19.2.6 and served by Vite on port 5173 in development, it acts as a pure client-side SPA with no server-side rendering. The application hosts an interactive card/board game (World Cup Clash). Its source separates three pure-logic / presentation layers: `src/engine/` holds the canonical v10 domain types + tuning constants + a seeded PRNG, plus the full match-resolution engine + opponent AI — built fresh from the GDD rules, **not** ported from the `design/` prototypes (xG scoring, the effective-stats fold, fatigue, card flow, lineup validation, lane commit/reveal, tactical resolution, statuses, momentum, win/golden-goal ET, the `resolveRound` state machine, and the AI heuristic); `src/data/` holds the static game data (player pool, tactical catalog, opponent teams); and `src/ui/` holds the presentational React component library + design-token layer. The UI is presentational/stateless and imports `src/engine/` **types only** (`import type`) — it never depends on engine runtime behaviour.
 
 ---
 
@@ -29,7 +29,7 @@ This service does not expose an HTTP API, queue topics, or webhooks — it is a 
 | `src/main.tsx` | Root Vite entry; mounts the React component tree into the DOM |
 | `src/App.tsx` | Top-level React component; application shell. Renders the `#ds` design-system gallery when the URL hash/query selects it, else the default scaffold (screen tickets replace the default) |
 | `src/assets/` | Static assets fingerprinted by Vite at build time |
-| `src/engine/index.ts` | Public surface of the pure TS engine layer (canonical v10 types, tuning constants, seeded RNG); match-resolution functions are pending the fresh-build engine |
+| `src/engine/index.ts` | Public surface of the pure TS engine layer: canonical v10 types, tuning constants, seeded RNG, and the match-resolution API — `newMatch` / `startRound` / `resolveRound` / `halftime` / `beginExtraTime` / `checkWin` / `decideTurn` plus pure helpers (`xgAdd`, `validLineup`, `laneStamina`), all deterministic given a seed |
 | `src/data/index.ts` | Barrel for the static game data (players, tacticals, opponents) + `toPlayerCard` derivation |
 | `src/ui/index.ts` | Public barrel of the presentational component library (atoms/molecules/organisms, jersey kit, design-system gallery) |
 
@@ -46,11 +46,16 @@ src/
   App.css           # App-scoped styles
   setupTests.ts     # Vitest + React Testing Library / jsdom setup
   assets/           # Images and other static files
-  engine/           # Pure framework-agnostic TS (no DOM/I/O)
+  engine/           # Pure framework-agnostic TS (no DOM/I/O); deterministic given a seed
     types.ts        # canonical v10 data model
     constants.ts    # tuning knobs (xG curve, fatigue, caps, costs, formations)
     rng.ts          # seeded deterministic PRNG (mulberry32)
-    index.ts        # public surface (types + constants + rng)
+    xg.ts effectiveStats.ts synergies.ts fatigue.ts   # per-round scoring fold
+    cards.ts validateLineup.ts board.ts               # card flow, cap/stamina, lane reveal
+    tacticals.ts status.ts momentum.ts checkWin.ts    # tacticals, statuses, momentum, win/ET
+    match.ts        # state machine: newMatch / startRound / resolveRound / halftime / beginExtraTime
+    ai.ts           # opponent AI heuristic (decideTurn)
+    index.ts        # public surface (types + constants + rng + match-engine API)
   data/             # Static game data, derived from the GDD
     players.ts / playerPool.ts   # 296 players + toPlayerCard derivation
     tacticals.ts                 # 19 tactical cards
