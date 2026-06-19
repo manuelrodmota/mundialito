@@ -59,8 +59,8 @@ export type { Rng } from "./rng.ts";
 export { xgAdd, addXg } from "./xg.ts";
 
 // WCC-007/008 — Effective stats + formation
-export { atkOf, defOf, laneStack, applyFormation, computeEffectiveStats } from "./effectiveStats.ts";
-export type { EffectiveStats } from "./effectiveStats.ts";
+export { atkOf, defOf, laneStack, applyFormation, computeEffectiveStats, laneDecor, laneFx } from "./effectiveStats.ts";
+export type { EffectiveStats, LaneDecor, LaneFx } from "./effectiveStats.ts";
 
 // WCC-009 — Synergies
 export { computeSynergies, atkSynergy, defSynergy } from "./synergies.ts";

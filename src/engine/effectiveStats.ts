@@ -14,7 +14,13 @@
  */
 
 import type { CardInPlay, PlayerCard, Formation, PlayerState } from "./types.ts";
-import { RARITY_MULT, STACK_WEIGHTS, FORMATIONS } from "./constants.ts";
+import {
+  RARITY_MULT,
+  STACK_WEIGHTS,
+  FORMATIONS,
+  COST_BY_RARITY,
+  STAR_SYNERGY_DISCOUNT,
+} from "./constants.ts";
 import { statusMods } from "./status.ts";
 import { applyFatiguePenalty } from "./fatigue.ts";
 import { computeSynergies } from "./synergies.ts";
@@ -54,6 +60,98 @@ export function laneStack(contribs: number[]): number {
     total += (sorted[i] ?? 0) * weight;
   }
   return total;
+}
+
+/** Per-card decoration of a lane so the UI can surface the two v10 levers. §6 / §7 / §17 */
+export interface LaneDecor {
+  /** Diminishing-returns multiplier this card earns by its contribution rank. */
+  weight: number;
+  /** Contribution rank within the lane (0 = biggest contributor). */
+  rank: number;
+  /** Full per-round stamina cost, before the star-core discount. */
+  base: number;
+  /** Discounted per-round stamina actually paid (anchor = base; support = floor(base/2), min 1). */
+  payCost: number;
+  /** "anchor" (costliest card in a premium-bearing lane), "support", or null when no core is active. */
+  coreRole: "anchor" | "support" | null;
+  /** Raw stat contribution (stat × rarity multiplier) — the same value `laneStack` sorts. */
+  contrib: number;
+  /** Effective contribution after diminishing returns (contrib × weight). */
+  effContrib: number;
+}
+
+/** Lane-group summary of the two v10 levers, ready for the match UI. §6 / §7 */
+export interface LaneFx {
+  /** Percent of raw stats lost to diminishing returns — the "−N% stacked" figure. */
+  lossPct: number;
+  /** Stamina saved this round by the star-core discount — the "−N⚡ star core" figure. */
+  saved: number;
+  /** True when a premium card anchors the lane. */
+  starcore: boolean;
+}
+
+/**
+ * Read-only, derived per-card decoration of a face-up lane — lets the UI SHOW the two v10
+ * balance levers without re-deriving (or drifting from) the resolution math. Uses the same
+ * descending-contribution sort as {@link laneStack} and the same anchor / half-price rule as
+ * `laneStamina`. Pure: it never mutates state and is never called by resolution. GDD §6 / §7 / §17.
+ *
+ * Operates on raw player cards (pre-commit staging, no statuses) — for the staging UI the
+ * contribution is `stat × rarityMult`, exactly the value `laneStack` consumes.
+ */
+export function laneDecor(cards: PlayerCard[], lane: "attack" | "defense"): LaneDecor[] {
+  if (cards.length === 0) return [];
+
+  const statOf = (c: PlayerCard) =>
+    (lane === "defense" ? c.def : c.atk) * RARITY_MULT[c.rarity];
+  const contrib = cards.map(statOf);
+
+  // Rank indices by contribution, high→low, stable on ties — matches laneStack's sort.
+  const order = cards.map((_, i) => i).sort((a, b) => (contrib[b] - contrib[a]) || (a - b));
+  const weightAt: number[] = [];
+  order.forEach((idx, rank) => {
+    weightAt[idx] = rank < STACK_WEIGHTS.length ? STACK_WEIGHTS[rank] : 0;
+  });
+
+  const hasPremium = cards.some((c) => c.rarity !== "common");
+  const coreActive = hasPremium && cards.length >= 2;
+  let anchor = 0;
+  for (let i = 1; i < cards.length; i++) {
+    if (COST_BY_RARITY[cards[i].rarity] > COST_BY_RARITY[cards[anchor].rarity]) anchor = i;
+  }
+
+  return cards.map((c, i) => {
+    const base = COST_BY_RARITY[c.rarity];
+    const support = coreActive && i !== anchor;
+    const weight = weightAt[i] ?? 0;
+    return {
+      weight,
+      rank: order.indexOf(i),
+      base,
+      payCost: support ? Math.max(1, Math.floor(base * STAR_SYNERGY_DISCOUNT)) : base,
+      coreRole: coreActive ? (i === anchor ? "anchor" : "support") : null,
+      contrib: contrib[i],
+      effContrib: contrib[i] * weight,
+    };
+  });
+}
+
+/**
+ * Lane-group summary of {@link laneDecor} for the match UI: the diminishing-returns loss %,
+ * the star-core stamina saved this round, and whether a premium anchors the lane. Returns null
+ * for lanes with fewer than 2 cards (nothing to stack or discount). GDD §6 / §7.
+ */
+export function laneFx(cards: PlayerCard[], lane: "attack" | "defense"): LaneFx | null {
+  if (cards.length < 2) return null;
+  const decor = laneDecor(cards, lane);
+  const raw = decor.reduce((s, d) => s + d.contrib, 0);
+  const eff = decor.reduce((s, d) => s + d.effContrib, 0);
+  const saved = decor.reduce((s, d) => s + (d.base - d.payCost), 0);
+  return {
+    lossPct: raw > 0 ? Math.round((1 - eff / raw) * 100) : 0,
+    saved,
+    starcore: decor.some((d) => d.coreRole === "anchor"),
+  };
 }
 
 /**

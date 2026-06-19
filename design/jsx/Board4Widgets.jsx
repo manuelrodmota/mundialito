@@ -94,20 +94,71 @@ function XgGain4({ amount, parts, pos }) {
 }
 
 function Lane4({ cls, title, kind, cards, mine, droppable, rejecting, faceDown, owner, state, lw, laneH, zeroId, showMult, onZoneClick, onCardClick, onInspect }) {
-  const crowded = cards.length > 1 && cards.length * (lw * 1.42) + (cards.length - 1) * 8 > laneH;
+  // v10: read the two lane-level balance levers off the GROUP, not per card.
+  const lane = kind === "def" ? "defense" : "attack";
+  const decor = (!faceDown && cards.length >= 2 && window.laneDecor) ? window.laneDecor(cards, lane, state.T) : null;
+  let fx = null;
+  if (decor) {
+    const raw = decor.reduce((s, d) => s + d.contrib, 0);
+    const eff = decor.reduce((s, d) => s + d.effContrib, 0);
+    const saved = decor.reduce((s, d) => s + (d.base - d.payCost), 0);
+    fx = {
+      lossPct: raw > 0 ? Math.round((1 - eff / raw) * 100) : 0,
+      saved,
+      starcore: decor.some((d) => d.coreRole === "anchor"),
+    };
+  }
+  const grpCls = fx ? `${fx.lossPct >= 1 ? "fx-stacked" : ""} ${fx.starcore ? "fx-core" : ""}` : "";
+  // v10: MEASURE the lane and pack the cards into it — tight vertical overlap plus a gentle
+  // horizontal fan, so a full lane uses both axes and never spills off the pitch.
+  const laneRef = React.useRef(null);
+  const [pack, setPack] = React.useState({ ovl: null, dx: 0 });
+  const hasFx = !!fx;
+  React.useLayoutEffect(() => {
+    const el = laneRef.current;
+    if (!el || cards.length < 2) { setPack({ ovl: null, dx: 0 }); return; }
+    const box = el.getBoundingClientRect();
+    const cardH = lw * 1.42;
+    const reserveTop = hasFx ? 62 : 18;   // room for the fx pills
+    const reserveBot = 30;                // room for the lane tag
+    const avail = Math.max(cardH, box.height - reserveTop - reserveBot);
+    const step = (avail - cardH) / (cards.length - 1);   // vertical advance per card
+    let m = Math.min(step - cardH, -lw * 0.16);           // margin-top: gap when roomy, overlap when not
+    m = Math.max(m, -(cardH * 0.84));                     // keep >=16% of each card visible
+    const spareW = Math.max(0, box.width - lw - 10);
+    const dx = Math.min(15, spareW / (cards.length - 1)); // gentle centered fan across spare width
+    setPack({ ovl: m, dx });
+  }, [cards.length, lw, laneH, hasFx]);
   return (
     <div
-      className={`lane4 ${cls || ""} ${kind}-lane ${mine ? "mine" : ""} ${droppable ? "droppable" : ""} ${rejecting ? "rejecting" : ""}`}
+      ref={laneRef}
+      className={`lane4 ${cls || ""} ${kind}-lane ${mine ? "mine" : ""} ${droppable ? "droppable" : ""} ${rejecting ? "rejecting" : ""} ${grpCls}`}
       style={{ "--lw": lw + "px" }}
       onClick={droppable && onZoneClick ? onZoneClick : undefined}
     >
       <span className="ltag4">{title}</span>
+      {fx && (
+        <div className="lane-fx4">
+          {fx.lossPct >= 1 && (
+            <span className="fx-pill stack" title={`Diminishing returns — a lane's contributions are weighted high→low (×1.00 / 0.85 / 0.70 / 0.55 / 0.40 / 0.25). Stacking the same tier doesn't grow it linearly: these ${cards.length} cards together output ${100 - fx.lossPct}% of their raw stats. A few strong cards beat a wall.`}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#f0935a" strokeWidth="2.2" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="8.5" width="12" height="12.5" rx="2.2"/><rect x="9" y="3" width="12" height="12.5" rx="2.2" fill="rgba(40,18,8,0.92)"/></svg>
+              −{fx.lossPct}% stacked
+            </span>
+          )}
+          {fx.starcore && fx.saved > 0 && (
+            <span className="fx-pill core" title={`Star core — a premium card anchors this lane, so every other card in it is half-price (min 1). You save ${fx.saved}⚡ this round.`}>
+              ★ −{fx.saved}⚡ star core
+            </span>
+          )}
+        </div>
+      )}
       {cards.length === 0 ? (
         <span className="lane-hint4">{faceDown ? "—" : mine ? (droppable ? "Place here" : "Empty") : "Empty"}</span>
       ) : (
-        <div className={`lane4-cards ${crowded ? "crowded" : ""}`}>
+        <div className={`lane4-cards ${pack.ovl != null ? "crowded" : ""}`} style={pack.ovl != null ? { "--ovl": pack.ovl + "px" } : undefined}>
           {cards.map((c, i) => (
             <div key={c.id + "_" + i} className={!faceDown && zeroId === c.id ? "offside4" : ""}
+              style={pack.dx ? { transform: `translateX(${(i - (cards.length - 1) / 2) * pack.dx}px)` } : undefined}
               onContextMenu={(e) => { e.preventDefault(); if (!faceDown) onInspect(c); }}>
               {!faceDown && zeroId === c.id && <span className="offside-flag4">OFFSIDE</span>}
               <AnyCard

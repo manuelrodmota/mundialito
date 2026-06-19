@@ -84,6 +84,41 @@
     return sum;
   }
 
+  // v10: per-card lane decoration so the UI can SHOW the two balance levers to the player —
+  //   • stackWeight — the diminishing-returns multiplier this card earns (by its rank in the lane).
+  //   • coreRole / payCost — the star-core discount: the costliest card in a lane holding a premium
+  //     anchors at full price, every other card is half-price (min 1).
+  // Returned in the cards' original order. lane = "attack" | "defense". (GDD §6, §7, §17)
+  function laneDecor(cards, lane, T) {
+    if (!cards || !cards.length) return [];
+    T = T || DEF_T;
+    const statOf = (c) => ((lane === "defense" ? c.def : c.atk) * rarityMultOf(T, c.rarity));
+    const contrib = cards.map(statOf);
+    // rank indices by contribution, high→low (stable on ties) — matches laneStack's sort
+    const order = cards.map((_, i) => i).sort((a, b) => (contrib[b] - contrib[a]) || (a - b));
+    const weightAt = {};
+    order.forEach((idx, rank) => { weightAt[idx] = rank < STACK_WEIGHTS.length ? STACK_WEIGHTS[rank] : 0; });
+    const hasPremium = cards.some((c) => c.rarity !== "common");
+    const coreActive = hasPremium && cards.length >= 2;
+    let anchor = 0;
+    cards.forEach((c, i) => { if (fieldCostOf(c) > fieldCostOf(cards[anchor])) anchor = i; });
+    return cards.map((c, i) => {
+      const base = fieldCostOf(c);
+      const support = coreActive && i !== anchor;
+      return {
+        weight: weightAt[i],
+        rank: order.indexOf(i),
+        base,
+        payCost: support ? Math.max(1, Math.floor(base * STAR_DISCOUNT)) : base,
+        coreRole: coreActive ? (i === anchor ? "anchor" : "support") : null,
+        contrib: contrib[i],
+        effContrib: contrib[i] * weightAt[i],
+      };
+    });
+  }
+  window.laneDecor = laneDecor;
+  window.STACK_WEIGHTS = STACK_WEIGHTS.slice();
+
   // ---- tuning (GDD §15 — every value is a knob) ----
   const DEF_T = {
     mercyLead: 3, roundCap: 10, halftimeRound: 5,

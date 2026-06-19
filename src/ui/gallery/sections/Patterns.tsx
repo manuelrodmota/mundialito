@@ -142,6 +142,20 @@ export function Patterns() {
             </div>
           </DndContext>
         </Frame>
+        <Sub>v10 balance levers — lane-group indicators</Sub>
+        <Frame pitch caption={<span>A stacked, premium-anchored lane: <Code>.fx-pill.stack</Code> (diminishing returns) + <Code>.fx-pill.core</Code> (star-core saving), framed by the gold <Code>.fx-core</Code> zone. Cards pack into the measured height (<Code>--ovl</Code>) so a full lane never spills off the pitch.</span>}>
+          <DndContext>
+            {/* fx is laneFx([legendary, epic, rare], "attack") — kept as a literal so the gallery stays engine-type-only */}
+            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: 280, position: 'relative' }}>
+              <Lane id="atk-fx" kind="atk" label="Your attack" lw={84} count={3} fx={{ lossPct: 13, saved: 3, starcore: true }}>
+                <div><PlayerCard card={dsSamples.legendary} size={84} /></div>
+                <div><PlayerCard card={dsSamples.epic} size={84} /></div>
+                <div><PlayerCard card={dsSamples.rare} size={84} /></div>
+              </Lane>
+            </div>
+          </DndContext>
+        </Frame>
+        <Note>Both levers are independent and can light up together. The amber <Code>−N% stacked</Code> pill reflects diminishing returns on lane stacking (any tier mix); the gold <Code>★ −N⚡ star core</Code> pill reflects the half-price support discount when a premium anchors the lane.</Note>
         <Sub>Floating feedback</Sub>
         <Frame center caption="damage number · zero/held · xG gain float">
           <div style={{ position: 'relative', width: 120, height: 80 }}>

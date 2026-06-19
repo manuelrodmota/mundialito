@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { Card } from '../../../engine/types'
+import { laneFx } from '../../../engine'
 import { useQuickplayMatch } from '../../quickplay/useQuickplayMatch'
 import { DeckBuilder } from '../DeckBuilder'
 import { DifficultyPicker } from '../DifficultyPicker'
@@ -105,6 +106,7 @@ export function Quickplay({ onBack }: QuickplayProps) {
           match={viewState.match}
           onCommit={handleCommit}
           canCommit={viewState.canCommit}
+          laneFx={laneFx}
         />
         {viewState.error && (
           <div className="qp-error" role="alert">
