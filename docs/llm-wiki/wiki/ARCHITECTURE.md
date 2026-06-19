@@ -4,7 +4,7 @@ summary: >-
   This repository is a **single-service polyrepo** — there is no monorepo
   tooling, no workspaces, and no sibling packages. The client is a Vite + React
   SPA backed by a Supabase data API (read-only player/team data).
-last_updated: '2026-06-19T17:21:35.000Z'
+last_updated: '2026-06-19T21:50:27.000Z'
 tags:
   - architecture
   - topology
@@ -26,7 +26,7 @@ The top-level layout is minimal. Application source lives under `src/`: the Reac
 | `src/assets/` | Static asset files (images, fonts, etc.) |
 | `src/engine/` | Pure framework-agnostic TS, no DOM/I/O, deterministic given a seed: canonical v10 `types.ts` + `constants.ts` + seeded `rng.ts`, plus the full match engine + AI built fresh from the GDD rules (not ported) — `xg`, `effectiveStats`, `synergies`, `fatigue`, `cards`, `validateLineup`, `board`, `tacticals`, `status`, `momentum`, `checkWin`, the `match` state machine (`resolveRound`), and `ai`; public surface via `index.ts` |
 | `src/data/` | Game data: `src/data/remote/` = typed Supabase access layer (client, generated `database.types.ts`, DB→`PlayerCard` mappers, deck-builder + opponent repos) — the primary source; `tacticals.ts` + a static fallback pool stay in-bundle; co-located Vitest tests (mock the Supabase client) |
-| `src/ui/` | Presentational React 19 component library (atoms / molecules / organisms per atomic-design) + CSS design-token layer (`tokens/`) + per-nation procedural SVG jersey kit + `#ds` design-system gallery; must not import `src/engine/` (type-only imports allowed) |
+| `src/ui/` | React 19 UI. **Presentational tier** (`atoms`/`molecules`/`organisms` per atomic-design + `tokens/` design-token layer + jersey kit + `#ds` gallery) imports `src/engine/` **type-only**. **Orchestration tier** (`screens/` data-aware screens + `quickplay/` — the `useQuickplayMatch` hook + `buildQuickplayDeck`) is the deliberate integration layer that imports the engine runtime API + the Supabase repos and drives the playable Quickplay loop (deck builder → difficulty → match board → result) |
 | `supabase/` | Supabase data backend: `config.toml`, SQL `migrations/` (6 tables + read-only RLS), `scripts/` (idempotent CSV seed + squads↔ratings normalization), `seed/*.csv` (source datasets), `README.md` (local workflow + cloud handoff). CLI local state (`.temp`/`.branches`/`out`) git-ignored |
 | `public/` | (not determined by analysis) |
 

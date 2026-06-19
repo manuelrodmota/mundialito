@@ -4,7 +4,7 @@ summary: >-
   `mundialito-client` is a TypeScript single-page application responsible for
   delivering the entire user-facing frontend experience. Built on React 19.2.6
   and ...
-last_updated: '2026-06-19T20:33:30.000Z'
+last_updated: '2026-06-19T21:50:27.000Z'
 tags:
   - service
   - typescript
@@ -65,10 +65,14 @@ src/
     tokens/         # ported CSS tokens + v8-ordered class CSS (index.css)
     data/nations.ts # shared nation flag-band map + crest sources
     jersey/         # per-nation procedural SVG kit (WCJersey, kitForNation)
-    atoms/ molecules/ organisms/   # atomic-design component tree (+ co-located *.test.tsx)
+    atoms/ molecules/ organisms/   # presentational atomic-design tree (import type only — never engine runtime)
+    screens/        # stateful, data-aware screens: DeckBuilder, DifficultyPicker, Quickplay (container), ResultScreen
+    quickplay/      # orchestration tier: useQuickplayMatch hook + buildQuickplayDeck — the ONLY src/ui island that imports engine RUNTIME + Supabase repos
     gallery/        # #ds living design-system gallery
     index.ts        # public barrel
 ```
+
+**Tier rule:** presentational components (`atoms`/`molecules`/`organisms`) import `src/engine` **types only**; the **orchestration tier** (`src/ui/quickplay/` hooks/helpers + `src/ui/screens/` containers) is the deliberate integration layer that imports the engine runtime API + the Supabase repos and feeds `MatchState` to the board via props.
 
 A parallel `design/` directory at the repository root holds the iterative JSX prototypes + design system (`Board*.jsx`, `ds/DS*.jsx`, `jsx/Card2.jsx`, the jersey handoff). These files are **not part of the production Vite bundle** — they are the sanctioned look/feel source that `src/ui/` is ported from (the latest version is authoritative).
 
@@ -82,7 +86,7 @@ The lifecycle describes how a user's browser session initializes the application
 
 1. **Vite entry** (`src/main.tsx`) — Vite serves `index.html`, which loads the compiled JS bundle. `main.tsx` calls `ReactDOM.createRoot` to mount the React tree into the DOM.
 2. **App shell** (`src/App.tsx`) — The root `App` component renders. No router or auth guard layer has been detected; screen selection is state/hash-driven.
-3. **Screen selection** — `App.tsx` renders the `#ds` design-system gallery when the URL hash/query selects it; otherwise a top-level **screen-state machine** (a `Screen` union driven by `useState`, **no router**) selects the active screen, defaulting to the `MainMenu` mode-select. Quickplay / Collection / How-to-Play currently route to a reusable `PlaceholderScreen` (their full screens + engine/data wiring are later tickets); Arcade Run is gated ("coming soon") in MVP. The production `src/` tree no longer uses the prototype's `window.WCC_ENGINE` global.
+3. **Screen selection** — `App.tsx` renders the `#ds` design-system gallery when the URL hash/query selects it; otherwise a top-level **screen-state machine** (a `Screen` union driven by `useState`, **no router**) selects the active screen, defaulting to the `MainMenu` mode-select. **Quickplay is a complete loop**: `MainMenu → Quickplay` mounts the `src/ui/screens/Quickplay` container, which runs deck builder → difficulty picker → match board → result, driven by the `useQuickplayMatch` orchestrator hook (the integration tier that calls `newMatch`/`startRound`/`resolveRound`/`decideTurn`, picks an opponent by difficulty from Supabase, and threads one seeded `Rng`). Collection / How-to-Play still route to a reusable `PlaceholderScreen`; Arcade Run is gated ("coming soon") in MVP. The production `src/` tree no longer uses the prototype's `window.WCC_ENGINE` global.
 
 ---
 
