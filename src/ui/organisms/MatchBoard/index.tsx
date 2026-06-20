@@ -326,7 +326,7 @@ export function MatchBoard({
       id={id}
       kind={kind}
       label={label}
-      lw={96}
+      lw={112}
       count={cips.length}
       cls={clsName}
     >
@@ -335,11 +335,11 @@ export function MatchBoard({
           <PlayerCardComponent
             key={cip.card.id}
             card={cip.card as PlayerCard}
-            size={96}
+            size={112}
             isCaptain={cip.card.id === p0.captainId}
           />
         ) : (
-          <TacticCard key={cip.card.id} card={cip.card as TacticalCard} size={96} />
+          <TacticCard key={cip.card.id} card={cip.card as TacticalCard} size={112} />
         ),
       )}
     </Lane>
@@ -350,12 +350,12 @@ export function MatchBoard({
       id={id}
       kind={kind}
       label={label}
-      lw={96}
+      lw={112}
       count={count}
       cls={clsName}
     >
       {Array.from({ length: count }, (_, i) => (
-        <FaceDownCard key={i} size={96} />
+        <FaceDownCard key={i} size={112} />
       ))}
     </Lane>
   )
@@ -447,7 +447,7 @@ export function MatchBoard({
                     id="defense-lane"
                     kind="def"
                     label="Your defense"
-                    lw={96}
+                    lw={112}
                     fx={defenseFx}
                     count={defenseCards.length}
                     onZoneClick={handleDefenseZoneClick}
@@ -457,7 +457,7 @@ export function MatchBoard({
                       <div key={card.id} onClick={() => handleRemoveFromDefense(card)} style={{ cursor: 'pointer' }}>
                         <PlayerCardComponent
                           card={card}
-                          size={96}
+                          size={112}
                           isCaptain={card.id === p0.captainId}
                           onClick={() => onCardClick?.(card)}
                         />
@@ -469,7 +469,7 @@ export function MatchBoard({
                     id="attack-lane"
                     kind="atk"
                     label="Your attack"
-                    lw={96}
+                    lw={112}
                     fx={attackFx}
                     count={attackCards.length}
                     onZoneClick={handleAttackZoneClick}
@@ -479,7 +479,7 @@ export function MatchBoard({
                       <div key={card.id} onClick={() => handleRemoveFromAttack(card)} style={{ cursor: 'pointer' }}>
                         <PlayerCardComponent
                           card={card}
-                          size={96}
+                          size={112}
                           isCaptain={card.id === p0.captainId}
                           onClick={() => onCardClick?.(card)}
                         />

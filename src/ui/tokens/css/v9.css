@@ -169,13 +169,22 @@
    absolutely-positioned over the pitch during reveal phase.
    ============================================================ */
 
-/* Readout panel (round report) — floats over the pitch/hand area. */
+/* Round report — a fixed side panel on the right; does NOT take flow space so the
+   pitch keeps its full height while the report is up. */
 .screen.board .readout {
-  position: relative;
-  z-index: 20;
-  margin: 0 auto;
-  max-width: 520px;
-  width: calc(100% - 48px);
+  position: fixed;
+  top: 50%;
+  right: 24px;
+  transform: translateY(-50%);
+  width: 320px;
+  max-width: 320px;
+  margin: 0;
+  z-index: 40;
+  background: rgba(10, 14, 24, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
 }
 
 /* Face-down card placeholder smooth entrance. */
@@ -195,3 +204,25 @@
 
 /* Hand cards at 118px — wider than field cards; ensure they flow in the fan. */
 .hand-dock .fan2 .hcard { flex-shrink: 0; }
+
+/* ============================================================
+   v10 — make the PITCH the centrepiece: shrink the surrounding
+   chrome so the flex:1 pitch claims most of the height.
+   ============================================================ */
+.v4board .side-strip.top { min-height: 92px; padding-top: 8px; }
+.screen.board > .match-dock { padding: 4px 26px; gap: 10px; }
+.screen.board > .hand-dock { min-height: 150px; }
+.v4board .side-strip.bottom { padding: 4px 26px; }
+.screen.board .pitch4 { min-height: 0; }
+
+/* Clash: HIGHLIGHT the duelling pair (scale + lift) and dim the rest — no off-screen
+   translate, so cards never fly out of view. Overrides the big translateX in v4.css. */
+.pitch4[data-duel] .lane4 { transition: transform 360ms ease, opacity 260ms ease; }
+.pitch4[data-duel="A"] .l-yatk,
+.pitch4[data-duel="A"] .l-tdef { transform: scale(1.07); z-index: 6; }
+.pitch4[data-duel="A"] .l-tatk,
+.pitch4[data-duel="A"] .l-ydef { transform: none; opacity: 0.3; }
+.pitch4[data-duel="B"] .l-tatk,
+.pitch4[data-duel="B"] .l-ydef { transform: scale(1.07); z-index: 6; }
+.pitch4[data-duel="B"] .l-yatk,
+.pitch4[data-duel="B"] .l-tdef { transform: none; opacity: 0.3; }
