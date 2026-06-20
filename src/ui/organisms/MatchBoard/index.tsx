@@ -94,7 +94,7 @@ function DraggableCard({
         className={`hcard${selected ? ' selected' : ''}`}
         onClick={handleClick}
       >
-        <PlayerCardComponent card={card as PlayerCard} size={104} isCaptain={isCaptain} />
+        <PlayerCardComponent card={card as PlayerCard} size={118} isCaptain={isCaptain} />
       </div>
     )
   }
@@ -108,7 +108,7 @@ function DraggableCard({
       className={`hcard${selected ? ' selected' : ''}`}
       onClick={handleClick}
     >
-      <TacticCard card={card as TacticalCard} size={104} />
+      <TacticCard card={card as TacticalCard} size={118} />
     </div>
   )
 }
@@ -326,7 +326,7 @@ export function MatchBoard({
       id={id}
       kind={kind}
       label={label}
-      lw={112}
+      lw={128}
       count={cips.length}
       cls={clsName}
     >
@@ -335,11 +335,11 @@ export function MatchBoard({
           <PlayerCardComponent
             key={cip.card.id}
             card={cip.card as PlayerCard}
-            size={112}
+            size={128}
             isCaptain={cip.card.id === p0.captainId}
           />
         ) : (
-          <TacticCard key={cip.card.id} card={cip.card as TacticalCard} size={112} />
+          <TacticCard key={cip.card.id} card={cip.card as TacticalCard} size={128} />
         ),
       )}
     </Lane>
@@ -350,12 +350,12 @@ export function MatchBoard({
       id={id}
       kind={kind}
       label={label}
-      lw={112}
+      lw={128}
       count={count}
       cls={clsName}
     >
       {Array.from({ length: count }, (_, i) => (
-        <FaceDownCard key={i} size={112} />
+        <FaceDownCard key={i} size={128} />
       ))}
     </Lane>
   )
@@ -366,8 +366,8 @@ export function MatchBoard({
         <div className="stadium-bg" />
 
         {/* top bar: LEFT identity | CENTER scoreboard | RIGHT meters+chips */}
-        <div className="side-strip top" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div className="opp-id" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 80, gap: 4 }}>
+        <div className="side-strip top" style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 12 }}>
+          <div className="opp-id" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
             {oppCrest ? (
               <img src={oppCrest} alt={match.opponent.nation} style={{ width: 36, height: 36, objectFit: 'contain' }} />
             ) : null}
@@ -375,7 +375,7 @@ export function MatchBoard({
             <TierStars tier={match.opponent.tier} />
           </div>
 
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
             <Scoreboard
               them={p1.goals}
               you={p0.goals}
@@ -447,7 +447,7 @@ export function MatchBoard({
                     id="defense-lane"
                     kind="def"
                     label="Your defense"
-                    lw={112}
+                    lw={128}
                     fx={defenseFx}
                     count={defenseCards.length}
                     onZoneClick={handleDefenseZoneClick}
@@ -457,7 +457,7 @@ export function MatchBoard({
                       <div key={card.id} onClick={() => handleRemoveFromDefense(card)} style={{ cursor: 'pointer' }}>
                         <PlayerCardComponent
                           card={card}
-                          size={112}
+                          size={128}
                           isCaptain={card.id === p0.captainId}
                           onClick={() => onCardClick?.(card)}
                         />
@@ -469,7 +469,7 @@ export function MatchBoard({
                     id="attack-lane"
                     kind="atk"
                     label="Your attack"
-                    lw={112}
+                    lw={128}
                     fx={attackFx}
                     count={attackCards.length}
                     onZoneClick={handleAttackZoneClick}
@@ -479,7 +479,7 @@ export function MatchBoard({
                       <div key={card.id} onClick={() => handleRemoveFromAttack(card)} style={{ cursor: 'pointer' }}>
                         <PlayerCardComponent
                           card={card}
-                          size={112}
+                          size={128}
                           isCaptain={card.id === p0.captainId}
                           onClick={() => onCardClick?.(card)}
                         />
@@ -587,7 +587,7 @@ export function MatchBoard({
         )}
 
         {/* hand dock — fan of draggable+clickable player cards */}
-        <div className="hand-dock" style={{ '--hw': '104px' } as React.CSSProperties}>
+        <div className="hand-dock" style={{ '--hw': '118px' } as React.CSSProperties}>
           <div className="pile-col7 left">
             <DeckPile kind="draw" count={p0.drawPile.length} label="Draw" />
             <DeckPile kind="locked" count={p0.locked.length} label="Bench" cue="returns at HT" />

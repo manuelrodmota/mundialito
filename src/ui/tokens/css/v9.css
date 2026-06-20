@@ -211,9 +211,14 @@
    ============================================================ */
 .v4board .side-strip.top { min-height: 92px; padding-top: 8px; }
 .screen.board > .match-dock { padding: 4px 26px; gap: 10px; }
-.screen.board > .hand-dock { min-height: 150px; }
+.screen.board > .hand-dock { min-height: 172px; }
 .v4board .side-strip.bottom { padding: 4px 26px; }
 .screen.board .pitch4 { min-height: 0; }
+
+/* Compact formation picker so the dock stays slim and the pitch keeps its height. */
+.screen.board > .match-dock .formation-picker { gap: 6px; }
+.screen.board > .match-dock .formation-picker button { padding: 5px 11px; }
+.screen.board > .match-dock .cap-chip5 { font-size: 11px; padding: 4px 9px; }
 
 /* Clash: HIGHLIGHT the duelling pair (scale + lift) and dim the rest — no off-screen
    translate, so cards never fly out of view. Overrides the big translateX in v4.css. */

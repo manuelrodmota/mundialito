@@ -48,12 +48,14 @@ export function Quickplay({ onBack }: QuickplayProps) {
     setSubScreen('match')
   }, [builtDeck, captainId, difficulty, start])
 
+  // MatchBoard calls onCommit then onReveal separately — so onCommit ONLY stages the lineup.
+  // (Calling reveal() here too would run it twice: the first resolves + clears the board, the
+  //  second would snapshot the now-empty board → no cards on the pitch during the clash.)
   const handleCommit = useCallback(
     (opts: Parameters<typeof commitTurn>[0]) => {
       commitTurn(opts)
-      reveal()
     },
-    [commitTurn, reveal],
+    [commitTurn],
   )
 
   const handleNextRound = useCallback(() => {
