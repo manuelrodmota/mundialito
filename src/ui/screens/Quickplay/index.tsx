@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Card } from '../../../engine/types'
 import { laneFx } from '../../../engine'
 import { useQuickplayMatch } from '../../quickplay/useQuickplayMatch'
@@ -24,6 +24,9 @@ export function Quickplay({ onBack }: QuickplayProps) {
   const [builtDeck, setBuiltDeck] = useState<Card[] | null>(null)
   const [captainId, setCaptainId] = useState<string | null>(null)
   const [pendingGoals, setPendingGoals] = useState<GoalEvent[]>([])
+  // Single-source goal queue: drain newly-emitted goalEvents into pendingGoals exactly once
+  // (avoids the two-source derivation that re-added a goal on every dismiss).
+  const consumedRef = useRef(0)
 
   const {
     viewState,
@@ -31,7 +34,8 @@ export function Quickplay({ onBack }: QuickplayProps) {
     setDifficulty,
     start,
     commitTurn,
-    resolveCurrentRound,
+    reveal,
+    nextRound,
     rematch,
   } = useQuickplayMatch()
 
@@ -47,22 +51,30 @@ export function Quickplay({ onBack }: QuickplayProps) {
     setSubScreen('match')
   }, [builtDeck, captainId, difficulty, start])
 
+  // MatchBoard calls onCommit then onReveal separately — so onCommit ONLY stages the lineup.
+  // (Calling reveal() here too would run it twice: the first resolves + clears the board, the
+  //  second would snapshot the now-empty board → no cards on the pitch during the clash.)
   const handleCommit = useCallback(
     (opts: Parameters<typeof commitTurn>[0]) => {
       commitTurn(opts)
-      resolveCurrentRound()
-
-      if (viewState.match?.winner !== null) {
-        setSubScreen('result')
-      } else {
-        const newGoals = viewState.goalEvents.slice(pendingGoals.length)
-        if (newGoals.length > 0) {
-          setPendingGoals(newGoals)
-        }
-      }
     },
-    [commitTurn, resolveCurrentRound, viewState, pendingGoals.length],
+    [commitTurn],
   )
+
+  const handleNextRound = useCallback(() => {
+    nextRound()
+    if (viewState.roundReport?.decided || viewState.match?.winner !== null) {
+      setSubScreen('result')
+    }
+  }, [nextRound, viewState.roundReport, viewState.match])
+
+  useEffect(() => {
+    const all = viewState.goalEvents
+    if (all.length > consumedRef.current) {
+      setPendingGoals((prev) => [...prev, ...all.slice(consumedRef.current)])
+      consumedRef.current = all.length
+    }
+  }, [viewState.goalEvents])
 
   const handleGoalDismiss = useCallback(() => {
     setPendingGoals((prev) => prev.slice(1))
@@ -71,6 +83,7 @@ export function Quickplay({ onBack }: QuickplayProps) {
   const handleRematch = useCallback(async () => {
     await rematch()
     setPendingGoals([])
+    consumedRef.current = 0
     setSubScreen('match')
   }, [rematch])
 
@@ -105,7 +118,13 @@ export function Quickplay({ onBack }: QuickplayProps) {
         <MatchBoard
           match={viewState.match}
           onCommit={handleCommit}
+          onReveal={reveal}
+          onNextRound={handleNextRound}
           canCommit={viewState.canCommit}
+          opponentIntent={viewState.opponentIntent}
+          revealBoards={viewState.revealBoards}
+          roundReport={viewState.roundReport}
+          phase={viewState.phase === 'reveal' ? 'reveal' : 'playing'}
           laneFx={laneFx}
         />
         {viewState.error && (
@@ -118,6 +137,16 @@ export function Quickplay({ onBack }: QuickplayProps) {
   }
 
   if (subScreen === 'result' && viewState.match?.winner !== null && viewState.match) {
+    return (
+      <ResultScreen
+        match={viewState.match}
+        onRematch={handleRematch}
+        onBack={onBack}
+      />
+    )
+  }
+
+  if (viewState.phase === 'result' && viewState.match?.winner !== null && viewState.match) {
     return (
       <ResultScreen
         match={viewState.match}

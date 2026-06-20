@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import type { PlayerCard, TacticalCard, Card } from '../../../engine/types'
 import { makeRng } from '../../../engine'
 import { fetchPlayers } from '../../../data/remote/players.repo'
@@ -7,9 +7,7 @@ import { tacticals } from '../../../data'
 import { buildQuickplayDeck } from '../../quickplay/buildQuickplayDeck'
 import { Filters } from '../../organisms/Filters'
 import { PickRow, SlotMeter } from '../../molecules/PickRow'
-import { FillWithCommons } from '../../organisms/FillWithCommons'
 import { CardDetailModal } from '../../organisms/CardDetailModal'
-import { Button } from '../../atoms/Button'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 
@@ -24,15 +22,20 @@ interface DeckBuilderProps {
 
 type LoadState = 'loading' | 'error' | 'empty' | 'ready'
 
-/** Full deck-builder screen. Loads the 2026 Supabase premium pool, lets the user pick
- *  up to 20 premium slots + 3 tacticals + a captain, then auto-fills commons on confirm.
+/** Full deck-builder screen. Loads the 2026 Supabase pool, splits it into
+ *  premiums (hand-pickable) and commons (bench-fill only). Lets the user pick
+ *  up to 20 premium slots + 3 tacticals + a captain, then fills the bench with
+ *  random commons on demand.
+ *  Two-pane layout: pool pane (browse + filter) + picks pane (squad summary + confirm).
  */
 export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
-  const [allPlayers, setAllPlayers] = useState<PlayerCard[]>([])
+  const [premiums, setPremiums] = useState<PlayerCard[]>([])
+  const [commonPool, setCommonPool] = useState<PlayerCard[]>([])
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [picks, setPicks] = useState<PlayerCard[]>([])
   const [captainId, setCaptainId] = useState<string | null>(null)
   const [tacPicks, setTacPicks] = useState<TacticalCard[]>([])
+  const [benchCommons, setBenchCommons] = useState<PlayerCard[]>([])
   const [fillSeed, setFillSeed] = useState(1)
   const [modalCard, setModalCard] = useState<PlayerCard | TacticalCard | null>(null)
 
@@ -41,14 +44,20 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
   const [rarityValue, setRarityValue] = useState('all')
   const [ratingMin, setRatingMin] = useState(60)
 
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const tacticsRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     const client = getSupabaseClient()
-    fetchPlayers({ season: 2026, limit: 200 }, client)
+    fetchPlayers({ season: 2026, limit: 400 }, client)
       .then((players) => {
-        const premiums = players.filter((p) => p.rarity !== 'common')
-        if (premiums.length === 0) setLoadState('empty')
-        else {
-          setAllPlayers(premiums)
+        const premiumList = players.filter((p) => p.rarity !== 'common')
+        const commonList = players.filter((p) => p.rarity === 'common')
+        if (premiumList.length === 0) {
+          setLoadState('empty')
+        } else {
+          setPremiums(premiumList)
+          setCommonPool(commonList)
           setLoadState('ready')
         }
       })
@@ -56,14 +65,14 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
   }, [])
 
   const filteredPlayers = useMemo(() => {
-    return allPlayers.filter((p) => {
+    return premiums.filter((p) => {
       if (searchValue && !p.name.toLowerCase().includes(searchValue.toLowerCase())) return false
       if (positionValue !== 'all' && p.position !== positionValue) return false
       if (rarityValue !== 'all' && p.rarity.toLowerCase() !== rarityValue.toLowerCase()) return false
       if (p.overall < ratingMin) return false
       return true
     })
-  }, [allPlayers, searchValue, positionValue, rarityValue, ratingMin])
+  }, [premiums, searchValue, positionValue, rarityValue, ratingMin])
 
   const slotsUsed = picks.reduce((sum, p) => sum + p.slots, 0)
   const isOverBudget = slotsUsed > PLAYER_BUDGET
@@ -72,13 +81,16 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
 
   function handleAddPlayer(player: PlayerCard) {
     if (picks.some((p) => p.id === player.id)) return
+    if (picks.length >= ROSTER_SIZE) return // roster is capped at ROSTER_SIZE players
     if (slotsUsed + player.slots > PLAYER_BUDGET) return
     setPicks((prev) => [...prev, player])
+    setBenchCommons([]) // picks changed — invalidate the rolled bench (re-roll via Fill bench)
     if (!captainId) setCaptainId(player.id)
   }
 
   function handleRemovePlayer(player: PlayerCard) {
     setPicks((prev) => prev.filter((p) => p.id !== player.id))
+    setBenchCommons([]) // picks changed — invalidate the rolled bench
     if (captainId === player.id) {
       const remaining = picks.filter((p) => p.id !== player.id)
       setCaptainId(remaining[0]?.id ?? null)
@@ -99,14 +111,23 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
     setTacPicks((prev) => prev.filter((t) => t.id !== tac.id))
   }
 
+  function handleRemoveBenchCommon(player: PlayerCard) {
+    setBenchCommons((prev) => prev.filter((p) => p.id !== player.id))
+  }
+
   function handleFillCommons() {
+    if (commonPool.length === 0) return
+    const needed = Math.max(0, ROSTER_SIZE - picks.length)
+    if (needed === 0) return
+    const rng = makeRng(fillSeed * 31337)
+    const shuffled = rng.shuffle([...commonPool])
+    setBenchCommons(shuffled.slice(0, needed))
     setFillSeed((s) => s + 1)
   }
 
   function handleConfirm() {
     if (!captainId || isOverBudget || picks.length === 0) return
 
-    const commonPool = allPlayers.filter((p) => p.rarity === 'common')
     const rng = makeRng(fillSeed * 31337)
 
     const { deck } = buildQuickplayDeck({
@@ -125,155 +146,243 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
 
   if (loadState === 'loading') {
     return (
-      <div className="deck-builder loading">
-        <p>Loading players…</p>
+      <div className="screen builder">
+        <div className="stadium-bg" />
+        <p style={{ padding: 40, textAlign: 'center' }}>Loading players…</p>
       </div>
     )
   }
 
   if (loadState === 'error') {
     return (
-      <div className="deck-builder error">
-        <p>Failed to load players. Please check your connection.</p>
-        <Button variant="ghost" onClick={onBack}>Back</Button>
+      <div className="screen builder">
+        <div className="stadium-bg" />
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <p>Failed to load players. Please check your connection.</p>
+          <button className="btn btn-ghost" onClick={onBack}>Menu</button>
+        </div>
       </div>
     )
   }
 
   if (loadState === 'empty') {
     return (
-      <div className="deck-builder empty">
-        <p>No players available for the 2026 season.</p>
-        <Button variant="ghost" onClick={onBack}>Back</Button>
+      <div className="screen builder">
+        <div className="stadium-bg" />
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <p>No players available for the 2026 season.</p>
+          <button className="btn btn-ghost" onClick={onBack}>Menu</button>
+        </div>
       </div>
     )
   }
 
   const canConfirm = hasCaptain && !isOverBudget && picks.length > 0
+  const totalPicks = picks.length + benchCommons.length
+
+  const gks = picks.filter((p) => p.position === 'GK').length
+  const avg = (k: 'atk' | 'def') =>
+    picks.length ? Math.round(picks.reduce((s, p) => s + p[k], 0) / picks.length) : 0
+
+  const confirmLabel = canConfirm
+    ? 'Confirm squad'
+    : `${picks.length} picks · ${slotsUsed}/20 slots${hasCaptain ? '' : ' · pick a captain'}`
+
+  const groups: [string, (PlayerCard | TacticalCard)[]][] = [
+    ['Legendaries', picks.filter((p) => p.rarity === 'legendary')],
+    ['Epics', picks.filter((p) => p.rarity === 'epic')],
+    ['Rares', picks.filter((p) => p.rarity === 'rare')],
+    ['Tactical cards', tacPicks],
+  ]
 
   return (
-    <div className="deck-builder">
-      <div className="db-header">
-        <h2>Build Your Squad</h2>
-        <Button variant="ghost" onClick={onBack}>Back</Button>
-      </div>
-
-      <SlotMeter used={slotsUsed} cap={PLAYER_BUDGET} />
-
-      <Filters
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        positionValue={positionValue}
-        onPositionChange={setPositionValue}
-        rarityValue={rarityValue}
-        onRarityChange={setRarityValue}
-        rarityAllLabel="All premiums"
-        rarityOptions={['Legendary', 'Epic', 'Rare']}
-        ratingMin={ratingMin}
-        onRatingMinChange={setRatingMin}
-      />
-
-      <div className="db-pool">
-        {filteredPlayers.map((player) => {
-          const isPicked = picks.some((p) => p.id === player.id)
-          const wouldExceed = !isPicked && slotsUsed + player.slots > PLAYER_BUDGET
-
-          return (
-            <div key={player.id} className="db-player-entry">
-              <PlayerCardComponent
-                card={player}
-                size={100}
-                isCaptain={captainId === player.id}
-                selected={isPicked}
-                unaffordable={wouldExceed}
-                onClick={() => {
-                  if (isPicked) handleRemovePlayer(player)
-                  else handleAddPlayer(player)
-                }}
-              />
-              <button
-                type="button"
-                className="db-info-btn"
-                onClick={(e) => { e.stopPropagation(); setModalCard(player) }}
-              >
-                ℹ
-              </button>
-            </div>
-          )
-        })}
-      </div>
-
-      {picks.length > 0 && (
-        <div className="db-picks">
-          <h3>Selected ({picks.length})</h3>
-          {picks.map((p) => (
-            <PickRow
-              key={p.id}
-              rating={p.overall}
-              name={p.name}
-              slots={p.slots}
-              isCaptain={captainId === p.id}
-              onCaptainToggle={() => handleToggleCaptain(p)}
-              onRemove={() => handleRemovePlayer(p)}
-            />
-          ))}
-        </div>
-      )}
-
-      <div className="db-tacticals">
-        <h3>Tacticals ({tacSlotsUsed}/{TACTICAL_CAP})</h3>
-        <div className="tac-pool">
-          {tacticals.map((tac) => {
-            const isPicked = tacPicks.some((t) => t.id === tac.id)
-            const wouldExceed = !isPicked && tacSlotsUsed + tac.slots > TACTICAL_CAP
-            return (
-              <div key={tac.id} className="db-tac-entry">
-                <TacticCard
-                  card={tac}
-                  size={80}
-                  onClick={() => {
-                    if (isPicked) handleRemoveTactical(tac)
-                    else handleAddTactical(tac)
-                  }}
-                  className={isPicked ? 'selected' : wouldExceed ? 'unaffordable' : ''}
-                />
-                <button
-                  type="button"
-                  className="db-info-btn"
-                  onClick={(e) => { e.stopPropagation(); setModalCard(tac) }}
-                >
-                  ℹ
-                </button>
-              </div>
-            )
-          })}
-        </div>
-        {tacPicks.length > 0 && (
-          <div className="db-tac-picks">
-            {tacPicks.map((t) => (
-              <PickRow
-                key={t.id}
-                rating={t.cost}
-                name={t.name}
-                slots={t.slots}
-                isTactic
-                onRemove={() => handleRemoveTactical(t)}
-              />
-            ))}
+    <div className="screen builder">
+      <div className="stadium-bg" />
+      <div className="builder-head">
+        <div>
+          <h2>Build Your Squad</h2>
+          <div className="hint">
+            Spend a 20-slot budget on a premium core (rares, epics, legendaries) + up to 3 tactical
+            cards. The bench auto-fills with random commons — you can&apos;t hand-pick them. Crown a
+            captain.
           </div>
-        )}
+        </div>
+        <button className="btn btn-ghost" onClick={onBack}>Menu</button>
       </div>
 
-      <FillWithCommons onFill={handleFillCommons} disabled={picks.length === 0} />
+      <div className="builder-body">
+        <div className="pool-pane">
+          <Filters
+            searchValue={searchValue}
+            onSearchChange={setSearchValue}
+            positionValue={positionValue}
+            onPositionChange={setPositionValue}
+            rarityValue={rarityValue}
+            onRarityChange={setRarityValue}
+            rarityAllLabel="All premiums"
+            rarityOptions={['Legendary', 'Epic', 'Rare']}
+            ratingMin={ratingMin}
+            onRatingMinChange={setRatingMin}
+          />
+          <div className="pool-scroll" ref={scrollRef}>
+            <div className="pool-grid2">
+              {filteredPlayers.map((player) => {
+                const isPicked = picks.some((p) => p.id === player.id)
+                const wouldExceed = !isPicked && slotsUsed + player.slots > PLAYER_BUDGET
+                return (
+                  <div key={player.id} className="pool-cell">
+                    <PlayerCardComponent
+                      card={player}
+                      size={150}
+                      isCaptain={captainId === player.id}
+                      selected={isPicked}
+                      unaffordable={wouldExceed}
+                      showSlots
+                      onClick={() => {
+                        if (isPicked) handleRemovePlayer(player)
+                        else handleAddPlayer(player)
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="card-info-btn"
+                      onClick={(e) => { e.stopPropagation(); setModalCard(player) }}
+                    >
+                      ℹ
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
 
-      <Button
-        variant="gold"
-        size="big"
-        onClick={handleConfirm}
-        disabled={!canConfirm}
-      >
-        {isOverBudget ? 'Over budget!' : `Confirm Squad (${picks.length} picks)`}
-      </Button>
+            <div className="pool-divider" ref={tacticsRef}>
+              <span>Tactical cards · up to 3</span>
+            </div>
+
+            <div className="pool-grid2">
+              {tacticals.map((tac) => {
+                const isPicked = tacPicks.some((t) => t.id === tac.id)
+                const wouldExceed = !isPicked && tacSlotsUsed + tac.slots > TACTICAL_CAP
+                return (
+                  <div key={tac.id} className="pool-cell">
+                    <TacticCard
+                      card={tac}
+                      size={150}
+                      showSlots
+                      className={isPicked ? 'selected' : wouldExceed ? 'unaffordable' : ''}
+                      onClick={() => {
+                        if (isPicked) handleRemoveTactical(tac)
+                        else handleAddTactical(tac)
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="card-info-btn"
+                      onClick={(e) => { e.stopPropagation(); setModalCard(tac) }}
+                    >
+                      ℹ
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="picks-pane" style={{ width: 340 }}>
+          <SlotMeter used={slotsUsed} cap={PLAYER_BUDGET} />
+          <div className="slot-meter">
+            <div className="row">
+              <span>Picks</span>
+              <b>{totalPicks}</b>
+            </div>
+            <div className="track">
+              <i style={{ width: Math.min(100, Math.round((totalPicks / ROSTER_SIZE) * 100)) + '%' }} />
+            </div>
+          </div>
+
+          <div className="hint">
+            ⚔ avg {avg('atk')} · ⛨ avg {avg('def')} · {tacPicks.length} tactical card{tacPicks.length !== 1 ? 's' : ''} · {gks} GK
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="btn btn-ghost"
+              style={{ flex: 1, padding: '9px 10px', fontSize: 13 }}
+              onClick={handleFillCommons}
+              disabled={commonPool.length === 0}
+            >
+              Fill bench (random)
+            </button>
+            <button
+              className="btn btn-ghost"
+              style={{ padding: '9px 12px', fontSize: 13 }}
+              onClick={() => { setPicks([]); setTacPicks([]); setCaptainId(null); setBenchCommons([]) }}
+            >
+              Clear
+            </button>
+          </div>
+
+          <div className="pick-rows" style={{ overflowY: 'auto', flex: 1 }}>
+            {groups.map(([label, cards]) =>
+              cards.length ? (
+                <div key={label}>
+                  <div className="group-h">{label} · {cards.length}</div>
+                  {cards.map((c) => {
+                    if (c.type === 'tactical') {
+                      return (
+                        <PickRow
+                          key={c.id}
+                          rating={c.cost}
+                          name={c.name}
+                          slots={c.slots}
+                          isTactic
+                          onRemove={() => handleRemoveTactical(c as TacticalCard)}
+                        />
+                      )
+                    }
+                    const player = c as PlayerCard
+                    return (
+                      <PickRow
+                        key={player.id}
+                        rating={player.overall}
+                        name={player.name}
+                        slots={player.slots}
+                        isCaptain={captainId === player.id}
+                        onCaptainToggle={() => handleToggleCaptain(player)}
+                        onRemove={() => handleRemovePlayer(player)}
+                      />
+                    )
+                  })}
+                </div>
+              ) : null
+            )}
+
+            {benchCommons.length > 0 && (
+              <div>
+                <div className="group-h">Bench · random commons · {benchCommons.length}</div>
+                {benchCommons.map((player) => (
+                  <PickRow
+                    key={player.id}
+                    rating={player.overall}
+                    name={player.name}
+                    slots={player.slots}
+                    onRemove={() => handleRemoveBenchCommon(player)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            className="btn btn-gold btn-big"
+            disabled={!canConfirm}
+            onClick={handleConfirm}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
 
       <CardDetailModal
         card={modalCard}

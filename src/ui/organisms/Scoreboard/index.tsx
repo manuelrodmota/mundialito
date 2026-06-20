@@ -1,4 +1,5 @@
 import { MiniCrest, PlayerCrest } from '../../atoms/Crest'
+import { crestSrc } from '../../data/nations'
 
 interface XGRailProps {
   code: string
@@ -13,7 +14,9 @@ interface ScoreboardProps {
   you: number
   /** Opponent nation code label (e.g. "ARG"). */
   code?: string
-  /** Opponent nation flag bands for the crest. */
+  /** Opponent full nation name used to resolve the real crest asset. */
+  nation?: string
+  /** Opponent nation flag bands for the crest fallback. */
   themCols?: [string, string, string]
   minute?: string
   phase?: string
@@ -23,11 +26,12 @@ interface ScoreboardProps {
   xg?: XGRailProps
 }
 
-/** Live scoreboard with numeric score, match clock, mercy marker, and xG rail. */
+/** Live scoreboard with numeric score, match clock, mercy marker, and optional xG rail. */
 export function Scoreboard({
   them = 1,
   you = 2,
   code = 'OPP',
+  nation,
   themCols = ['#74ACDF', '#fff', '#74ACDF'],
   minute = "63'",
   phase = '2ND HALF',
@@ -36,11 +40,19 @@ export function Scoreboard({
   et,
   xg,
 }: ScoreboardProps) {
+  const crest = nation ? crestSrc(nation) : null
+
   return (
     <div className={`scoreboard7${et ? ' et' : ''}`} style={{ position: 'static', transform: 'none' }}>
       <div className="sb-main">
         <div className="sb-team them">
-          <MiniCrest cols={themCols} size={30} />
+          {crest ? (
+            <span className="flag crest-on">
+              <img src={crest} alt={nation} style={{ width: 30, height: 30, objectFit: 'contain' }} />
+            </span>
+          ) : (
+            <MiniCrest cols={themCols} size={30} />
+          )}
           <span className="sb-code">{code}</span>
         </div>
         <div className="sb-score">

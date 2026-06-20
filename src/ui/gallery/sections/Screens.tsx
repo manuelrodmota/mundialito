@@ -98,7 +98,9 @@ export function Screens() {
             <ResultTitle you={3} them={1} note="Through to the quarter-finals." />
           </Tile>
           <Tile label="GOAL blast" center sub="the money moment — full-bleed in play">
-            <Goal />
+            <div style={{ position: 'relative', width: '100%', minHeight: 200 }}>
+              <Goal isYou score={[1, 0]} />
+            </div>
           </Tile>
         </div>
         <Note>Veil <Code>.modal-veil</Code> (blur 4px) → <Code>.modal-card</Code> (pop 220ms). Overlays use <Code>.overlay</Code> (blur 8px).</Note>

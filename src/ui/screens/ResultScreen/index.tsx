@@ -1,7 +1,5 @@
 import type { MatchState } from '../../../engine/types'
 import { MERCY_LEAD, ROUND_CAP } from '../../../engine'
-import { ResultTitle } from '../../organisms/ResultTitle'
-import { Button } from '../../atoms/Button'
 
 interface ResultScreenProps {
   match: MatchState
@@ -44,41 +42,23 @@ export function ResultScreen({ match, onRematch, onBack }: ResultScreenProps) {
   const mvp = findMvp(match)
 
   return (
-    <div className="result-screen">
-      <ResultTitle you={p0.goals} them={p1.goals} note={note} />
-
-      <div className="result-outcome">
-        {isWin ? (
-          <div className="result-win-label">Victory!</div>
-        ) : (
-          <div className="result-loss-label">Defeat</div>
-        )}
+    <div className="screen menu">
+      <div className="stadium-bg"></div>
+      <div className="logo-block">
+        <div className="kicker">{note}</div>
+        <h1>{isWin ? 'Victory!' : 'Defeat'}</h1>
+        <div className="sub">
+          YOU {p0.goals} – {p1.goals} {match.opponent.name} · Most dangerous: {mvp}
+        </div>
       </div>
 
-      <div className="result-vs">
-        <span>YOU</span>
-        <span className="result-score">
-          {p0.goals} – {p1.goals}
-        </span>
-        <span>{match.opponent.name}</span>
-      </div>
-
-      <div className="result-mvp">
-        <span className="result-mvp-label">Most Dangerous: </span>
-        <span className="result-mvp-name">{mvp}</span>
-      </div>
-
-      {match.opponent.blurb && (
-        <div className="result-blurb">{match.opponent.blurb}</div>
-      )}
-
-      <div className="result-actions">
-        <Button variant="gold" size="big" onClick={onRematch}>
+      <div className="actions" style={{ flexDirection: 'row', width: 'auto' }}>
+        <button type="button" className="btn btn-gold btn-big" onClick={onRematch}>
           Rematch
-        </Button>
-        <Button variant="ghost" onClick={onBack}>
+        </button>
+        <button type="button" className="btn btn-ghost btn-big" onClick={onBack}>
           Main Menu
-        </Button>
+        </button>
       </div>
     </div>
   )

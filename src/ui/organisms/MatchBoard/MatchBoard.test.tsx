@@ -113,7 +113,7 @@ describe('MatchBoard', () => {
         canCommit
       />,
     )
-    expect(screen.getByRole('button', { name: /commit turn/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /pass round|lock in/i })).toBeInTheDocument()
   })
 
   it('calls onCommit when commit button is clicked', async () => {
@@ -126,7 +126,7 @@ describe('MatchBoard', () => {
         canCommit
       />,
     )
-    await user.click(screen.getByRole('button', { name: /commit turn/i }))
+    await user.click(screen.getByRole('button', { name: /pass round|lock in/i }))
     expect(onCommit).toHaveBeenCalledOnce()
   })
 

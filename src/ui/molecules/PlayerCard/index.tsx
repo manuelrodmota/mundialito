@@ -24,6 +24,8 @@ interface PlayerCardProps {
   faceDown?: boolean
   showSlots?: boolean
   showMult?: boolean
+  /** Compact mode — drops the stat row + meta so the jersey keeps its room on small (field) cards. */
+  compact?: boolean
   onClick?: MouseEventHandler<HTMLDivElement>
   className?: string
 }
@@ -42,6 +44,16 @@ function isInjured(status: CardStatus | Status | undefined): boolean {
   return false
 }
 
+/** Derives a visual colour tier from a player's overall rating.
+ * Keeps gameplay rarity (used for balance multipliers) separate from presentation.
+ */
+function colorTier(overall: number): string {
+  if (overall >= 87) return 'legendary'
+  if (overall >= 84) return 'epic'
+  if (overall >= 80) return 'rare'
+  return 'common'
+}
+
 /** Player card — the hero object of World Cup Clash.
  * Rarity surface via data-rarity, jersey in the figure, stat row, flag chip, status overlays.
  */
@@ -56,6 +68,7 @@ export function PlayerCard({
   faceDown,
   showSlots,
   showMult,
+  compact,
   onClick,
   className = '',
 }: PlayerCardProps) {
@@ -84,8 +97,8 @@ export function PlayerCard({
 
   const cardEl = (
     <div
-      className={`wcard v2${onClick ? ' clickable' : ''}${className ? ' ' + className : ''}`}
-      data-rarity={card.rarity}
+      className={`wcard v2${compact ? ' compact' : ''}${onClick ? ' clickable' : ''}${className ? ' ' + className : ''}`}
+      data-rarity={colorTier(card.overall)}
       style={{ '--cw': size + 'px' } as CSSProperties}
       onClick={onClick}
     >
@@ -115,15 +128,19 @@ export function PlayerCard({
         </div>
         <div className="strip">
           <div className="pname">{card.name}</div>
-          <div className="statrow">
-            <span className="atk">⚔ {card.atk}</span>
-            <span className="def">⛨ {card.def}</span>
-          </div>
-          <div className="meta">
-            <span>{card.nation}</span>
-            <span>·</span>
-            <span>WC {card.worldCup}</span>
-          </div>
+          {!compact && (
+            <>
+              <div className="statrow">
+                <span className="atk">⚔ {card.atk}</span>
+                <span className="def">⛨ {card.def}</span>
+              </div>
+              <div className="meta">
+                <span>{card.nation}</span>
+                <span>·</span>
+                <span>WC {card.worldCup}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
       {showSlots && <SlotPips n={card.slots} />}

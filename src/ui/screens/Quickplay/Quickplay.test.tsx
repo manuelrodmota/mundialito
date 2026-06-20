@@ -39,7 +39,7 @@ describe('Quickplay', () => {
     render(<Quickplay onBack={onBack} />)
     await waitFor(() => screen.getByText(/Failed to load/i))
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Back' }))
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Menu' }))
     expect(onBack).toHaveBeenCalled()
   })
 })

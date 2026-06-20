@@ -4,34 +4,116 @@
  * The live MatchState is mutated by the engine in place; a separate React state
  * snapshot (`matchSnapshot`) is updated after each engine call to trigger re-renders.
  * This avoids accessing refs during render, which React 19 flags as an error.
+ *
+ * Two-step round flow:
+ *   1. Player commits their lineup (commitTurn)
+ *   2. reveal() — snapshots boards, resolves, builds roundReport, phase → 'reveal'
+ *   3. nextRound() — if winner → 'result'; else startRound + decideTurn, phase → 'playing'
  */
 
 import { useRef, useState, useCallback } from 'react'
-import { newMatch, startRound, resolveRound, decideTurn, makeRng, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP } from '../../engine'
-import type { MatchState, Card, Formation, Tier } from '../../engine/types'
+import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, computeEffectiveStats, computeSynergies, RARITY_MULT, FORMATIONS, FATIGUE_DIV, HALFTIME_ROUND, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP } from '../../engine'
+import type { MatchState, Card, Formation, Tier, CardInPlay, PlayerCard, PlayerState } from '../../engine/types'
+import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
 import { pickOpponentByDifficulty } from '../../data/remote/opponents.repo'
 import { fetchPlayers } from '../../data/remote/players.repo'
 import { buildQuickplayDeck } from './buildQuickplayDeck'
-import type { PlayerCard, TacticalCard, CardInPlay } from '../../engine/types'
+import type { TacticalCard } from '../../engine/types'
 import { getSupabaseClient } from '../../data/remote/client'
 import { opponents as staticOpponents } from '../../data/opponents'
 
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'legendary'
 
+export interface RevealBoards {
+  you: { attack: CardInPlay[]; defense: CardInPlay[] }
+  them: { attack: CardInPlay[]; defense: CardInPlay[] }
+}
+
+/** Per-side breakdown for the round report — all derived from the pre-resolve player state. */
+export interface SideReport {
+  atkEff: number
+  defEff: number
+  formation: Formation
+  atkMult: number
+  defMult: number
+  fatigue: number
+  fatigueDefMult: number
+  /** Extra ATK+DEF contributed by rarity multipliers above common (the "star quality"). */
+  rarityBonus: number
+  synAtk: number
+  synDef: number
+  scored: boolean
+  xg: number
+}
+
+export interface RoundReport {
+  round: number
+  extraTime: boolean
+  halftime: boolean
+  youXg: number
+  themXg: number
+  youGoalsThisRound: number
+  themGoalsThisRound: number
+  youGoalsTotal: number
+  themGoalsTotal: number
+  decided: boolean
+  you: SideReport
+  them: SideReport
+}
+
 /** Derived view-state exposed to presentational components. */
 export interface QuickplayViewState {
   match: MatchState | null
-  phase: 'idle' | 'loading' | 'playing' | 'result'
+  phase: 'idle' | 'loading' | 'playing' | 'reveal' | 'result'
   error: string | null
   goalEvents: GoalEvent[]
   canCommit: boolean
+  opponentIntent: Intent | null
+  revealBoards: RevealBoards | null
+  roundReport: RoundReport | null
 }
 
 export interface GoalEvent {
   id: string
   scorer: string
   isYou: boolean
+  /** Scoreline AFTER this goal, [you, them]. */
+  score: readonly [number, number]
+}
+
+/** Builds the per-side report breakdown from a player's pre-resolve committed state. */
+function buildSideReport(p: PlayerState, xg: number, scored: boolean): SideReport {
+  const eff = computeEffectiveStats(p)
+  const syn = computeSynergies([...p.board.attack, ...p.board.defense], p.captainId)
+  const fm = FORMATIONS[p.formation]
+  let rarityBonus = 0
+  for (const c of p.board.attack) {
+    if (c.card.type === 'player') {
+      const pc = c.card as PlayerCard
+      rarityBonus += pc.atk * (RARITY_MULT[pc.rarity] - 1)
+    }
+  }
+  for (const c of p.board.defense) {
+    if (c.card.type === 'player') {
+      const pc = c.card as PlayerCard
+      rarityBonus += pc.def * (RARITY_MULT[pc.rarity] - 1)
+    }
+  }
+  return {
+    atkEff: Math.round(eff.atkEff),
+    defEff: Math.round(eff.defEff),
+    formation: p.formation,
+    atkMult: fm.atkMult,
+    defMult: fm.defMult,
+    fatigue: p.fatigue,
+    fatigueDefMult: 1 - p.fatigue / FATIGUE_DIV,
+    rarityBonus: Math.round(rarityBonus),
+    synAtk: Math.round(syn.atk),
+    synDef: Math.round(syn.def),
+    scored,
+    xg,
+  }
 }
 
 const DIFFICULTY_TO_TIER: Record<Difficulty, number> = {
@@ -53,6 +135,9 @@ export interface UseQuickplayMatchReturn {
   setDifficulty: (d: Difficulty) => void
   start: (deck: Card[], captainId: string, difficulty: Difficulty, seed?: number) => Promise<void>
   commitTurn: (opts: CommitTurnOptions) => void
+  reveal: () => void
+  nextRound: () => void
+  /** @deprecated Use reveal() + nextRound() instead. Kept for legacy callers. */
   resolveCurrentRound: () => void
   rematch: () => Promise<void>
 }
@@ -93,10 +178,22 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
   const [error, setError] = useState<string | null>(null)
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [goalEvents, setGoalEvents] = useState<GoalEvent[]>([])
+  const [opponentIntent, setOpponentIntent] = useState<Intent | null>(null)
+  const [revealBoardsState, setRevealBoardsState] = useState<RevealBoards | null>(null)
+  const [roundReport, setRoundReport] = useState<RoundReport | null>(null)
 
   const syncSnapshot = useCallback(() => {
     const m = matchRef.current
     setMatchSnapshot(m ? { ...m, players: [...m.players] as [typeof m.players[0], typeof m.players[1]] } : null)
+  }, [])
+
+  const refreshIntent = useCallback(() => {
+    const m = matchRef.current
+    if (!m) {
+      setOpponentIntent(null)
+      return
+    }
+    setOpponentIntent(intentOf(m.players[1]!))
   }, [])
 
   const start = useCallback(async (
@@ -109,6 +206,9 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
     setError(null)
     setGoalEvents([])
     setMatchSnapshot(null)
+    setOpponentIntent(null)
+    setRevealBoardsState(null)
+    setRoundReport(null)
 
     const resolvedSeed = seed ?? Math.floor(Date.now() % 2 ** 32)
     const rng = makeRng(resolvedSeed)
@@ -146,15 +246,33 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
         throw new Error('No opponent available for the selected difficulty')
       }
 
+      const playerCount = (o: typeof opponent) =>
+        o?.squad?.filter((c) => c.type === 'player').length ?? 0
+      if (playerCount(opponent) < 5) {
+        const sameTier = staticOpponents.filter((o) => o.tier === opponent!.tier)
+        const fbPool = sameTier.length > 0 ? sameTier : staticOpponents
+        opponent = fbPool[Math.floor(rng.next() * fbPool.length)] ?? fbPool[0] ?? opponent
+      }
+
       const commonPool = await fetchPlayers({ season: 2026, limit: 100 }, client)
         .catch(() => [] as PlayerCard[])
       const commonCards = commonPool.filter((c) => c.rarity === 'common')
 
+      const oppPlayers = opponent.squad.filter((c) => c.type === 'player') as PlayerCard[]
+      const oppPremiums: PlayerCard[] = []
+      let oppSlots = 0
+      for (const c of oppPlayers.filter((c) => c.rarity !== 'common')) {
+        if (oppPremiums.length >= 10 || oppSlots + c.slots > 20) continue
+        oppPremiums.push(c)
+        oppSlots += c.slots
+      }
+      const oppCaptain = oppPremiums[0] ?? oppPlayers[0]
+
       const opponentDeck = buildQuickplayDeck({
-        premiumPicks: opponent.squad.filter((c) => c.rarity !== 'common').slice(0, 10),
+        premiumPicks: oppPremiums,
         tacticalPicks: opponent.signatureTactical ?? [],
-        captainId: opponent.squad[0]?.id ?? '',
-        commonPool: [...commonCards, ...opponent.squad.filter((c) => c.rarity === 'common')],
+        captainId: oppCaptain?.id ?? '',
+        commonPool: [...commonCards, ...oppPlayers.filter((c) => c.rarity === 'common')],
         rosterSize: 16,
         playerBudget: 20,
         tacticalCap: 3,
@@ -172,6 +290,9 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
       startRound(match, rng)
       matchRef.current = match
 
+      decideTurn(match, 1, rng)
+      refreshIntent()
+
       setPhase('playing')
       setDifficulty(chosenDifficulty)
       syncSnapshot()
@@ -180,7 +301,7 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
       setError(message)
       setPhase('idle')
     }
-  }, [syncSnapshot])
+  }, [syncSnapshot, refreshIntent])
 
   const commitTurn = useCallback((opts: CommitTurnOptions) => {
     const match = matchRef.current
@@ -227,6 +348,101 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
     syncSnapshot()
   }, [syncSnapshot])
 
+  const reveal = useCallback(() => {
+    const match = matchRef.current
+    const rng = rngRef.current
+    if (!match || !rng || match.winner !== null) return
+
+    const p0 = match.players[0]!
+    const p1 = match.players[1]!
+
+    const boards: RevealBoards = {
+      you: {
+        attack: [...p0.board.attack],
+        defense: [...p0.board.defense],
+      },
+      them: {
+        attack: [...p1.board.attack],
+        defense: [...p1.board.defense],
+      },
+    }
+
+    const beforeYouXg = p0.xg
+    const beforeThemXg = p1.xg
+    const beforeYouGoals = p0.goals
+    const beforeThemGoals = p1.goals
+    const currentRound = match.round
+
+    // Side reports must be built from the PRE-resolve state (resolveRound clears the boards).
+    const youPre = buildSideReport(p0, 0, false)
+    const themPre = buildSideReport(p1, 0, false)
+
+    resolveRound(match, rng)
+
+    const youXgGained = p0.xg - beforeYouXg
+    const themXgGained = p1.xg - beforeThemXg
+    const youGoalsThisRound = p0.goals - beforeYouGoals
+    const themGoalsThisRound = p1.goals - beforeThemGoals
+
+    // Running scoreline so each GOAL celebration shows the score after it lands.
+    let you = beforeYouGoals
+    let them = beforeThemGoals
+    const newGoalEvents: GoalEvent[] = []
+    for (let i = 0; i < youGoalsThisRound; i++) {
+      goalCounterRef.current += 1
+      you += 1
+      newGoalEvents.push({ id: `goal-you-${goalCounterRef.current}`, scorer: 'YOU', isYou: true, score: [you, them] })
+    }
+    for (let i = 0; i < themGoalsThisRound; i++) {
+      goalCounterRef.current += 1
+      them += 1
+      newGoalEvents.push({ id: `goal-them-${goalCounterRef.current}`, scorer: match.opponent.name, isYou: false, score: [you, them] })
+    }
+    if (newGoalEvents.length > 0) {
+      setGoalEvents((prev) => [...prev, ...newGoalEvents])
+    }
+
+    setRevealBoardsState(boards)
+    setRoundReport({
+      round: currentRound,
+      extraTime: match.extraTime,
+      halftime: currentRound === HALFTIME_ROUND,
+      youXg: youXgGained,
+      themXg: themXgGained,
+      youGoalsThisRound,
+      themGoalsThisRound,
+      youGoalsTotal: p0.goals,
+      themGoalsTotal: p1.goals,
+      decided: match.winner !== null,
+      you: { ...youPre, xg: youXgGained, scored: youGoalsThisRound > 0 },
+      them: { ...themPre, xg: themXgGained, scored: themGoalsThisRound > 0 },
+    })
+    setPhase('reveal')
+    syncSnapshot()
+  }, [syncSnapshot])
+
+  const nextRound = useCallback(() => {
+    const match = matchRef.current
+    const rng = rngRef.current
+    if (!match || !rng) return
+
+    setRevealBoardsState(null)
+    setRoundReport(null)
+
+    if (match.winner !== null) {
+      setPhase('result')
+      syncSnapshot()
+      return
+    }
+
+    startRound(match, rng)
+    decideTurn(match, 1, rng)
+    refreshIntent()
+
+    setPhase('playing')
+    syncSnapshot()
+  }, [syncSnapshot, refreshIntent])
+
   const resolveCurrentRound = useCallback(() => {
     const match = matchRef.current
     const rng = rngRef.current
@@ -242,26 +458,22 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
     const goals1After = match.players[1]!.goals
 
     const newEvents: GoalEvent[] = []
+    let you = goalsBefore0
+    let them = goalsBefore1
 
     if (goals0After > goalsBefore0) {
       for (let i = 0; i < goals0After - goalsBefore0; i++) {
         goalCounterRef.current += 1
-        newEvents.push({
-          id: `goal-you-${goalCounterRef.current}`,
-          scorer: 'YOU',
-          isYou: true,
-        })
+        you += 1
+        newEvents.push({ id: `goal-you-${goalCounterRef.current}`, scorer: 'YOU', isYou: true, score: [you, them] })
       }
     }
 
     if (goals1After > goalsBefore1) {
       for (let i = 0; i < goals1After - goalsBefore1; i++) {
         goalCounterRef.current += 1
-        newEvents.push({
-          id: `goal-them-${goalCounterRef.current}`,
-          scorer: match.opponent.name,
-          isYou: false,
-        })
+        them += 1
+        newEvents.push({ id: `goal-them-${goalCounterRef.current}`, scorer: match.opponent.name, isYou: false, score: [you, them] })
       }
     }
 
@@ -273,22 +485,28 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
       setPhase('result')
     } else {
       startRound(match, rng)
+      decideTurn(match, 1, rng)
+      refreshIntent()
     }
 
     syncSnapshot()
-  }, [syncSnapshot])
+  }, [syncSnapshot, refreshIntent])
 
   const rematch = useCallback(async () => {
     const session = sessionRef.current
     if (!session) return
     setGoalEvents([])
+    setOpponentIntent(null)
+    setRevealBoardsState(null)
+    setRoundReport(null)
     await start(session.deck, session.captainId, session.difficulty, session.seed + 1)
   }, [start])
 
   const canCommit =
     matchSnapshot !== null &&
     matchSnapshot.winner === null &&
-    matchSnapshot.phase === 'plan'
+    matchSnapshot.phase === 'plan' &&
+    phase === 'playing'
 
   return {
     viewState: {
@@ -297,11 +515,16 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
       error,
       goalEvents,
       canCommit,
+      opponentIntent,
+      revealBoards: revealBoardsState,
+      roundReport,
     },
     difficulty,
     setDifficulty,
     start,
     commitTurn,
+    reveal,
+    nextRound,
     resolveCurrentRound,
     rematch,
   }

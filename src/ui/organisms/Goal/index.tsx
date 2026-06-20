@@ -1,72 +1,51 @@
 import { motion, useReducedMotion } from 'framer-motion'
-import { goalBlast, DUR_SLOW, EASE_SPRING } from '../../motion'
 
 interface GoalProps {
+  isYou: boolean
   scorer?: string
+  /** Scoreline after this goal, [you, them]. */
+  score?: readonly [number, number]
 }
 
-/** GOAL blast — radial explosion with net background and gold text.
- * Skips animation when prefers-reduced-motion is set.
+const slam = {
+  hidden: { scale: 0.4, opacity: 0 },
+  visible: { scale: 1, opacity: 1 },
+}
+const sub = {
+  hidden: { y: 14, opacity: 0 },
+  visible: { y: 0, opacity: 1 },
+}
+
+/** GOAL blast — big italic gold/red wordmark + score subtitle over a dimmed pitch.
+ * pointer-events:none so the surrounding Overlay veil receives click-to-dismiss.
+ * Skips animation under prefers-reduced-motion. Styling lives in v9.css (.goal-blast).
  */
-export function Goal({ scorer }: GoalProps) {
-  const shouldReduceMotion = useReducedMotion()
-  const variants = shouldReduceMotion ? undefined : goalBlast
+export function Goal({ isYou, scorer, score }: GoalProps) {
+  const reduce = useReducedMotion()
+  const title = isYou ? 'YOU SCORE' : scorer ? `${scorer.toUpperCase()} SCORES` : 'THEY SCORE'
+  const line = score ? `${title} · ${score[0]} – ${score[1]}` : title
 
   return (
-    <motion.div
-      className="goal-blast"
-      style={{
-        position: 'relative',
-        width: '100%',
-        minHeight: 200,
-        borderRadius: 12,
-        overflow: 'hidden',
-        background: 'radial-gradient(80% 60% at 50% 50%, rgba(10,13,21,.75), rgba(10,13,21,.92))',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-      variants={variants}
-      initial="hidden"
-      animate="visible"
-      transition={
-        shouldReduceMotion
-          ? undefined
-          : { duration: DUR_SLOW, ease: EASE_SPRING }
-      }
-    >
-      <div
-        className="gb-net"
-        style={{ position: 'absolute', inset: 0, opacity: 0.14 }}
-      />
-      <div
-        style={{
-          fontSize: 72,
-          fontWeight: 900,
-          fontStyle: 'italic',
-          color: '#e8c873',
-          letterSpacing: '-0.02em',
-          lineHeight: 1,
-          position: 'relative',
-          zIndex: 1,
-        }}
+    <div className={`goal-blast ${isYou ? 'you' : 'them'}`}>
+      <div className="gb-net" />
+      <motion.div
+        className="gb-text"
+        variants={reduce ? undefined : slam}
+        initial="hidden"
+        animate="visible"
+        transition={reduce ? undefined : { type: 'spring', stiffness: 320, damping: 18 }}
       >
-        GOAL!
-      </div>
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          letterSpacing: '0.3em',
-          color: 'rgba(255,255,255,.85)',
-          marginTop: 8,
-          position: 'relative',
-          zIndex: 1,
-        }}
+        GOAL
+      </motion.div>
+      <motion.div
+        className="gb-sub"
+        variants={reduce ? undefined : sub}
+        initial="hidden"
+        animate="visible"
+        transition={reduce ? undefined : { delay: 0.12, duration: 0.3 }}
       >
-        {scorer ? scorer.toUpperCase() + ' SCORES' : 'YOU SCORE'}
-      </div>
-    </motion.div>
+        {line}
+      </motion.div>
+    </div>
   )
 }

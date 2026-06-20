@@ -55,10 +55,12 @@ export function Modal({ open, onClose, children }: ModalProps) {
 interface OverlayProps {
   open: boolean
   children?: ReactNode
+  /** Click-to-dismiss handler on the veil (e.g. the GOAL celebration). */
+  onClick?: () => void
 }
 
 /** Full-bleed overlay veil for major moments (GOAL, result). */
-export function Overlay({ open, children }: OverlayProps) {
+export function Overlay({ open, children, onClick }: OverlayProps) {
   const shouldReduceMotion = useReducedMotion()
   const variants = shouldReduceMotion ? undefined : fadeIn
 
@@ -71,6 +73,8 @@ export function Overlay({ open, children }: OverlayProps) {
           initial="hidden"
           animate="visible"
           exit="exit"
+          onClick={onClick}
+          style={onClick ? { cursor: 'pointer' } : undefined}
         >
           {children}
         </motion.div>
