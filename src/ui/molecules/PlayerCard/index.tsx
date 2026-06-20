@@ -24,6 +24,8 @@ interface PlayerCardProps {
   faceDown?: boolean
   showSlots?: boolean
   showMult?: boolean
+  /** Compact mode — drops the stat row + meta so the jersey keeps its room on small (field) cards. */
+  compact?: boolean
   onClick?: MouseEventHandler<HTMLDivElement>
   className?: string
 }
@@ -66,6 +68,7 @@ export function PlayerCard({
   faceDown,
   showSlots,
   showMult,
+  compact,
   onClick,
   className = '',
 }: PlayerCardProps) {
@@ -94,7 +97,7 @@ export function PlayerCard({
 
   const cardEl = (
     <div
-      className={`wcard v2${onClick ? ' clickable' : ''}${className ? ' ' + className : ''}`}
+      className={`wcard v2${compact ? ' compact' : ''}${onClick ? ' clickable' : ''}${className ? ' ' + className : ''}`}
       data-rarity={colorTier(card.overall)}
       style={{ '--cw': size + 'px' } as CSSProperties}
       onClick={onClick}
@@ -125,15 +128,19 @@ export function PlayerCard({
         </div>
         <div className="strip">
           <div className="pname">{card.name}</div>
-          <div className="statrow">
-            <span className="atk">⚔ {card.atk}</span>
-            <span className="def">⛨ {card.def}</span>
-          </div>
-          <div className="meta">
-            <span>{card.nation}</span>
-            <span>·</span>
-            <span>WC {card.worldCup}</span>
-          </div>
+          {!compact && (
+            <>
+              <div className="statrow">
+                <span className="atk">⚔ {card.atk}</span>
+                <span className="def">⛨ {card.def}</span>
+              </div>
+              <div className="meta">
+                <span>{card.nation}</span>
+                <span>·</span>
+                <span>WC {card.worldCup}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
       {showSlots && <SlotPips n={card.slots} />}

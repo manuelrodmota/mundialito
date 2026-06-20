@@ -321,7 +321,7 @@ export function MatchBoard({
                 id="defense-lane"
                 kind="def"
                 label="DEFENSE"
-                lw={80}
+                lw={64}
                 fx={defenseFx}
                 count={defenseCards.length}
                 onZoneClick={handleDefenseZoneClick}
@@ -330,7 +330,8 @@ export function MatchBoard({
                   <div key={card.id} onClick={() => handleRemoveFromDefense(card)} style={{ cursor: 'pointer' }}>
                     <PlayerCardComponent
                       card={card}
-                      size={80}
+                      size={64}
+                      compact
                       isCaptain={card.id === p0.captainId}
                       onClick={() => onCardClick?.(card)}
                     />
@@ -342,7 +343,7 @@ export function MatchBoard({
                 id="attack-lane"
                 kind="atk"
                 label="ATTACK"
-                lw={80}
+                lw={64}
                 fx={attackFx}
                 count={attackCards.length}
                 onZoneClick={handleAttackZoneClick}
@@ -351,7 +352,8 @@ export function MatchBoard({
                   <div key={card.id} onClick={() => handleRemoveFromAttack(card)} style={{ cursor: 'pointer' }}>
                     <PlayerCardComponent
                       card={card}
-                      size={80}
+                      size={64}
+                      compact
                       isCaptain={card.id === p0.captainId}
                       onClick={() => onCardClick?.(card)}
                     />

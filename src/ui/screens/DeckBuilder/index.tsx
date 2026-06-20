@@ -81,13 +81,16 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
 
   function handleAddPlayer(player: PlayerCard) {
     if (picks.some((p) => p.id === player.id)) return
+    if (picks.length >= ROSTER_SIZE) return // roster is capped at ROSTER_SIZE players
     if (slotsUsed + player.slots > PLAYER_BUDGET) return
     setPicks((prev) => [...prev, player])
+    setBenchCommons([]) // picks changed — invalidate the rolled bench (re-roll via Fill bench)
     if (!captainId) setCaptainId(player.id)
   }
 
   function handleRemovePlayer(player: PlayerCard) {
     setPicks((prev) => prev.filter((p) => p.id !== player.id))
+    setBenchCommons([]) // picks changed — invalidate the rolled bench
     if (captainId === player.id) {
       const remaining = picks.filter((p) => p.id !== player.id)
       setCaptainId(remaining[0]?.id ?? null)
@@ -227,7 +230,7 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
                 const isPicked = picks.some((p) => p.id === player.id)
                 const wouldExceed = !isPicked && slotsUsed + player.slots > PLAYER_BUDGET
                 return (
-                  <div key={player.id} style={{ position: 'relative' }}>
+                  <div key={player.id} className="pool-cell">
                     <PlayerCardComponent
                       card={player}
                       size={150}
@@ -261,7 +264,7 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
                 const isPicked = tacPicks.some((t) => t.id === tac.id)
                 const wouldExceed = !isPicked && tacSlotsUsed + tac.slots > TACTICAL_CAP
                 return (
-                  <div key={tac.id} style={{ position: 'relative' }}>
+                  <div key={tac.id} className="pool-cell">
                     <TacticCard
                       card={tac}
                       size={150}

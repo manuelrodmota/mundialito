@@ -39,6 +39,35 @@
   line-height: 1;
 }
 
+/* Pool cell hugs the card so the info button sits on the card edge, not the grid-cell edge. */
+.pool-cell {
+  position: relative;
+  width: 150px;
+  margin: 0 auto;
+}
+
+/* The filters bar is opaque and the scroll clears the card slot-badges so the first
+   row is never hidden behind it. */
+.builder .filters {
+  background: #0a0e18;
+  position: relative;
+  z-index: 6;
+}
+.builder .pool-scroll {
+  padding-top: 46px;
+}
+
+/* Hand cards read as draggable. */
+.hand-dock .fan2 .hcard { cursor: grab; }
+.hand-dock .fan2 .hcard:active { cursor: grabbing; }
+
+/* The pitch is the centrepiece — give it the lion's share of the board height. */
+.screen.board .pitch-wrap4 { min-height: 50vh; }
+
+/* Compact (field) cards: drop the figure's bottom gap so the small jersey fills the body. */
+.wcard.compact .strip { padding: 2% 6% 6%; }
+.wcard.compact .figure { align-items: center; }
+
 /* WORLD CUP CLASH v9 / v10 balance pass — UI additions
    - star-core discount chip in the action dock (lights up when a lane holds a premium)
    The gentle field cost (2/2/3/4), the half-price support discount, diminishing returns,
