@@ -1677,3 +1677,31 @@
    The pitch has overflow:hidden so the banner cannot move above it — instead the cards
    start lower in the lane (matches the design, where cards sit mid-pitch). */
 .screen.board .p4-grid .lane4 { padding-top: 46px; }
+
+/* ============================================================
+   Deck-builder loading state — spinner over the stadium glow.
+   ============================================================ */
+.builder-loading {
+  position: relative; z-index: 1;
+  min-height: 70vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  color: var(--txt-dim); font-weight: 600; letter-spacing: 0.02em;
+}
+.loader-ring {
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: var(--gold);
+  animation: loaderSpin 0.8s linear infinite;
+}
+@keyframes loaderSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .loader-ring { animation: loaderPulse 1.2s ease-in-out infinite; border-top-color: var(--gold); }
+}
+@keyframes loaderPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* WC edition selector — tinted to read as the primary deck-browser control. */
+.filters .edition-select {
+  font-weight: 700; color: var(--gold);
+  border-color: rgba(232, 200, 115, 0.4);
+  background: rgba(232, 200, 115, 0.08);
+}

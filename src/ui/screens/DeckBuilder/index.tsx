@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import type { PlayerCard, TacticalCard, Card } from '../../../engine/types'
 import { makeRng } from '../../../engine'
-import { fetchPlayers } from '../../../data/remote/players.repo'
+import { fetchPlayers, fetchAvailableSeasons, fetchTeamsForSeason } from '../../../data/remote/players.repo'
 import { getSupabaseClient } from '../../../data/remote/client'
 import { tacticals } from '../../../data'
 import { buildQuickplayDeck } from '../../quickplay/buildQuickplayDeck'
@@ -55,16 +55,35 @@ export function DeckBuilder({
   const [positionValue, setPositionValue] = useState('all')
   const [rarityValue, setRarityValue] = useState('all')
   const [ratingMin, setRatingMin] = useState(60)
+  const [seasonValue, setSeasonValue] = useState(2026)
+  const [countryValue, setCountryValue] = useState('all')
+  const [seasons, setSeasons] = useState<number[]>([2026])
+  const [countries, setCountries] = useState<string[]>([])
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const tacticsRef = useRef<HTMLDivElement>(null)
 
+  // Distinct WC editions, loaded once (drives the edition selector).
+  useEffect(() => {
+    fetchAvailableSeasons(getSupabaseClient())
+      .then((list) => { if (list.length > 0) setSeasons(list) })
+      .catch(() => { /* keep the 2026 default */ })
+  }, [])
+
+  // Players + country list for the selected WC edition. Re-runs when the edition changes.
+  // (loadState is reset to 'loading' by the season-change handler, not synchronously here.)
   useEffect(() => {
     const client = getSupabaseClient()
-    fetchPlayers({ season: 2026, limit: 400 }, client)
-      .then((players) => {
+    let cancelled = false
+    Promise.all([
+      fetchPlayers({ season: seasonValue, limit: 2000 }, client),
+      fetchTeamsForSeason(seasonValue, client).catch(() => [] as string[]),
+    ])
+      .then(([players, teamList]) => {
+        if (cancelled) return
         const premiumList = players.filter((p) => p.rarity !== 'common')
         const commonList = players.filter((p) => p.rarity === 'common')
+        setCountries(teamList)
         if (premiumList.length === 0) {
           setLoadState('empty')
         } else {
@@ -73,18 +92,20 @@ export function DeckBuilder({
           setLoadState('ready')
         }
       })
-      .catch(() => setLoadState('error'))
-  }, [])
+      .catch(() => { if (!cancelled) setLoadState('error') })
+    return () => { cancelled = true }
+  }, [seasonValue])
 
   const filteredPlayers = useMemo(() => {
     return premiums.filter((p) => {
       if (searchValue && !p.name.toLowerCase().includes(searchValue.toLowerCase())) return false
+      if (countryValue !== 'all' && p.nation !== countryValue) return false
       if (positionValue !== 'all' && p.position !== positionValue) return false
       if (rarityValue !== 'all' && p.rarity.toLowerCase() !== rarityValue.toLowerCase()) return false
       if (p.overall < ratingMin) return false
       return true
     })
-  }, [premiums, searchValue, positionValue, rarityValue, ratingMin])
+  }, [premiums, searchValue, countryValue, positionValue, rarityValue, ratingMin])
 
   const slotsUsed = picks.reduce((sum, p) => sum + p.slots, 0)
   const isOverBudget = slotsUsed > playerBudget
@@ -160,7 +181,10 @@ export function DeckBuilder({
     return (
       <div className="screen builder">
         <div className="stadium-bg" />
-        <p style={{ padding: 40, textAlign: 'center' }}>Loading players…</p>
+        <div className="builder-loading">
+          <div className="loader-ring" aria-hidden="true" />
+          <p>Loading players…</p>
+        </div>
       </div>
     )
   }
@@ -227,6 +251,12 @@ export function DeckBuilder({
           <Filters
             searchValue={searchValue}
             onSearchChange={setSearchValue}
+            seasonValue={seasonValue}
+            onSeasonChange={(s) => { setLoadState('loading'); setSeasonValue(s); setCountryValue('all') }}
+            seasonOptions={seasons}
+            countryValue={countryValue}
+            onCountryChange={setCountryValue}
+            countryOptions={countries}
             positionValue={positionValue}
             onPositionChange={setPositionValue}
             rarityValue={rarityValue}

@@ -15,6 +15,8 @@ vi.mock('../../../data/remote/client', () => ({
 const mockFetchPlayers = vi.fn()
 vi.mock('../../../data/remote/players.repo', () => ({
   fetchPlayers: (...args: unknown[]) => mockFetchPlayers(...args),
+  fetchAvailableSeasons: () => Promise.resolve([2026, 2022, 2018]),
+  fetchTeamsForSeason: () => Promise.resolve(['Argentina', 'Brazil', 'France']),
 }))
 
 function makePremium(overrides: Partial<PlayerCard> = {}): PlayerCard {

@@ -15,6 +15,8 @@ vi.mock('../../../data/remote/client', () => ({
 
 vi.mock('../../../data/remote/players.repo', () => ({
   fetchPlayers: vi.fn().mockResolvedValue([]),
+  fetchAvailableSeasons: vi.fn().mockResolvedValue([2026]),
+  fetchTeamsForSeason: vi.fn().mockResolvedValue([]),
 }))
 
 const baseRunState: RunState = {

@@ -1,6 +1,14 @@
 interface FiltersProps {
   searchValue?: string
   onSearchChange?: (value: string) => void
+  /** Selected WC edition (season year). With seasonOptions, renders the edition selector. */
+  seasonValue?: number
+  onSeasonChange?: (value: number) => void
+  seasonOptions?: readonly number[]
+  /** Selected country/nation ('all' = any). With onCountryChange, renders the country dropdown. */
+  countryValue?: string
+  onCountryChange?: (value: string) => void
+  countryOptions?: readonly string[]
   positionValue?: string
   onPositionChange?: (value: string) => void
   rarityValue?: string
@@ -13,10 +21,16 @@ interface FiltersProps {
   onRatingMinChange?: (value: number) => void
 }
 
-/** Squad browser filter row — text search, position select, rarity select, rating range. */
+/** Squad browser filter row — WC edition + country + text search + position + rarity + rating range. */
 export function Filters({
   searchValue = '',
   onSearchChange,
+  seasonValue,
+  onSeasonChange,
+  seasonOptions,
+  countryValue = 'all',
+  onCountryChange,
+  countryOptions,
   positionValue = 'all',
   onPositionChange,
   rarityValue = 'all',
@@ -28,12 +42,32 @@ export function Filters({
 }: FiltersProps) {
   return (
     <div className="filters" style={{ border: 'none', padding: 0, width: '100%' }}>
+      {seasonOptions && onSeasonChange && (
+        <select
+          className="edition-select"
+          value={String(seasonValue ?? '')}
+          onChange={(e) => onSeasonChange(Number(e.target.value))}
+          title="World Cup edition"
+        >
+          {seasonOptions.map((s) => (
+            <option key={s} value={s}>WC {s}</option>
+          ))}
+        </select>
+      )}
       <input
         type="text"
         placeholder="Search players…"
         value={searchValue}
         onChange={(e) => onSearchChange?.(e.target.value)}
       />
+      {onCountryChange && (
+        <select value={countryValue} onChange={(e) => onCountryChange(e.target.value)} title="Country">
+          <option value="all">All countries</option>
+          {(countryOptions ?? []).map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      )}
       <select value={positionValue} onChange={(e) => onPositionChange?.(e.target.value)}>
         <option value="all">All positions</option>
         <option>FWD</option>
