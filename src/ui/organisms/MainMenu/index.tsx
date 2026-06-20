@@ -1,15 +1,14 @@
 import { Button } from '../../atoms/Button'
-import { Chip } from '../../atoms/Chip'
 
 interface MainMenuProps {
   onQuickplay: () => void
-  onArcadeRun?: () => void
+  onArcade?: () => void
   onCollection?: () => void
   onHowToPlay?: () => void
 }
 
-/** Main mode-select screen — entry point for Quickplay, Arcade Run (gated MVP), Collection, and How to Play. */
-export function MainMenu({ onQuickplay, onCollection, onHowToPlay }: MainMenuProps) {
+/** Main mode-select screen — entry point for Quickplay, Arcade Run, Collection, and How to Play. */
+export function MainMenu({ onQuickplay, onArcade, onCollection, onHowToPlay }: MainMenuProps) {
   return (
     <div
       style={{
@@ -41,12 +40,9 @@ export function MainMenu({ onQuickplay, onCollection, onHowToPlay }: MainMenuPro
           Quickplay
         </Button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Button variant="primary" disabled style={{ flex: 1 }}>
-            Arcade Run
-          </Button>
-          <Chip>Coming soon</Chip>
-        </div>
+        <Button variant="primary" size="big" onClick={onArcade}>
+          Arcade Run
+        </Button>
 
         <Button variant="ghost" onClick={onCollection}>
           Collection

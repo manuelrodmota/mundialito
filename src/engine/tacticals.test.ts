@@ -5,7 +5,9 @@ import {
   tacticalGatePassed,
   resolveInstants,
   applyTacticalXg,
+  applyDefensiveTacticals,
 } from "./tacticals.ts";
+import { routeCard } from "./cards.ts";
 import type { CardInPlay, MatchState, PlayerCard, PlayerState, TacticalCard } from "./types.ts";
 
 function makePlayerCard(id: string, position: PlayerCard["position"] = "MID"): PlayerCard {
@@ -283,5 +285,274 @@ describe("applyTacticalXg — Tiki-Taka", () => {
     const m = makeMatch(p0, p1);
     const result = applyTacticalXg(m, 0, 0.1, 50, 50);
     expect(result).toBeCloseTo(0.3, 5);
+  });
+});
+
+describe("resolveInstants — Team Talk (skill)", () => {
+  it("halves fatigue and adds tacticBonus", () => {
+    const teamTalkCard: TacticalCard = {
+      id: "tac-team-talk",
+      type: "tactical",
+      name: "Halftime Team Talk",
+      category: "skill",
+      cost: 1,
+      slots: 1,
+      rarity: "rare",
+      effect: { kind: "teamTalk" },
+    };
+    const p0 = makeState({
+      fatigue: 20,
+      board: { attack: [wrapTactical(teamTalkCard)], defense: [] },
+    });
+    const p1 = makeState();
+    const m = makeMatch(p0, p1);
+
+    resolveInstants(m);
+
+    expect(p0.fatigue).toBe(10);
+    expect(p0.tacticBonus).toBe(5);
+  });
+
+  it("does not affect opponent state", () => {
+    const teamTalkCard: TacticalCard = {
+      id: "tac-team-talk",
+      type: "tactical",
+      name: "Halftime Team Talk",
+      category: "skill",
+      cost: 1,
+      slots: 1,
+      rarity: "rare",
+      effect: { kind: "teamTalk" },
+    };
+    const p0 = makeState({
+      fatigue: 18,
+      board: { attack: [wrapTactical(teamTalkCard)], defense: [] },
+    });
+    const p1 = makeState({ fatigue: 15 });
+    const m = makeMatch(p0, p1);
+
+    resolveInstants(m);
+
+    expect(p1.fatigue).toBe(15);
+    expect(p1.tacticBonus).toBe(0);
+  });
+});
+
+describe("resolveInstants — Substitution (skill)", () => {
+  it("adds stamina bonus (tacticBonus) to the player", () => {
+    const subCard: TacticalCard = {
+      id: "tac-substitution",
+      type: "tactical",
+      name: "Substitution",
+      category: "skill",
+      cost: 1,
+      slots: 1,
+      rarity: "common",
+      effect: { kind: "substitution", amount: 8 },
+    };
+    const p0 = makeState({
+      board: { attack: [wrapTactical(subCard)], defense: [] },
+    });
+    const p1 = makeState();
+    const m = makeMatch(p0, p1);
+
+    resolveInstants(m);
+
+    expect(p0.tacticBonus).toBe(8);
+  });
+});
+
+describe("resolveInstants — Water Break (skill)", () => {
+  it("resets fatigue to 0 and adds tacticBonus", () => {
+    const wbCard: TacticalCard = {
+      id: "tac-water-break",
+      type: "tactical",
+      name: "Water Break",
+      category: "skill",
+      cost: 0,
+      slots: 1,
+      rarity: "common",
+      effect: { kind: "waterBreak", amount: 2 },
+    };
+    const p0 = makeState({
+      fatigue: 18,
+      board: { attack: [wrapTactical(wbCard)], defense: [] },
+    });
+    const p1 = makeState();
+    const m = makeMatch(p0, p1);
+
+    resolveInstants(m);
+
+    expect(p0.fatigue).toBe(0);
+    expect(p0.tacticBonus).toBe(2);
+  });
+});
+
+describe("single-use lifecycle", () => {
+  it("skill card (Team Talk) is exiled after routeCard (not returned to discard)", () => {
+    const teamTalkCard: TacticalCard = {
+      id: "tac-team-talk",
+      type: "tactical",
+      name: "Halftime Team Talk",
+      category: "skill",
+      cost: 1,
+      slots: 1,
+      rarity: "rare",
+      effect: { kind: "teamTalk" },
+    };
+    const p0 = makeState();
+
+    routeCard(p0, teamTalkCard);
+
+    expect(p0.exiled).toHaveLength(1);
+    expect(p0.exiled[0]!.id).toBe("tac-team-talk");
+    expect(p0.discard).toHaveLength(0);
+  });
+
+  it("instant card (VAR) is exiled after routeCard", () => {
+    const varCard: TacticalCard = {
+      id: "tac-var",
+      type: "tactical",
+      name: "VAR Review",
+      category: "instant",
+      cost: 2,
+      slots: 1,
+      rarity: "rare",
+      effect: { kind: "var" },
+    };
+    const p0 = makeState();
+
+    routeCard(p0, varCard);
+
+    expect(p0.exiled).toHaveLength(1);
+    expect(p0.exiled[0]!.id).toBe("tac-var");
+  });
+
+  it("power card (Fortress) goes into player powers list after routeCard", () => {
+    const fortressCard: TacticalCard = {
+      id: "tac-fortress",
+      type: "tactical",
+      name: "Fortress",
+      category: "power",
+      cost: 3,
+      slots: 1,
+      rarity: "legendary",
+      effect: { kind: "fortress", amount: 8 },
+    };
+    const p0 = makeState();
+
+    routeCard(p0, fortressCard);
+
+    expect(p0.powers).toHaveLength(1);
+    expect(p0.powers[0]!.id).toBe("tac-fortress");
+    expect(p0.exiled).toHaveLength(0);
+  });
+
+  it("Hand of God is blocked on second use (handOfGodUsed flag)", () => {
+    const hogCard: TacticalCard = {
+      id: "tac-hog",
+      type: "tactical",
+      name: "Hand of God",
+      category: "power",
+      cost: 3,
+      slots: 2,
+      rarity: "legendary",
+      effect: { kind: "handOfGod", amount: 1.0 },
+    };
+    const p0 = makeState({
+      handOfGodUsed: true,
+      board: { attack: [wrapTactical(hogCard)], defense: [] },
+    });
+    const p1 = makeState();
+    const m = makeMatch(p0, p1);
+
+    const result = applyTacticalXg(m, 0, 0.1, 50, 50);
+    expect(result).toBeCloseTo(0.1, 5);
+    expect(p0.handOfGodUsed).toBe(true);
+  });
+});
+
+describe("applyDefensiveTacticals — Fortress persistence", () => {
+  it("Fortress in powers increases defEff every round it is held", () => {
+    const fortressCard: TacticalCard = {
+      id: "tac-fortress",
+      type: "tactical",
+      name: "Fortress",
+      category: "power",
+      cost: 3,
+      slots: 1,
+      rarity: "legendary",
+      effect: { kind: "fortress", amount: 8 },
+    };
+    const p0 = makeState({ powers: [fortressCard] });
+    const p1 = makeState();
+    const m = makeMatch(p0, p1);
+
+    const baseDefEff = 50;
+    const result = applyDefensiveTacticals(m, 0, baseDefEff);
+    expect(result).toBe(baseDefEff + 8);
+  });
+
+  it("Catenaccio adds flat +10 defEff when on the board", () => {
+    const catenaccioCard: TacticalCard = {
+      id: "tac-catenaccio",
+      type: "tactical",
+      name: "Catenaccio",
+      category: "skill",
+      cost: 2,
+      slots: 1,
+      rarity: "epic",
+      effect: { kind: "catenaccio", requiresPosition: "DEF", requiresCount: 2 },
+    };
+    const p0 = makeState({
+      board: { attack: [], defense: [wrapTactical(catenaccioCard)] },
+    });
+    const p1 = makeState();
+    const m = makeMatch(p0, p1);
+
+    const result = applyDefensiveTacticals(m, 0, 50);
+    expect(result).toBe(60);
+  });
+});
+
+describe("applyTacticalXg — Total Football", () => {
+  it("Total Football power adds +0.1 xG bonus per round it persists", () => {
+    const tfCard: TacticalCard = {
+      id: "tac-total-football",
+      type: "tactical",
+      name: "Total Football",
+      category: "power",
+      cost: 3,
+      slots: 2,
+      rarity: "legendary",
+      effect: { kind: "totalFootball" },
+    };
+    const p0 = makeState({ powers: [tfCard] });
+    const p1 = makeState();
+    const m = makeMatch(p0, p1);
+
+    const result = applyTacticalXg(m, 0, 0.1, 50, 50);
+    expect(result).toBeCloseTo(0.2, 5);
+  });
+});
+
+describe("applyTacticalXg — Talisman", () => {
+  it("Talisman power adds its amount to xG each round", () => {
+    const talismanCard: TacticalCard = {
+      id: "tac-talisman",
+      type: "tactical",
+      name: "Talisman",
+      category: "power",
+      cost: 2,
+      slots: 1,
+      rarity: "epic",
+      effect: { kind: "talisman", amount: 3 },
+    };
+    const p0 = makeState({ powers: [talismanCard] });
+    const p1 = makeState();
+    const m = makeMatch(p0, p1);
+
+    const result = applyTacticalXg(m, 0, 0.1, 50, 50);
+    expect(result).toBeCloseTo(3.1, 5);
   });
 });
