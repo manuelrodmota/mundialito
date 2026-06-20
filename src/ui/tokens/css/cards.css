@@ -127,6 +127,11 @@
   text-align: center;
   position: relative;
   z-index: 1;
+  /* Reset the global app line-height (src/index.css `font: 18px/145%`) which the
+     design prototype never loads. Without this, .pname/.statrow/.meta inherit a
+     fixed ~24px line box, inflating the strip and shrinking the flex:1 figure
+     (and the 119%-of-figure jersey). `normal` restores the design's metrics. */
+  line-height: normal;
 }
 .wcard .strip::before {
   content: "";

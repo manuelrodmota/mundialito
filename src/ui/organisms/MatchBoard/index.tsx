@@ -5,7 +5,7 @@ import { useDraggable } from '@dnd-kit/core'
 import type { MatchState, PlayerCard, TacticalCard, Formation, Card, CardInPlay } from '../../../engine/types'
 import type { Intent } from '../../../engine/board'
 import type { LaneFx } from '../../../engine/effectiveStats'
-import type { RevealBoards, RoundReport } from '../../quickplay/useQuickplayMatch'
+import type { RevealBoards, RoundReport, SideReport } from '../../quickplay/useQuickplayMatch'
 import { Scoreboard } from '../Scoreboard'
 import { ExtraTimeBanner } from '../ExtraTime'
 import { Lane } from '../Lanes'
@@ -58,6 +58,16 @@ const FORMATION_LABELS: Record<Formation, { label: string; shape: string }> = {
   balanced: { label: '4-4-2', shape: 'BALANCED' },
   offensive: { label: '3-4-3', shape: 'OFFENSIVE' },
   defensive: { label: '5-4-1', shape: 'DEFENSIVE' },
+}
+
+/** One-line setup summary for a side in the round report (formation, star quality, chemistry, fatigue). */
+function sideNote(who: string, s: SideReport): string {
+  const fm = FORMATION_LABELS[s.formation]
+  const parts: string[] = [`${fm.label} ${fm.shape} · ATK ×${s.atkMult} DEF ×${s.defMult}`]
+  if (s.rarityBonus > 0) parts.push(`star quality +${s.rarityBonus}`)
+  if (s.synAtk > 0 || s.synDef > 0) parts.push(`chemistry +${s.synAtk}/${s.synDef}`)
+  if (s.fatigue > 0) parts.push(`fatigue ${s.fatigue} → DEF ×${s.fatigueDefMult.toFixed(2)}`)
+  return `${who} — ${parts.join(' · ')}`
 }
 
 function DraggableCard({
@@ -522,19 +532,8 @@ export function MatchBoard({
         </div>
 
         {/* action dock — cap chips + formation + tactical slot + lock-in button */}
-        <div
-          className="match-dock"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            padding: '6px 26px',
-            position: 'relative',
-            zIndex: 10,
-            minHeight: 56,
-            background: 'rgba(8, 12, 24, 0.95)',
-          }}
-        >
+        <div className="match-dock">
+
           <CapChip kind="players" current={attackCards.length + defenseCards.length} max={5} />
           <CapChip kind="tactics" current={p0.tacticalsThisHalf} max={2} />
           {showStarCore && <CapChip kind="star" />}
@@ -561,13 +560,20 @@ export function MatchBoard({
         {/* round report panel — shown after duel animation completes */}
         {isReveal && showReport && roundReport && (
           <div className="readout">
-            <h4>Round {roundReport.round} — full report</h4>
+            <h4>
+              {roundReport.extraTime
+                ? `Extra time +${(roundReport.round - 10) * 9}'`
+                : `Round ${roundReport.round}`}{' '}
+              — full report
+            </h4>
             <div className="lines">
-              <div className={`line l-xg`}>
-                You +{roundReport.youXg.toFixed(2)} xG
+              <div className="line l-note">{sideNote('You', roundReport.you)}</div>
+              <div className="line l-note">{sideNote('They', roundReport.them)}</div>
+              <div className="line l-xg">
+                You +{roundReport.youXg.toFixed(2)} xG — ATK {roundReport.you.atkEff} vs DEF {roundReport.them.defEff}
               </div>
-              <div className={`line l-xg to-them`}>
-                They +{roundReport.themXg.toFixed(2)} xG
+              <div className="line l-xg to-them">
+                They +{roundReport.themXg.toFixed(2)} xG — ATK {roundReport.them.atkEff} vs DEF {roundReport.you.defEff}
               </div>
               {roundReport.youGoalsThisRound > 0 && (
                 <div className="line l-goal">
@@ -579,9 +585,18 @@ export function MatchBoard({
                   GOAL — they make it {roundReport.youGoalsTotal}–{roundReport.themGoalsTotal}
                 </div>
               )}
+              {roundReport.you.scored && (
+                <div className="line l-onform">You are ON FORM — +0.10 xG next round</div>
+              )}
+              {roundReport.them.scored && (
+                <div className="line l-onform">They are ON FORM — +0.10 xG next round</div>
+              )}
+              {roundReport.halftime && (
+                <div className="line l-halftime">HALFTIME — benched stars return, fatigue clears for both sides</div>
+              )}
             </div>
             <button className="btn btn-gold" style={{ width: '100%' }} onClick={onNextRound}>
-              {roundReport.decided ? 'See result →' : 'Next round →'}
+              {roundReport.decided ? 'See result →' : roundReport.extraTime ? 'Next ET round →' : 'Next round →'}
             </button>
           </div>
         )}

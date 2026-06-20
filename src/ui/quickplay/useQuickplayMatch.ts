@@ -12,8 +12,8 @@
  */
 
 import { useRef, useState, useCallback } from 'react'
-import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP } from '../../engine'
-import type { MatchState, Card, Formation, Tier, CardInPlay, PlayerCard } from '../../engine/types'
+import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, computeEffectiveStats, computeSynergies, RARITY_MULT, FORMATIONS, FATIGUE_DIV, HALFTIME_ROUND, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP } from '../../engine'
+import type { MatchState, Card, Formation, Tier, CardInPlay, PlayerCard, PlayerState } from '../../engine/types'
 import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
 import { pickOpponentByDifficulty } from '../../data/remote/opponents.repo'
@@ -30,8 +30,27 @@ export interface RevealBoards {
   them: { attack: CardInPlay[]; defense: CardInPlay[] }
 }
 
+/** Per-side breakdown for the round report — all derived from the pre-resolve player state. */
+export interface SideReport {
+  atkEff: number
+  defEff: number
+  formation: Formation
+  atkMult: number
+  defMult: number
+  fatigue: number
+  fatigueDefMult: number
+  /** Extra ATK+DEF contributed by rarity multipliers above common (the "star quality"). */
+  rarityBonus: number
+  synAtk: number
+  synDef: number
+  scored: boolean
+  xg: number
+}
+
 export interface RoundReport {
   round: number
+  extraTime: boolean
+  halftime: boolean
   youXg: number
   themXg: number
   youGoalsThisRound: number
@@ -39,6 +58,8 @@ export interface RoundReport {
   youGoalsTotal: number
   themGoalsTotal: number
   decided: boolean
+  you: SideReport
+  them: SideReport
 }
 
 /** Derived view-state exposed to presentational components. */
@@ -57,6 +78,42 @@ export interface GoalEvent {
   id: string
   scorer: string
   isYou: boolean
+  /** Scoreline AFTER this goal, [you, them]. */
+  score: readonly [number, number]
+}
+
+/** Builds the per-side report breakdown from a player's pre-resolve committed state. */
+function buildSideReport(p: PlayerState, xg: number, scored: boolean): SideReport {
+  const eff = computeEffectiveStats(p)
+  const syn = computeSynergies([...p.board.attack, ...p.board.defense], p.captainId)
+  const fm = FORMATIONS[p.formation]
+  let rarityBonus = 0
+  for (const c of p.board.attack) {
+    if (c.card.type === 'player') {
+      const pc = c.card as PlayerCard
+      rarityBonus += pc.atk * (RARITY_MULT[pc.rarity] - 1)
+    }
+  }
+  for (const c of p.board.defense) {
+    if (c.card.type === 'player') {
+      const pc = c.card as PlayerCard
+      rarityBonus += pc.def * (RARITY_MULT[pc.rarity] - 1)
+    }
+  }
+  return {
+    atkEff: Math.round(eff.atkEff),
+    defEff: Math.round(eff.defEff),
+    formation: p.formation,
+    atkMult: fm.atkMult,
+    defMult: fm.defMult,
+    fatigue: p.fatigue,
+    fatigueDefMult: 1 - p.fatigue / FATIGUE_DIV,
+    rarityBonus: Math.round(rarityBonus),
+    synAtk: Math.round(syn.atk),
+    synDef: Math.round(syn.def),
+    scored,
+    xg,
+  }
 }
 
 const DIFFICULTY_TO_TIER: Record<Difficulty, number> = {
@@ -316,6 +373,10 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
     const beforeThemGoals = p1.goals
     const currentRound = match.round
 
+    // Side reports must be built from the PRE-resolve state (resolveRound clears the boards).
+    const youPre = buildSideReport(p0, 0, false)
+    const themPre = buildSideReport(p1, 0, false)
+
     resolveRound(match, rng)
 
     const youXgGained = p0.xg - beforeYouXg
@@ -323,22 +384,19 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
     const youGoalsThisRound = p0.goals - beforeYouGoals
     const themGoalsThisRound = p1.goals - beforeThemGoals
 
+    // Running scoreline so each GOAL celebration shows the score after it lands.
+    let you = beforeYouGoals
+    let them = beforeThemGoals
     const newGoalEvents: GoalEvent[] = []
     for (let i = 0; i < youGoalsThisRound; i++) {
       goalCounterRef.current += 1
-      newGoalEvents.push({
-        id: `goal-you-${goalCounterRef.current}`,
-        scorer: 'YOU',
-        isYou: true,
-      })
+      you += 1
+      newGoalEvents.push({ id: `goal-you-${goalCounterRef.current}`, scorer: 'YOU', isYou: true, score: [you, them] })
     }
     for (let i = 0; i < themGoalsThisRound; i++) {
       goalCounterRef.current += 1
-      newGoalEvents.push({
-        id: `goal-them-${goalCounterRef.current}`,
-        scorer: match.opponent.name,
-        isYou: false,
-      })
+      them += 1
+      newGoalEvents.push({ id: `goal-them-${goalCounterRef.current}`, scorer: match.opponent.name, isYou: false, score: [you, them] })
     }
     if (newGoalEvents.length > 0) {
       setGoalEvents((prev) => [...prev, ...newGoalEvents])
@@ -347,6 +405,8 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
     setRevealBoardsState(boards)
     setRoundReport({
       round: currentRound,
+      extraTime: match.extraTime,
+      halftime: currentRound === HALFTIME_ROUND,
       youXg: youXgGained,
       themXg: themXgGained,
       youGoalsThisRound,
@@ -354,6 +414,8 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
       youGoalsTotal: p0.goals,
       themGoalsTotal: p1.goals,
       decided: match.winner !== null,
+      you: { ...youPre, xg: youXgGained, scored: youGoalsThisRound > 0 },
+      them: { ...themPre, xg: themXgGained, scored: themGoalsThisRound > 0 },
     })
     setPhase('reveal')
     syncSnapshot()
@@ -396,26 +458,22 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
     const goals1After = match.players[1]!.goals
 
     const newEvents: GoalEvent[] = []
+    let you = goalsBefore0
+    let them = goalsBefore1
 
     if (goals0After > goalsBefore0) {
       for (let i = 0; i < goals0After - goalsBefore0; i++) {
         goalCounterRef.current += 1
-        newEvents.push({
-          id: `goal-you-${goalCounterRef.current}`,
-          scorer: 'YOU',
-          isYou: true,
-        })
+        you += 1
+        newEvents.push({ id: `goal-you-${goalCounterRef.current}`, scorer: 'YOU', isYou: true, score: [you, them] })
       }
     }
 
     if (goals1After > goalsBefore1) {
       for (let i = 0; i < goals1After - goalsBefore1; i++) {
         goalCounterRef.current += 1
-        newEvents.push({
-          id: `goal-them-${goalCounterRef.current}`,
-          scorer: match.opponent.name,
-          isYou: false,
-        })
+        them += 1
+        newEvents.push({ id: `goal-them-${goalCounterRef.current}`, scorer: match.opponent.name, isYou: false, score: [you, them] })
       }
     }
 

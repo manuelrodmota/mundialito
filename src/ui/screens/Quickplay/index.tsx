@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Card } from '../../../engine/types'
 import { laneFx } from '../../../engine'
 import { useQuickplayMatch } from '../../quickplay/useQuickplayMatch'
@@ -24,6 +24,9 @@ export function Quickplay({ onBack }: QuickplayProps) {
   const [builtDeck, setBuiltDeck] = useState<Card[] | null>(null)
   const [captainId, setCaptainId] = useState<string | null>(null)
   const [pendingGoals, setPendingGoals] = useState<GoalEvent[]>([])
+  // Single-source goal queue: drain newly-emitted goalEvents into pendingGoals exactly once
+  // (avoids the two-source derivation that re-added a goal on every dismiss).
+  const consumedRef = useRef(0)
 
   const {
     viewState,
@@ -65,6 +68,14 @@ export function Quickplay({ onBack }: QuickplayProps) {
     }
   }, [nextRound, viewState.roundReport, viewState.match])
 
+  useEffect(() => {
+    const all = viewState.goalEvents
+    if (all.length > consumedRef.current) {
+      setPendingGoals((prev) => [...prev, ...all.slice(consumedRef.current)])
+      consumedRef.current = all.length
+    }
+  }, [viewState.goalEvents])
+
   const handleGoalDismiss = useCallback(() => {
     setPendingGoals((prev) => prev.slice(1))
   }, [])
@@ -72,6 +83,7 @@ export function Quickplay({ onBack }: QuickplayProps) {
   const handleRematch = useCallback(async () => {
     await rematch()
     setPendingGoals([])
+    consumedRef.current = 0
     setSubScreen('match')
   }, [rematch])
 
@@ -97,13 +109,10 @@ export function Quickplay({ onBack }: QuickplayProps) {
   }
 
   if (subScreen === 'match' && viewState.match) {
-    const newGoals = viewState.goalEvents.slice(pendingGoals.length)
-    const displayGoals = newGoals.length > 0 ? [...pendingGoals, ...newGoals] : pendingGoals
-
     return (
       <>
         <GoalCelebration
-          events={displayGoals}
+          events={pendingGoals}
           onDismiss={handleGoalDismiss}
         />
         <MatchBoard

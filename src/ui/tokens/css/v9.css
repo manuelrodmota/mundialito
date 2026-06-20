@@ -1,3 +1,1322 @@
+/* ==== merged from v2.css (cascade-ordered) ==== */
+/* WORLD CUP CLASH v2 — lanes, tactic cards, builder slot meter */
+
+/* ---------- v2 player card additions ---------- */
+.wcard .statrow {
+  display: flex; justify-content: center; gap: 10px; margin-top: 4px;
+  font-size: calc(var(--cw, 168px) * 0.075); font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.wcard .statrow .atk { color: #ff5f4e; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+.wcard .statrow .def { color: #58a9ff; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+.wcard[data-rarity="common"] .statrow .atk { color: #b3261e; text-shadow: none; }
+.wcard[data-rarity="common"] .statrow .def { color: #1d5cc0; text-shadow: none; }
+.frame-retro .wcard .statrow .atk { color: #b3261e; text-shadow: none; }
+.frame-retro .wcard .statrow .def { color: #1d5cc0; text-shadow: none; }
+
+.wcard .slotpips {
+  position: absolute; bottom: -7px; right: -5px; z-index: 3;
+  display: flex; gap: 3px; padding: 3px 7px; border-radius: 999px;
+  background: rgba(8, 11, 18, 0.9); border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.wcard .slotpips i {
+  width: 7px; height: 7px; background: var(--gold);
+  transform: rotate(45deg); border-radius: 1px;
+}
+.wcard .slotpips.zero { color: #9aa3b5; font-size: 9px; font-weight: 800; padding: 2px 7px; letter-spacing: .04em; }
+
+/* statuses */
+.wcard .st-booked {
+  position: absolute; top: -6px; right: 14px; width: 14px; height: 18px;
+  background: linear-gradient(180deg, #ffd54a, #e3a90a); border-radius: 2px;
+  box-shadow: 0 2px 5px rgba(0,0,0,.5); transform: rotate(8deg); z-index: 3;
+}
+.wcard .st-injured {
+  position: absolute; top: -6px; right: 34px; width: 18px; height: 18px; border-radius: 50%;
+  background: #d92d20; color: #fff; font-size: 12px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,.5); z-index: 3;
+}
+
+/* ---------- tactic card ---------- */
+.tcard {
+  position: relative;
+  isolation: isolate;
+  width: var(--cw, 168px); height: calc(var(--cw, 168px) * 1.42);
+  border-radius: 12px; user-select: none; flex: none;
+  font-family: "Inter", sans-serif;
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms;
+}
+.tcard.clickable { cursor: pointer; }
+.tcard.clickable:hover { transform: translateY(-6px) scale(1.03); box-shadow: 0 14px 30px rgba(0,0,0,.55); }
+.tcard .inner {
+  position: absolute; inset: 0; border-radius: 12px; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 10% 8% 9%;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(110% 70% at 50% -8%, var(--tc-glow) 0%, transparent 55%),
+    linear-gradient(165deg, #1b2130 0%, #10141f 70%);
+  border: 1px solid var(--tc-edge);
+  color: #e9ecf4;
+}
+.tcard[data-cat="instant"] { --tc-glow: rgba(232, 85, 74, 0.5); --tc-edge: rgba(232, 85, 74, 0.55); --tc-ink: #ff9d92; }
+.tcard[data-cat="skill"]   { --tc-glow: rgba(62, 148, 222, 0.45); --tc-edge: rgba(62, 148, 222, 0.55); --tc-ink: #82c0f2; }
+.tcard[data-cat="power"]   { --tc-glow: rgba(232, 200, 115, 0.45); --tc-edge: rgba(232, 200, 115, 0.6); --tc-ink: #ecd089; }
+.tcard .cat {
+  font-size: calc(var(--cw, 168px) * 0.058); font-weight: 800; letter-spacing: 0.22em;
+  color: var(--tc-ink); text-transform: uppercase;
+}
+.tcard .glyph {
+  margin: 7% 0 5%; width: 38%; aspect-ratio: 1; border-radius: 50%;
+  border: 2px solid var(--tc-edge);
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+}
+.tcard .glyph svg { width: 58%; height: 58%; }
+.tcard .tname {
+  font-size: calc(var(--cw, 168px) * 0.085); font-weight: 800; letter-spacing: 0.01em; line-height: 1.15;
+}
+.tcard .ttext {
+  margin-top: 6%; font-size: calc(var(--cw, 168px) * 0.058); line-height: 1.45;
+  color: #aab2c4; font-weight: 500;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tcard .cost {
+  position: absolute; top: -8px; left: -8px;
+  width: calc(var(--cw, 168px) * 0.21); height: calc(var(--cw, 168px) * 0.21);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #7ee0a0, #14843e 70%);
+  color: #fff; font-weight: 800; font-size: calc(var(--cw, 168px) * 0.105);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  z-index: 3;
+}
+.tcard .slotpips {
+  position: absolute; bottom: -7px; right: -5px; z-index: 3;
+  display: flex; gap: 3px; padding: 3px 7px; border-radius: 999px;
+  background: rgba(8, 11, 18, 0.9); border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.tcard .slotpips i { width: 7px; height: 7px; background: var(--gold); transform: rotate(45deg); border-radius: 1px; }
+
+/* ---------- board v2 layout ---------- */
+.v2board { display: flex; flex-direction: column; height: 100vh; }
+.v2board .zones {
+  flex: 1; min-height: 0; position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  padding: 8px 22px 0;
+}
+.zcol { display: flex; flex-direction: column; min-height: 0; gap: 4px; }
+.lane {
+  flex: 1; min-height: 0; border-radius: 12px; position: relative;
+  border: 1.5px dashed rgba(255, 255, 255, 0.16);
+  background: rgba(30, 92, 56, 0.14);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 10px 6px;
+  transition: border-color 150ms, background 150ms, box-shadow 150ms;
+}
+.lane.mine.droppable { border-color: var(--gold); background: rgba(232, 200, 115, 0.08); cursor: pointer; box-shadow: 0 0 18px rgba(232, 200, 115, 0.15) inset; }
+.lane.mine.rejecting { border-color: rgba(232, 85, 74, 0.5); }
+.lane .lane-tag {
+  position: absolute; top: -1px; left: 12px; transform: translateY(-50%);
+  font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--txt-dim); background: var(--night-1); padding: 2px 9px;
+  border-radius: 999px; border: 1px solid var(--line);
+}
+.lane.atk-lane .lane-tag { color: #ff8d80; }
+.lane.def-lane .lane-tag { color: #79b6f0; }
+.lane .lane-cards { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
+.lane .lane-cards.crowded { gap: 0; }
+.lane .lane-cards.crowded > * + * { margin-left: calc(var(--lw, 92px) * -0.35); }
+.lane .lane-hint { color: rgba(255, 255, 255, 0.3); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+.lane .wcard.clickable:hover, .lane .tcard.clickable:hover { transform: translateY(-3px); }
+
+/* clash strip between lanes in a column */
+.clash {
+  min-height: 34px; display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-weight: 800; font-variant-numeric: tabular-nums; position: relative; z-index: 2;
+}
+.clash .num { font-size: 21px; }
+.clash .num.atk { color: #ff6a5c; }
+.clash .num.def { color: #58a9ff; }
+.clash .x { color: var(--txt-dim); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; }
+.clash .res { font-size: 14px; font-weight: 800; margin-left: 8px; }
+.clash .res.dmg { color: #ff6a5c; }
+.clash .res.held { color: #7ec898; }
+@keyframes slamIn { 0% { opacity: 0; transform: scale(2.2); } 60% { opacity: 1; transform: scale(0.92); } 100% { transform: scale(1); } }
+.clash .slam { animation: slamIn 380ms cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+
+/* face-down stack for opponent lanes in plan phase */
+.facedown-row { display: flex; gap: 8px; }
+
+/* intent strip */
+.intent {
+  position: absolute; left: 50%; top: 6px; transform: translateX(-50%); z-index: 6;
+  background: rgba(8, 11, 18, 0.85); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 16px;
+  font-size: 12px; font-weight: 700; color: var(--txt-dim); letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.intent b { color: var(--txt); }
+
+/* tactics shelf chips */
+.shelf { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.shelf .tchip {
+  font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--tc-edge, var(--line)); color: var(--txt);
+  background: rgba(255, 255, 255, 0.06); cursor: pointer; white-space: nowrap;
+}
+.shelf .tchip[data-cat="instant"] { --tc-edge: rgba(232, 85, 74, 0.55); }
+.shelf .tchip[data-cat="skill"] { --tc-edge: rgba(62, 148, 222, 0.55); }
+.shelf .tchip[data-cat="power"] { --tc-edge: rgba(232, 200, 115, 0.6); }
+.shelf .tchip.cancelled { text-decoration: line-through; opacity: 0.5; }
+.shelf .label { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; color: var(--txt-dim); text-transform: uppercase; }
+
+/* hand dock */
+.hand-dock {
+  position: relative; z-index: 5; display: flex; align-items: flex-end; justify-content: center;
+  padding: 4px 18px 0; min-height: calc(var(--hw, 116px) * 0.92);
+}
+.hand-dock .fan2 { display: flex; align-items: flex-end; }
+.fan2 > * + * { margin-left: calc(var(--hw, 116px) * -0.34); }
+.fan2 .hcard { position: relative; transition: transform 170ms cubic-bezier(0.16, 1, 0.3, 1), filter 170ms; }
+.fan2 .hcard:hover { transform: translateY(calc(var(--hw, 116px) * -0.28)) scale(1.07); z-index: 12; }
+.fan2 .hcard.selected { transform: translateY(calc(var(--hw, 116px) * -0.32)) scale(1.09); z-index: 13; }
+.fan2 .hcard.selected .inner { box-shadow: 0 0 0 3px var(--gold), 0 16px 34px rgba(0, 0, 0, 0.6) !important; }
+.fan2 .hcard.dim { filter: saturate(0.45) brightness(0.78) contrast(0.95); }
+.fan2 .hcard.dim::after {
+  content: "NEEDS " attr(data-need) " ⚡";
+  position: absolute; left: 33%; top: 55%; transform: translate(-50%, -50%) rotate(-8deg);
+  z-index: 14; pointer-events: none;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.08em; white-space: nowrap;
+  color: #ffd98a; background: rgba(10, 8, 4, 0.85);
+  border: 1.5px solid rgba(232, 200, 115, 0.7); border-radius: 6px;
+  padding: 4px 9px;
+}
+
+/* action dock (reveal button etc) */
+.action-dock {
+  position: absolute; right: 26px; bottom: 110px; z-index: 8;
+  display: flex; flex-direction: column; gap: 9px; align-items: flex-end;
+}
+.action-dock .subnote { font-size: 11.5px; color: var(--txt-dim); max-width: 200px; text-align: right; line-height: 1.45; }
+
+/* readout */
+.readout {
+  position: absolute; right: 18px; top: 72px; bottom: 170px; width: 320px; z-index: 20;
+  background: rgba(8, 11, 18, 0.93); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px; backdrop-filter: blur(8px);
+  display: flex; flex-direction: column; gap: 8px;
+  animation: readIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes readIn { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+.readout h4 { font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--txt-dim); }
+.readout .lines { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.readout .line {
+  font-size: 12.5px; line-height: 1.45; color: var(--txt-dim);
+  padding: 7px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid transparent;
+}
+.readout .line.l-instant { border-left-color: #e8554a; color: var(--txt); }
+.readout .line.l-damage { border-left-color: #ff6a5c; color: var(--txt); font-weight: 700; }
+.readout .line.l-damage.to-them { border-left-color: #7ec898; }
+.readout .line.l-stoppage { border-left-color: #ff8d84; color: #ff8d84; font-weight: 800; letter-spacing: 0.06em; }
+.readout .line.l-red { background: rgba(217, 45, 32, 0.18); color: #ffb4ad; font-weight: 800; }
+
+/* pile chips & powers reuse v1 .chip */
+.pile-chips { display: flex; gap: 8px; align-items: center; }
+
+/* sub modal list */
+.sub-list { display: flex; gap: 10px; flex-wrap: wrap; max-width: 560px; justify-content: center; }
+.sub-list .scard { cursor: pointer; position: relative; border-radius: 10px; }
+.sub-list .scard.tossed { outline: 3px solid #ff8d84; outline-offset: 2px; filter: brightness(0.6); }
+
+/* builder v2 additions */
+.slot-meter { display: flex; flex-direction: column; gap: 6px; }
+.slot-meter .row { display: flex; justify-content: space-between; align-items: baseline; }
+.slot-meter .row b { font-size: 19px; font-variant-numeric: tabular-nums; }
+.slot-meter .row b.over { color: #ff6a5c; }
+.slot-meter .track { height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.09); overflow: hidden; }
+.slot-meter .track i { display: block; height: 100%; background: linear-gradient(90deg, #8f68e3, #c9ae5e); border-radius: 6px; transition: width 300ms cubic-bezier(0.16,1,0.3,1); }
+.slot-meter .track i.over { background: linear-gradient(90deg, #e8554a, #f0883e); }
+.pick-rows { display: flex; flex-direction: column; gap: 4px; }
+.pick-row {
+  display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+  background: var(--night-2); border: 1px solid var(--line);
+  border-radius: 8px; padding: 5px 8px;
+}
+.pick-row .rt { font-weight: 800; width: 24px; text-align: center; font-size: 13px; }
+.pick-row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.pick-row .sl { color: var(--gold); font-size: 11px; font-weight: 800; width: 30px; text-align: right; }
+.pick-row .cap2 { background: none; border: 0; cursor: pointer; font-size: 14px; color: var(--txt-dim); padding: 1px 3px; }
+.pick-row .cap2.on { color: var(--gold); }
+.pick-row .rm { background: none; border: 0; cursor: pointer; font-size: 13px; color: var(--txt-dim); padding: 1px 3px; }
+.pick-row .rm:hover { color: var(--txt); }
+.pick-row.tactic-row .rt { color: #82c0f2; }
+.group-h { font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--txt-dim); margin: 8px 0 2px; }
+.builder-tabs { display: flex; gap: 6px; }
+.builder-tabs button {
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  background: none; border: 1px solid var(--line); color: var(--txt-dim);
+  border-radius: 999px; padding: 7px 18px;
+}
+.builder-tabs button.on { background: var(--brand-soft); border-color: var(--brand); color: var(--txt); }
+
+/* pool scroll: players → divider → tactics */
+.pool-scroll { flex: 1; overflow-y: auto; padding: 22px 28px 80px; }
+.pool-grid2 {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 18px; align-content: start;
+}
+.pool-divider {
+  display: flex; align-items: center; gap: 14px;
+  margin: 30px 0 20px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--txt-dim); white-space: nowrap;
+}
+.pool-divider::before, .pool-divider::after {
+  content: ""; flex: 1; height: 1px; background: var(--line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clash .slam, .readout { animation: none !important; }
+}
+
+
+/* ==== merged from v3.css (cascade-ordered) ==== */
+/* WORLD CUP CLASH v3 — run map, locker room, formations */
+
+/* ---------- nation crest ---------- */
+.crest3 {
+  width: var(--cs, 46px); height: var(--cs, 46px); border-radius: 50%;
+  overflow: hidden; flex: none; position: relative;
+  display: flex; flex-direction: row;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.crest3 i { flex: 1; }
+/* crest image variant — federation badge on a light plate */
+.crest3.has-img {
+  background: radial-gradient(circle at 50% 42%, #ffffff, #e9ecf1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.crest3.has-img img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.22));
+}
+.crest3 .yr {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  font-size: calc(var(--cs, 46px) * 0.24); font-weight: 800; text-align: center;
+  color: #fff; background: rgba(8, 11, 18, 0.72); padding: 1px 0;
+  letter-spacing: 0.04em;
+}
+
+.tier-stars { display: inline-flex; gap: 2px; }
+.tier-stars i {
+  width: 9px; height: 9px; background: var(--gold);
+  clip-path: polygon(50% 0, 63% 35%, 100% 38%, 71% 60%, 81% 100%, 50% 76%, 19% 100%, 29% 60%, 0 38%, 37% 35%);
+}
+.tier-stars i.off { background: rgba(255, 255, 255, 0.18); }
+
+/* formation chip (side strips / intent) */
+.fchip {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
+  padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--line); color: var(--txt-dim);
+  background: rgba(255, 255, 255, 0.06);
+}
+.fchip[data-f="offensive"] { color: #ff9d92; border-color: rgba(232, 85, 74, 0.5); }
+.fchip[data-f="defensive"] { color: #82c0f2; border-color: rgba(62, 148, 222, 0.5); }
+
+/* ---------- formation picker ---------- */
+.formation-picker { display: flex; gap: 6px; align-items: stretch; }
+.formation-picker button {
+  font: inherit; cursor: pointer; text-align: left;
+  display: flex; flex-direction: column; gap: 1px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line);
+  border-radius: 10px; padding: 6px 12px; color: var(--txt-dim);
+  transition: background 140ms, border-color 140ms;
+  min-width: 92px;
+}
+.formation-picker button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
+.formation-picker button:disabled { opacity: 0.55; cursor: default; }
+.formation-picker button b { font-size: 13.5px; color: var(--txt); letter-spacing: 0.02em; }
+.formation-picker button span { font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.formation-picker button i { font-style: normal; font-size: 10px; font-weight: 600; color: var(--txt-dim); white-space: nowrap; }
+.formation-picker button.on { border-color: var(--gold); background: rgba(232, 200, 115, 0.1); }
+.formation-picker button.on b { color: var(--gold); }
+.formation-picker button.on[data-f="offensive"] { border-color: rgba(232, 85, 74, 0.7); background: rgba(232, 85, 74, 0.1); }
+.formation-picker button.on[data-f="offensive"] b { color: #ff9d92; }
+.formation-picker button.on[data-f="defensive"] { border-color: rgba(62, 148, 222, 0.7); background: rgba(62, 148, 222, 0.1); }
+.formation-picker button.on[data-f="defensive"] b { color: #82c0f2; }
+.fp-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--txt-dim); align-self: center; margin-right: 2px;
+}
+
+/* ---------- bracket / run map ---------- */
+.bracket-screen { align-items: center; justify-content: center; gap: 34px; padding: 30px; }
+.bracket-head { text-align: center; z-index: 1; }
+.bracket-head .kicker { color: var(--gold); font-weight: 700; letter-spacing: 0.3em; font-size: 12px; text-transform: uppercase; }
+.bracket-head h2 { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; margin-top: 6px; }
+.bracket-head .sub { color: var(--txt-dim); font-size: 13.5px; margin-top: 6px; }
+
+.ladder { display: flex; align-items: flex-start; z-index: 1; }
+.ladder .seg { display: flex; align-items: center; }
+.ladder .link {
+  width: clamp(18px, 3.4vw, 56px); height: 3px; margin-top: 26px;
+  background: rgba(255, 255, 255, 0.12); border-radius: 2px;
+}
+.ladder .link.done { background: linear-gradient(90deg, #3fbf6f, #92e3ae); }
+.lnode { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 92px; }
+.lnode .dot {
+  width: 56px; height: 56px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.16);
+  color: var(--txt-dim); font-weight: 800; font-size: 17px;
+  position: relative; transition: border-color 200ms;
+}
+.lnode.done .dot { border-color: #3fbf6f; }
+.lnode.done .dot::after {
+  content: ""; position: absolute; right: -3px; bottom: -3px; width: 19px; height: 19px;
+  border-radius: 50%; background: #3fbf6f;
+  clip-path: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,.5);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23062b16' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+  background-size: 60%; background-position: center; background-repeat: no-repeat;
+}
+.lnode.now .dot {
+  border-color: var(--gold); color: var(--gold);
+  box-shadow: 0 0 22px rgba(232, 200, 115, 0.35);
+  animation: nodePulse 1.8s ease-in-out infinite;
+}
+@keyframes nodePulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(232, 200, 115, 0.2); }
+  50% { box-shadow: 0 0 26px rgba(232, 200, 115, 0.45); }
+}
+.lnode.final .dot { border-style: double; border-width: 4px; }
+.lnode .stage { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; color: var(--txt-dim); text-transform: uppercase; }
+.lnode.now .stage { color: var(--gold); }
+.lnode .beaten { font-size: 10.5px; font-weight: 600; color: #7ec898; text-align: center; line-height: 1.3; min-height: 14px; }
+
+/* next-match panel */
+.next-panel {
+  display: flex; align-items: center; gap: 22px; z-index: 1;
+  background: rgba(12, 16, 26, 0.85); border: 1px solid var(--line);
+  border-radius: 16px; padding: 22px 28px; max-width: 660px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+.next-panel.final-panel { border-color: rgba(232, 200, 115, 0.5); box-shadow: 0 0 50px rgba(232, 200, 115, 0.12), 0 18px 50px rgba(0, 0, 0, 0.45); }
+.next-panel .meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.next-panel .vs { font-size: 11px; font-weight: 800; letter-spacing: 0.22em; color: var(--txt-dim); text-transform: uppercase; }
+.next-panel h3 { font-size: 24px; font-weight: 800; letter-spacing: -0.01em; }
+.next-panel .chips { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.next-panel .blurb { color: var(--txt-dim); font-size: 13px; line-height: 1.55; }
+.next-panel .actions3 { display: flex; flex-direction: column; gap: 9px; align-items: stretch; }
+
+.deck-chip-row { display: flex; gap: 8px; align-items: center; z-index: 1; }
+
+/* ---------- locker room ---------- */
+.locker { padding: 0; }
+.locker-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 30px; border-bottom: 1px solid var(--line);
+  background: rgba(12, 16, 26, 0.85); backdrop-filter: blur(8px); z-index: 5;
+}
+.locker-head h2 { font-size: 20px; font-weight: 800; }
+.locker-head .hint { color: var(--txt-dim); font-size: 13px; margin-top: 2px; }
+.locker-body {
+  flex: 1; min-height: 0; z-index: 1;
+  display: grid; grid-template-columns: 1fr 1.4fr 330px; gap: 0;
+}
+.locker-col {
+  padding: 22px 26px; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.locker-col + .locker-col { border-left: 1px solid var(--line); }
+.locker-col h4 { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+.locker-col .note3 { font-size: 12.5px; color: var(--txt-dim); line-height: 1.55; }
+.reward-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 8px; }
+
+.offer-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.offer-card { position: relative; cursor: pointer; border-radius: 12px; transition: transform 160ms; }
+.offer-card:hover { transform: translateY(-4px); }
+.offer-card.chosen { outline: 3px solid var(--gold); outline-offset: 3px; }
+.offer-card.dimmed { filter: grayscale(0.6) brightness(0.55); }
+.offer-card .pick-tag {
+  position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 4;
+  background: var(--gold); color: #3a2a05; font-size: 10px; font-weight: 800;
+  padding: 3px 10px; border-radius: 999px; letter-spacing: 0.08em; white-space: nowrap;
+}
+
+/* ---------- trophy / run-over ---------- */
+.trophy-cup { width: 130px; height: 130px; filter: drop-shadow(0 8px 30px rgba(232, 200, 115, 0.45)); }
+.run-list { display: flex; flex-direction: column; gap: 6px; max-height: 30vh; overflow-y: auto; }
+.run-list .rrow {
+  display: flex; align-items: center; gap: 10px; font-size: 13px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 16px 6px 8px;
+}
+.run-list .rrow .st { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; color: var(--txt-dim); width: 46px; text-transform: uppercase; }
+.run-list .rrow .nm { font-weight: 700; }
+.run-list .rrow .res { margin-left: auto; font-weight: 800; font-size: 11px; letter-spacing: 0.08em; }
+.run-list .rrow .res.w { color: #7ec898; }
+.run-list .rrow .res.l { color: #ff8d84; }
+
+/* opponent identity in match strip */
+.opp-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: none; }
+.opp-id .nm { font-weight: 800; font-size: 14px; white-space: nowrap; }
+.opp-id .sub3 { display: flex; gap: 8px; align-items: center; font-size: 10.5px; color: var(--txt-dim); font-weight: 600; }
+
+/* keep the strips tidy when chips pile up */
+.side-strip .morale-block { flex: none; min-width: 190px; }
+.side-strip .crest3, .side-strip .fchip { flex: none; }
+.side-strip .count-chips { flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; min-width: 0; }
+
+/* stage tag on the board */
+.stage-tag {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--gold); border: 1px solid rgba(232, 200, 115, 0.4);
+  background: rgba(232, 200, 115, 0.08);
+  padding: 4px 11px; border-radius: 999px; white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lnode.now .dot { animation: none; }
+}
+
+
+/* ==== merged from v4.css (cascade-ordered) ==== */
+/* WORLD CUP CLASH v4 — match board on a real football pitch */
+
+.v4board { display: flex; flex-direction: column; height: 100vh; }
+
+.pitch-wrap4 { flex: 1; min-height: 0; position: relative; z-index: 1; padding: 8px 22px 0; display: flex; }
+
+.pitch4 {
+  position: relative; flex: 1; border-radius: 16px; overflow: hidden;
+  background:
+    radial-gradient(140% 100% at 50% -10%, rgba(220, 235, 255, 0.10), transparent 55%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 64px, transparent 64px 128px),
+    linear-gradient(180deg, #277249 0%, #1a5434 100%);
+  box-shadow: inset 0 0 110px rgba(0, 0, 0, 0.45), 0 0 60px rgba(30, 92, 56, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+/* ---- pitch markings ---- */
+.pitch4 .pl { position: absolute; border: 2px solid var(--pitch-line); pointer-events: none; }
+.pl.bound { inset: 10px; border-radius: 4px; }
+.pl.half { left: 50%; top: 10px; bottom: 10px; width: 0; border-width: 0 0 0 2px; transform: translateX(-1px); }
+.pl.circle { left: 50%; top: 50%; height: 36%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; }
+.pl.spot { left: 50%; top: 50%; width: 6px; height: 6px; border: 0; background: var(--pitch-line); border-radius: 50%; transform: translate(-50%, -50%); }
+.pl.box { top: 50%; height: 64%; width: 13%; transform: translateY(-50%); }
+.pl.box.l { left: 10px; border-left: 0; }
+.pl.box.r { right: 10px; border-right: 0; }
+.pl.six { top: 50%; height: 32%; width: 5.5%; transform: translateY(-50%); }
+.pl.six.l { left: 10px; border-left: 0; }
+.pl.six.r { right: 10px; border-right: 0; }
+.pl.pspot { top: 50%; width: 5px; height: 5px; border: 0; background: var(--pitch-line); border-radius: 50%; }
+.pl.pspot.l { left: 9%; transform: translateY(-50%); }
+.pl.pspot.r { right: 9%; transform: translateY(-50%); }
+.pl.arc { top: 50%; height: 24%; aspect-ratio: 1; border-radius: 50%; }
+.pl.arc.l { left: calc(13% + 10px); transform: translate(-50%, -50%); clip-path: inset(-3px -3px -3px 52%); }
+.pl.arc.r { right: calc(13% + 10px); transform: translate(50%, -50%); clip-path: inset(-3px 52% -3px -3px); }
+.pl.corner { width: 22px; height: 22px; border-radius: 50%; }
+.pl.corner.tl { left: 10px; top: 10px; transform: translate(-50%, -50%); }
+.pl.corner.bl { left: 10px; bottom: 10px; transform: translate(-50%, 50%); }
+.pl.corner.tr { right: 10px; top: 10px; transform: translate(50%, -50%); }
+.pl.corner.br { right: 10px; bottom: 10px; transform: translate(50%, 50%); }
+
+/* goals with nets */
+.pl.goalbox {
+  top: 50%; height: 19%; width: 11px; transform: translateY(-50%);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.22) 0 1.5px, transparent 1.5px 5px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0 1.5px, transparent 1.5px 5px),
+    rgba(0, 0, 0, 0.25);
+}
+.pl.goalbox.l { left: 0; border-left: 0; }
+.pl.goalbox.r { right: 0; border-right: 0; }
+
+/* center-circle monogram + attack direction hints */
+.center-mark4 {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-weight: 800; font-size: clamp(30px, 4.5vw, 52px); letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.07); pointer-events: none; user-select: none;
+}
+.dirhint4 {
+  position: absolute; top: 4.5%; display: flex; gap: 4px; opacity: 0.6; pointer-events: none;
+}
+.dirhint4.l { left: 21%; transform: translateX(-50%); }
+.dirhint4.r { right: 21%; transform: translateX(50%); }
+.dirhint4 svg { width: 15px; height: 15px; }
+.dirhint4 .who4 {
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4); align-self: center;
+}
+
+/* ---- lanes as lines of players ---- */
+.p4-grid {
+  position: absolute; inset: 16px;
+  display: grid; grid-template-columns: 1.06fr 1.06fr 0.42fr 1.06fr 1.06fr;
+  gap: 6px;
+}
+.lane4 {
+  position: relative; min-height: 0; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 6px 32px;
+  border: 1.5px dashed transparent;
+  transition: transform 700ms cubic-bezier(0.25, 0.9, 0.3, 1), opacity 350ms ease,
+    border-color 150ms, background 150ms, box-shadow 150ms;
+  will-change: transform;
+}
+
+/* ---- reveal: lanes march to midfield and clash ---- */
+.pitch4[data-duel] .lane4 { border-color: transparent; background: transparent; }
+.pitch4[data-duel="A"] .l-yatk { transform: translateX(40%); z-index: 6; }
+.pitch4[data-duel="A"] .l-tdef { transform: translateX(-140%); z-index: 6; }
+.pitch4[data-duel="A"] .l-tatk, .pitch4[data-duel="A"] .l-ydef { opacity: 0.18; transform: scale(0.94); }
+.pitch4[data-duel="B"] .l-tatk { transform: translateX(-40%); z-index: 6; }
+.pitch4[data-duel="B"] .l-ydef { transform: translateX(140%); z-index: 6; }
+.pitch4[data-duel="B"] .l-yatk, .pitch4[data-duel="B"] .l-tdef { opacity: 0.18; transform: scale(0.94); }
+.lane4.mine { border-color: rgba(255, 255, 255, 0.13); background: rgba(0, 0, 0, 0.07); }
+.lane4.mine.droppable { border-color: var(--gold); background: rgba(232, 200, 115, 0.1); cursor: pointer; box-shadow: 0 0 18px rgba(232, 200, 115, 0.16) inset; }
+.lane4.mine.rejecting { border-color: rgba(232, 85, 74, 0.55); }
+.lane4 .ltag4 {
+  position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--txt-dim); background: rgba(10, 13, 21, 0.82); padding: 3px 11px;
+  border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; z-index: 3;
+}
+.lane4.atk-lane .ltag4 { color: #ff8d80; }
+.lane4.def-lane .ltag4 { color: #79b6f0; }
+.lane4 .lane-hint4 {
+  margin: auto; color: rgba(255, 255, 255, 0.35); font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+}
+.lane4-cards {
+  flex: 1; min-height: 0; width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+}
+.lane4-cards.crowded { gap: 0; }
+.lane4-cards.crowded > * + * { margin-top: calc(var(--lw, 100px) * -0.62); }
+.lane4 .wcard.clickable:hover, .lane4 .tcard.clickable:hover { transform: translateY(-3px); }
+
+/* ---- clash badges — the midfield duel ---- */
+.clash4 {
+  position: absolute; transform: translate(-50%, -50%); z-index: 8;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: rgba(8, 11, 18, 0.88); border: 1px solid var(--line);
+  border-radius: 12px; padding: 9px 15px; backdrop-filter: blur(5px);
+  font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap;
+  animation: clashPop 340ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.clash4.center { left: 50%; top: 50%; animation-delay: 520ms; }
+.clash4.posA { left: 50%; top: 30%; }
+.clash4.posB { left: 50%; top: 70%; }
+@keyframes clashPop {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.55); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.clash4 .row4 { display: flex; align-items: center; gap: 8px; }
+.clash4 .num { font-size: 19px; }
+.clash4 .num.atk { color: #ff6a5c; }
+.clash4 .num.def { color: #58a9ff; }
+.clash4 .x { color: var(--txt-dim); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; }
+.clash4 .res { font-size: 13px; font-weight: 800; }
+.clash4 .res.dmg { color: #ff6a5c; }
+.clash4 .res.held { color: #7ec898; }
+
+/* damage flies at the goals */
+.pitch4 .dmg-float { font-size: 40px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .clash4 { animation: none !important; }
+  .lane4 { transition: border-color 150ms, background 150ms; }
+  .clash4 .slam { animation: none !important; }
+}
+
+
+/* ==== merged from v4xg.css (cascade-ordered) ==== */
+/* WORLD CUP CLASH v4 — xG engine UI: score strip, meters, fatigue heat, GOAL blast */
+
+/* ---- 5-ball score strip (GDD §16) ---- */
+.scorestrip4 {
+  margin-left: auto; display: flex; align-items: center; gap: 10px;
+  background: rgba(8, 11, 18, 0.7); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 16px;
+}
+.scorestrip4 .ss-score { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.scorestrip4 .ss-score.you { color: #e8c873; }
+.scorestrip4 .ss-score.them { color: #ff8d80; }
+.scorestrip4 .ss-balls { display: flex; gap: 5px; }
+.ball4 { width: 19px; height: 19px; }
+.ball4 .b-bg { fill: rgba(255, 255, 255, 0.08); stroke: rgba(255, 255, 255, 0.25); stroke-width: 1.4; }
+.ball4 .b-pent { fill: rgba(255, 255, 255, 0.18); }
+.ball4 .b-seam { stroke: rgba(255, 255, 255, 0.18); stroke-width: 1.2; fill: none; }
+.ball4.lit.you .b-bg { fill: #e8c873; stroke: #f3dfa6; }
+.ball4.lit.you .b-pent, .ball4.lit.you .b-seam { fill: rgba(10, 13, 21, 0.7); stroke: rgba(10, 13, 21, 0.55); }
+.ball4.lit.them .b-bg { fill: #e8554a; stroke: #ff9f95; }
+.ball4.lit.them .b-pent, .ball4.lit.them .b-seam { fill: rgba(10, 13, 21, 0.6); stroke: rgba(10, 13, 21, 0.5); }
+.ball4.lit { filter: drop-shadow(0 0 6px rgba(232, 200, 115, 0.4)); }
+.scorestrip4 .ss-round {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.12em; color: var(--txt-dim);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.2;
+}
+.scorestrip4 .ss-round b { color: var(--txt); }
+.scorestrip4 .ht-tick { font-style: normal; color: #7ec898; font-size: 9px; letter-spacing: 0.1em; }
+
+/* ---- xG meter with fatigue heat (GDD §7, §8) ---- */
+.xgm4 { display: flex; flex-direction: column; gap: 3px; min-width: 210px; }
+.xgm4 .xgm-row { display: flex; align-items: center; gap: 10px; }
+.xgm4 .xgm-goals {
+  font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1;
+  color: #ff8d80; min-width: 22px; text-align: center;
+}
+.xgm4.mine .xgm-goals { color: #e8c873; }
+.xgm4 .xgm-bar {
+  position: relative; flex: 1; height: 16px; border-radius: 999px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.07); border: 1px solid var(--line);
+  transition: box-shadow 300ms ease, border-color 300ms ease;
+}
+.xgm4 .xgm-bar i {
+  position: absolute; inset: 0 auto 0 0; display: block;
+  background: linear-gradient(90deg, #9a5fe0, #c08cf0);
+  transition: width 700ms cubic-bezier(0.25, 0.9, 0.3, 1);
+}
+.xgm4.mine .xgm-bar i { background: linear-gradient(90deg, #c79a3e, #ecd391); }
+.xgm4 .xgm-val {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); font-variant-numeric: tabular-nums;
+}
+.xgm4 .xgm-sub {
+  display: flex; gap: 10px; align-items: center; justify-content: space-between;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--txt-dim);
+  padding-left: 32px;
+}
+/* heat — the fatigue dial glows on your goal */
+.xgm4[data-heat="1"] .xgm-bar { border-color: rgba(255, 158, 80, 0.35); box-shadow: 0 0 10px rgba(255, 130, 50, 0.25); }
+.xgm4[data-heat="2"] .xgm-bar { border-color: rgba(255, 130, 50, 0.55); box-shadow: 0 0 16px rgba(255, 110, 40, 0.45); }
+.xgm4[data-heat="3"] .xgm-bar { border-color: rgba(255, 90, 40, 0.8); box-shadow: 0 0 24px rgba(255, 80, 30, 0.65); animation: heatPulse4 1.2s ease-in-out infinite; }
+@keyframes heatPulse4 {
+  0%, 100% { box-shadow: 0 0 16px rgba(255, 80, 30, 0.45); }
+  50% { box-shadow: 0 0 28px rgba(255, 80, 30, 0.75); }
+}
+.heat-tag { color: #ff9e50; }
+.xgm4[data-heat="3"] .heat-tag { color: #ff6a3c; }
+
+/* ---- xG gain float on the pitch ---- */
+.xg-float4 {
+  position: absolute; z-index: 8; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: rgba(8, 11, 18, 0.88); border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 16px; backdrop-filter: blur(5px); white-space: nowrap;
+  animation: clashPop 340ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.xg-float4 .amt { font-size: 22px; font-weight: 800; color: #c9a3f5; font-variant-numeric: tabular-nums; }
+.xg-float4 .pt { font-size: 10.5px; font-weight: 600; color: var(--txt-dim); }
+
+/* ---- GOAL blast — the money moment (GDD §16) ---- */
+.goal-blast {
+  position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px; pointer-events: none;
+  background: radial-gradient(80% 60% at 50% 50%, rgba(10, 13, 21, 0.75), rgba(10, 13, 21, 0.92));
+  animation: gbVeil 220ms ease-out both;
+}
+.goal-blast .gb-net {
+  position: absolute; inset: 0; opacity: 0.14;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.7) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.7) 0 1px, transparent 1px 26px);
+  animation: gbRipple 900ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.goal-blast .gb-text {
+  font-size: clamp(90px, 14vw, 190px); font-weight: 900; font-style: italic;
+  letter-spacing: -0.02em; line-height: 1;
+  animation: gbSlam 480ms cubic-bezier(0.16, 1.2, 0.3, 1) both;
+  text-shadow: 0 6px 50px rgba(0, 0, 0, 0.8);
+}
+.goal-blast.you .gb-text { color: #e8c873; }
+.goal-blast.them .gb-text { color: #ff6a5c; }
+.goal-blast .gb-sub {
+  font-size: clamp(15px, 1.6vw, 22px); font-weight: 800; letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.85); white-space: nowrap;
+  animation: gbSub 420ms 180ms ease-out both;
+}
+@keyframes gbVeil { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gbSlam {
+  0% { opacity: 0; transform: scale(2.4) rotate(-3deg); }
+  60% { opacity: 1; transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+@keyframes gbSub { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes gbRipple { from { transform: scale(1.16); opacity: 0; } to { transform: scale(1); opacity: 0.14; } }
+
+/* ---- visible tacticals: AI reaction + their shelf + gate hints ---- */
+.reaction4 {
+  position: absolute; left: 50%; top: 13%; transform: translateX(-50%); z-index: 7;
+  background: rgba(60, 22, 18, 0.92); border: 1px solid rgba(232, 85, 74, 0.55);
+  color: #ffb4ab; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+  border-radius: 999px; padding: 7px 16px; white-space: nowrap;
+  animation: clashPop 300ms ease-out both;
+}
+.shelf.theirs4 .label { color: #ff8d80; }
+.gate-hint4 {
+  font-size: 11.5px; font-weight: 600; color: #ff9e50; max-width: 240px; text-align: right; line-height: 1.3;
+}
+.intent .int-tac { color: #ffb4ab; }
+
+/* ---- offside-flagged attacker ---- */
+.offside4 { position: relative; opacity: 0.42; filter: saturate(0.4); }
+.offside-flag4 {
+  position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%) rotate(-8deg); z-index: 4;
+  background: #e8c14a; color: #1a1405; font-size: 9px; font-weight: 900; letter-spacing: 0.14em;
+  padding: 3px 8px; border-radius: 3px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- readout lines + final score ---- */
+.readout .line.l-xg { color: #c9a3f5; }
+.readout .line.l-xg.to-them { color: #e8c873; }
+.readout .line.l-goal { color: #fff; font-weight: 800; letter-spacing: 0.08em; }
+.readout .line.l-halftime { color: #7ec898; font-weight: 700; }
+.final-score4 {
+  font-size: clamp(54px, 7vw, 96px); font-weight: 900; font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em; line-height: 1; color: #fff; text-shadow: 0 4px 40px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .goal-blast, .goal-blast .gb-text, .goal-blast .gb-sub, .goal-blast .gb-net { animation: none !important; }
+  .xgm4[data-heat="3"] .xgm-bar { animation: none !important; }
+  .xg-float4, .reaction4 { animation: none !important; }
+  .xgm4 .xgm-bar i { transition: none; }
+}
+
+
+/* ==== merged from v5.css (cascade-ordered) ==== */
+/* WORLD CUP CLASH v5 — balance-pass UI: rarity multiplier badge, card-cap chip, stamina-ramp hint */
+
+/* ---- rarity stat multiplier badge (GDD v5 §4) — bottom-left of the card ---- */
+.wcard .rarmult5 {
+  position: absolute;
+  bottom: calc(var(--cw, 168px) * -0.03);
+  left: calc(var(--cw, 168px) * -0.03);
+  z-index: 3;
+  font-size: calc(var(--cw, 168px) * 0.085);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  padding: calc(var(--cw, 168px) * 0.026) calc(var(--cw, 168px) * 0.05);
+  border-radius: 999px;
+  background: rgba(8, 11, 18, 0.92);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.wcard .rarmult5[data-rar="rare"] { border-color: #4f8fd6; color: #bcdcff; }
+.wcard .rarmult5[data-rar="epic"] { border-color: #9257d8; color: #e3ccff; }
+.wcard .rarmult5[data-rar="legendary"],
+.wcard .rarmult5[data-rar="icon"] {
+  border-color: #d9b04f; color: #ffe6a3;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 9px rgba(217, 176, 79, 0.45);
+}
+
+/* ---- per-round card-cap chip in the action dock (GDD v5 §6) ---- */
+.cap-chip5 {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--txt-dim);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--line);
+  padding: 5px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  flex: none;
+}
+.cap-chip5 b { color: var(--txt); font-variant-numeric: tabular-nums; }
+.cap-chip5.full {
+  color: #ffd28a;
+  border-color: rgba(232, 200, 115, 0.6);
+  background: rgba(232, 200, 115, 0.13);
+}
+
+/* ---- stamina-ramp hint next to the pips (GDD v5 §6) ---- */
+.ramp-hint5 {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7ec898;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+
+/* ==== merged from v6.css (cascade-ordered) ==== */
+/* WORLD CUP CLASH v6 — central scoreboard, central xG rail, deck piles, deal/discard motion */
+
+/* ============ top strip becomes a stage for the central scoreboard ============ */
+.v4board .side-strip.top {
+  position: relative;
+  min-height: 118px;
+  align-items: center;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+/* keep the opponent's identity / chips out of the centre */
+.v4board .side-strip.top .opp-id { z-index: 1; }
+.v4board .side-strip.top .count-chips { max-width: 280px; z-index: 1; }
+
+/* ============ central scoreboard ============ */
+.centerboard5 {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  pointer-events: none;
+}
+.centerboard5.cb-shake { animation: cbShake 460ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes cbShake {
+  10%, 90% { transform: translate(calc(-50% - 1px), -50%); }
+  30%, 70% { transform: translate(calc(-50% + 2px), -50%); }
+  50% { transform: translate(calc(-50% - 3px), -50%); }
+}
+
+.cb-score {
+  display: flex;
+  align-items: stretch;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.5));
+  pointer-events: auto;
+}
+.cb-team {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 18px;
+  min-width: 150px;
+}
+.cb-team.them {
+  background: linear-gradient(135deg, #c43c30 0%, #8c2419 100%);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+  padding-right: 34px;
+  border-radius: 10px 0 0 10px;
+  justify-content: flex-start;
+}
+.cb-team.you {
+  background: linear-gradient(135deg, #efce85 0%, #c39a36 100%);
+  clip-path: polygon(18px 0, 100% 0, 100% 100%, 0 100%);
+  padding-left: 34px;
+  border-radius: 0 10px 10px 0;
+  flex-direction: row-reverse;
+}
+.cb-team .cb-code {
+  font-size: 19px; font-weight: 800; letter-spacing: 0.06em;
+}
+.cb-team.them .cb-code { color: #fff; }
+.cb-team.you .cb-code { color: #3a2a05; }
+.cb-team .cb-g {
+  font-size: 32px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.cb-team.them .cb-g { color: #fff; }
+.cb-team.you .cb-g { color: #2a1d03; }
+.cb-team .crest3 { box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.4); }
+.cb-youcrest {
+  width: 28px; height: 28px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 35% 30%, #9b77e8, #5b3aa8);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+.cb-youcrest span { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 0.04em; }
+
+.cb-mid {
+  background: linear-gradient(180deg, #161b29, #0d111b);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+  margin: 0 -14px;
+  padding: 6px 24px 7px;
+  z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 100%, 0 100%);
+}
+.cb-round { font-size: 12px; font-weight: 800; letter-spacing: 0.16em; color: var(--gold); white-space: nowrap; }
+.cb-round b { color: #fff; font-size: 13px; }
+.cb-ht { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; color: var(--txt-dim); }
+.cb-ht.done { color: #7ec898; }
+.cb-pips { display: flex; gap: 4px; margin-top: 1px; }
+.cb-pips .ball4 { width: 14px; height: 14px; }
+
+/* ============ central xG rail ============ */
+.cb-xg {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: rgba(8, 11, 18, 0.78);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 14px;
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+.cbxg { display: flex; align-items: center; gap: 8px; }
+.cbxg-lab {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.1em; min-width: 30px; text-align: right;
+}
+.cbxg.them .cbxg-lab { color: #ff8d80; }
+.cbxg.you .cbxg-lab { color: var(--gold); }
+.cbxg-track {
+  position: relative; width: 156px; height: 13px; border-radius: 999px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid var(--line);
+  transition: box-shadow 300ms ease, border-color 300ms ease;
+}
+.cbxg-track i {
+  position: absolute; inset: 0 auto 0 0; display: block; border-radius: 999px;
+  transition: width 700ms cubic-bezier(0.25, 0.9, 0.3, 1);
+}
+.cbxg.them .cbxg-track i { background: linear-gradient(90deg, #b65349, #ff8d80); }
+.cbxg.you .cbxg-track i { background: linear-gradient(90deg, #c79a3e, #ecd391); }
+.cbxg-val {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8); font-variant-numeric: tabular-nums;
+}
+.cbxg-ball {
+  font-size: 17px; line-height: 1; filter: grayscale(0.55) brightness(0.85);
+  transition: transform 200ms ease, filter 200ms ease;
+}
+.cbxg-ball.close {
+  filter: none;
+  transform: scale(1.18);
+  animation: ballThrob 0.85s ease-in-out infinite;
+}
+@keyframes ballThrob {
+  0%, 100% { transform: scale(1.1) rotate(-6deg); }
+  50% { transform: scale(1.3) rotate(8deg); }
+}
+.cbxg-heat {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.02em;
+  color: #ff9e50; white-space: nowrap;
+}
+.cbxg-heat[data-heat="3"] { color: #ff6a3c; }
+/* fatigue glow on the track */
+.cbxg[data-heat="1"] .cbxg-track { border-color: rgba(255, 158, 80, 0.4); box-shadow: 0 0 8px rgba(255, 130, 50, 0.3); }
+.cbxg[data-heat="2"] .cbxg-track { border-color: rgba(255, 130, 50, 0.6); box-shadow: 0 0 13px rgba(255, 110, 40, 0.5); }
+.cbxg[data-heat="3"] .cbxg-track { border-color: rgba(255, 90, 40, 0.85); box-shadow: 0 0 18px rgba(255, 80, 30, 0.7); }
+
+/* ============ deck piles flanking the hand ============ */
+.hand-dock { position: relative; }
+.deckpile5 {
+  position: absolute;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 6;
+}
+.deckpile5.draw { left: 34px; }
+.deckpile5.discard { right: 34px; }
+.dp-stack {
+  position: relative;
+  width: var(--dw, 70px);
+  height: calc(var(--dw, 70px) * 1.42);
+}
+.dp-card {
+  position: absolute; inset: 0; border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(127, 86, 217, 0.5), transparent 54%),
+    repeating-linear-gradient(45deg, #181c28 0 8px, #141823 8px 16px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center;
+}
+.deckpile5.discard .dp-card { filter: saturate(0.45) brightness(0.74); }
+.dp-card.empty {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px dashed rgba(255, 255, 255, 0.18);
+  box-shadow: none;
+}
+.dp-mark {
+  width: 42%; aspect-ratio: 1; border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.7);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: calc(var(--dw, 70px) * 0.18);
+  letter-spacing: -0.04em; background: rgba(127, 86, 217, 0.35);
+}
+.dp-meta { display: flex; align-items: center; gap: 7px; }
+.dp-lab { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--txt-dim); }
+.deckpile5.draw .dp-lab { color: #b9a7ec; }
+.dp-count {
+  font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff;
+  background: rgba(255, 255, 255, 0.1); border: 1px solid var(--line);
+  border-radius: 999px; min-width: 22px; text-align: center; padding: 1px 6px;
+}
+.deckpile5.pulse .dp-stack { animation: pilePulse 420ms cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes pilePulse {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.12); filter: brightness(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* ============ deal-in: cards slide out of the draw pile into the hand ============ */
+.fan2 .hcard.dealing { animation: dealFromDeck 480ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes dealFromDeck {
+  0% { opacity: 0; transform: translate(-46vw, 8px) rotate(-22deg) scale(0.72); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+/* ============ discard sweep: played cards fly off the pitch to the discard pile ============ */
+.discard-fly {
+  position: fixed; z-index: 40; pointer-events: none;
+  width: 72px; height: 102px; border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(127, 86, 217, 0.5), transparent 54%),
+    repeating-linear-gradient(45deg, #181c28 0 8px, #141823 8px 16px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center;
+  animation: discardFly 600ms cubic-bezier(0.5, 0, 0.65, 1) forwards;
+}
+.discard-fly::after {
+  content: "WC";
+  width: 40%; aspect-ratio: 1; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 12px; letter-spacing: -0.04em;
+  background: rgba(127, 86, 217, 0.35);
+}
+@keyframes discardFly {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.95; }
+  100% { transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.32) rotate(26deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .centerboard5.cb-shake { animation: none; }
+  .cbxg-ball.close { animation: none; }
+  .fan2 .hcard.dealing, .discard-fly, .deckpile5.pulse .dp-stack { animation: none !important; }
+  .cbxg-track i { transition: none; }
+}
+
+
+/* ==== merged from v7.css (cascade-ordered) ==== */
+/* WORLD CUP CLASH v7 — numeric scoreboard + match clock, 3-goal mercy marker,
+   bench (locked) + exiled (single-use) piles, golden-goal extra time. Loaded after v6.css. */
+
+/* a little more headroom so the scoreboard isn't flush against the top edge */
+.v4board .side-strip.top { min-height: 138px; padding-top: 18px; }
+
+/* ============ v7 numeric scoreboard + match clock ============ */
+.scoreboard7 {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 6px);
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.scoreboard7.cb-shake { animation: cbShake 460ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+
+.sb-main {
+  display: flex;
+  align-items: stretch;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.5));
+  pointer-events: auto;
+}
+.sb-team { display: flex; align-items: center; gap: 10px; padding: 9px 16px; min-width: 96px; }
+.sb-team.them {
+  background: linear-gradient(135deg, #c43c30 0%, #8c2419 100%);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%);
+  padding-right: 28px;
+  border-radius: 10px 0 0 10px;
+  justify-content: flex-start;
+}
+.sb-team.you {
+  background: linear-gradient(135deg, #efce85 0%, #c39a36 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 16px 100%);
+  padding-left: 28px;
+  border-radius: 0 10px 10px 0;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+.sb-code { font-size: 17px; font-weight: 800; letter-spacing: 0.06em; }
+.sb-team.them .sb-code { color: #fff; }
+.sb-team.you .sb-code { color: #3a2a05; }
+.sb-team .crest3 { box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.4); }
+.sb-youcrest {
+  width: 30px; height: 30px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 35% 30%, #9b77e8, #5b3aa8);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+.sb-youcrest span { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 0.04em; }
+
+/* the dark numeric core — the headline scoreline */
+.sb-score {
+  display: flex; align-items: center; gap: 12px; z-index: 2; margin: 0 -12px;
+  padding: 5px 24px;
+  background: linear-gradient(180deg, #161b29, #0d111b);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 100%, 0 100%);
+}
+.sb-g { font-size: 36px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.sb-g.them { color: #ff8d80; }
+.sb-g.you { color: var(--gold); }
+.sb-dash { font-size: 22px; font-weight: 700; color: var(--txt-dim); }
+
+/* running match clock */
+.sb-clock {
+  display: flex; align-items: center; gap: 9px; pointer-events: auto;
+  background: rgba(8, 11, 18, 0.78); border: 1px solid var(--line);
+  border-radius: 999px; padding: 3px 15px; backdrop-filter: blur(6px);
+}
+.sb-min { font-size: 14px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.sb-phase { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; color: var(--gold); white-space: nowrap; }
+.sb-phase.et { color: #ffd24a; }
+
+/* mercy marker — a 3-goal lead ends the match instantly; brightens as a side closes in */
+.sb-mercy {
+  display: flex; align-items: center; gap: 6px; pointer-events: auto; white-space: nowrap;
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--txt-dim);
+}
+.sb-mercy::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25); transition: all 200ms ease;
+}
+.sb-mercy.hot { color: #ff9156; }
+.sb-mercy.hot::before { background: #ff6a3c; box-shadow: 0 0 8px #ff6a3c; }
+
+/* extra-time tint on the score core */
+.scoreboard7.et .sb-score {
+  background: linear-gradient(180deg, #2a2207, #15100a);
+  border-top-color: rgba(255, 210, 74, 0.4);
+}
+.scoreboard7.et .sb-g.them { color: #ffb09a; }
+
+/* ============ extra-time golden-goal beat ============ */
+.et-banner7 {
+  position: absolute; left: 50%; top: 152px; transform: translateX(-50%);
+  z-index: 7; display: flex; align-items: center; gap: 9px;
+  padding: 6px 20px; border-radius: 999px;
+  background: linear-gradient(90deg, rgba(201, 154, 62, 0.95), rgba(255, 210, 74, 0.95));
+  color: #241a02; font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  box-shadow: 0 6px 22px rgba(255, 190, 60, 0.4); border: 1px solid rgba(255, 255, 255, 0.35);
+}
+.et-banner7 b { letter-spacing: 0.14em; }
+.et-sep { opacity: 0.45; }
+.et-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #7a1f12;
+  box-shadow: 0 0 0 3px rgba(122, 31, 18, 0.25); animation: etDot 1s ease-in-out infinite;
+}
+@keyframes etDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* golden vignette on the pitch during extra time */
+.v4board.et-mode .pitch4 {
+  box-shadow: inset 0 0 0 2px rgba(255, 210, 74, 0.3), inset 0 0 90px rgba(255, 190, 60, 0.12);
+}
+
+/* ============ piles: draw + bench (locked) left · discard + exiled right ============ */
+.pile-col7 {
+  position: absolute; bottom: 8px; z-index: 6;
+  display: flex; flex-direction: row; align-items: flex-end; gap: 16px;
+}
+.pile-col7.left { left: 22px; }
+.pile-col7.right { right: 22px; }
+.pile-col7 .deckpile5 { position: static; }
+
+/* bench (locked premium players) — gold cue, "back at HT" */
+.dp7.locked .dp-card {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(232, 200, 115, 0.35), transparent 56%),
+    repeating-linear-gradient(45deg, #221c0f 0 8px, #1b1609 8px 16px);
+  border-color: rgba(232, 200, 115, 0.32);
+  filter: none;
+}
+.dp7.locked .dp-mark { background: rgba(232, 200, 115, 0.4); border-color: rgba(255, 255, 255, 0.75); color: #fff; }
+.dp7.locked .dp-lab { color: #e8c873; }
+
+/* exiled (single-use Tactical Cards) — burnt red sliver */
+.dp7.exiled .dp-card {
+  background: repeating-linear-gradient(45deg, #2a1414 0 8px, #1c0e0e 8px 16px);
+  border-color: rgba(255, 120, 90, 0.3);
+  filter: none;
+}
+.dp7.exiled .dp-mark { background: rgba(196, 60, 48, 0.42); border-color: rgba(255, 200, 190, 0.7); color: #fff; }
+.dp7.exiled .dp-lab { color: #ff8d80; }
+
+.dp-cue {
+  font-size: 8px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--txt-dim); white-space: nowrap; margin-top: -2px;
+}
+.dp7.locked .dp-cue { color: #c9a85a; }
+.dp7.is-empty .dp-card { opacity: 0.85; }
+.dp7.is-empty .dp-cue { opacity: 0.55; }
+
+/* ============ readout extra-time line ============ */
+.readout .line.l-et { color: #ffd24a; font-weight: 700; letter-spacing: 0.02em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scoreboard7.cb-shake { animation: none; }
+  .et-dot { animation: none; }
+}
+
+
+/* ==== merged from v8.css (cascade-ordered) ==== */
+/* WORLD CUP CLASH v8 — hand & tactical limits (GDD v8 §0, §6, §12)
+   - tactical-plays-this-half counter chip in the action dock
+   - locker swap rows for the ~4 tactical deck cap */
+
+/* the tactical-cap chip sits beside the player-cap chip; tinted brand to read as "tactics" */
+.cap-chip5.tac {
+  color: #c7b3f0;
+  border-color: rgba(127, 86, 217, 0.45);
+  background: rgba(127, 86, 217, 0.14);
+}
+.cap-chip5.tac b { color: #efe7ff; }
+/* allowance spent for the half — warn red */
+.cap-chip5.tac.full {
+  color: #ff9d93;
+  border-color: rgba(255, 141, 132, 0.55);
+  background: rgba(255, 141, 132, 0.14);
+}
+
+/* ---- locker: swap one tactical out when the run deck is at the cap ---- */
+.pick-row.tactic-row.swappable {
+  cursor: pointer;
+  transition: border-color 140ms var(--ease-out, ease), background 140ms var(--ease-out, ease);
+}
+.pick-row.tactic-row.swappable:hover {
+  border-color: rgba(255, 141, 132, 0.55);
+  background: rgba(255, 141, 132, 0.08);
+}
+.pick-row.tactic-row.swapping-out {
+  border-color: rgba(255, 141, 132, 0.7);
+  background: rgba(255, 141, 132, 0.14);
+}
+.pick-row.tactic-row.swapping-out .nm {
+  text-decoration: line-through;
+  color: #ff8d84;
+}
+
+
+/* ==== v9 (current — kept last so it wins the cascade) ==== */
 /* ============================================================
    Builder screen — height-contained so only .pool-scroll scrolls
    ============================================================ */
@@ -169,22 +1488,53 @@
    absolutely-positioned over the pitch during reveal phase.
    ============================================================ */
 
-/* Round report — a fixed side panel on the right; does NOT take flow space so the
-   pitch keeps its full height while the report is up. */
+/* Round report — a full-height fixed side panel on the right; out of flow so the pitch
+   keeps its full height. Scrolls internally; the Next-round button stays pinned at the bottom. */
 .screen.board .readout {
   position: fixed;
-  top: 50%;
+  top: 72px;
+  bottom: 168px;
   right: 24px;
-  transform: translateY(-50%);
-  width: 320px;
-  max-width: 320px;
+  transform: none;
+  width: 340px;
+  max-width: 340px;
   margin: 0;
   z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   background: rgba(10, 14, 24, 0.97);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
-  padding: 18px;
+  padding: 16px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  animation: readoutIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes readoutIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.screen.board .readout h4 {
+  font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--txt-dim, #93a0b8); margin: 0;
+}
+.screen.board .readout .lines {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.screen.board .readout .line {
+  font-size: 12.5px; line-height: 1.4; padding: 8px 10px; border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04); border-left: 3px solid transparent;
+}
+.screen.board .readout .line.l-note { color: var(--txt-dim, #93a0b8); font-size: 11.5px; }
+.screen.board .readout .line.l-xg { color: #c9b6ff; border-left-color: #7f56d9; }
+.screen.board .readout .line.l-xg.to-them { color: #ffd9a0; border-left-color: #e8c873; }
+.screen.board .readout .line.l-goal { color: #fff; font-weight: 800; border-left-color: #3fbf6f; background: rgba(63, 191, 111, 0.12); }
+.screen.board .readout .line.l-onform { color: #ff9a6c; border-left-color: #ff6a5c; }
+.screen.board .readout .line.l-halftime { color: #cfe0ff; border-left-color: #5aa7e8; }
+@media (prefers-reduced-motion: reduce) {
+  .screen.board .readout { animation: none; }
 }
 
 /* Face-down card placeholder smooth entrance. */
@@ -209,25 +1559,105 @@
    v10 — make the PITCH the centrepiece: shrink the surrounding
    chrome so the flex:1 pitch claims most of the height.
    ============================================================ */
-.v4board .side-strip.top { min-height: 92px; padding-top: 8px; }
-.screen.board > .match-dock { padding: 4px 26px; gap: 10px; }
-.screen.board > .hand-dock { min-height: 172px; }
-.v4board .side-strip.bottom { padding: 4px 26px; }
+.v4board .side-strip.top { min-height: 78px; padding-top: 6px; padding-bottom: 6px; }
+.v4board .side-strip.bottom { padding: 3px 26px; }
 .screen.board .pitch4 { min-height: 0; }
 
-/* Compact formation picker so the dock stays slim and the pitch keeps its height. */
-.screen.board > .match-dock .formation-picker { gap: 6px; }
-.screen.board > .match-dock .formation-picker button { padding: 5px 11px; }
-.screen.board > .match-dock .cap-chip5 { font-size: 11px; padding: 4px 9px; }
+/* Action dock: collapse to content (override the removed inline padding/minHeight). */
+.screen.board > .match-dock {
+  min-height: 0 !important;
+  padding: 3px 26px !important;
+  gap: 9px;
+}
+.screen.board > .hand-dock { min-height: 156px; }
 
-/* Clash: HIGHLIGHT the duelling pair (scale + lift) and dim the rest — no off-screen
-   translate, so cards never fly out of view. Overrides the big translateX in v4.css. */
-.pitch4[data-duel] .lane4 { transition: transform 360ms ease, opacity 260ms ease; }
-.pitch4[data-duel="A"] .l-yatk,
-.pitch4[data-duel="A"] .l-tdef { transform: scale(1.07); z-index: 6; }
+/* Compact, sleek formation picker — the biggest pitch-space win is min-width:0 on buttons. */
+.screen.board > .match-dock .formation-picker { gap: 5px; }
+.screen.board > .match-dock .formation-picker .fp-label { display: none; }
+.screen.board > .match-dock .formation-picker button {
+  padding: 3px 9px;
+  min-width: 0;
+  border-radius: 8px;
+  gap: 0;
+  line-height: 1.15;
+}
+.screen.board > .match-dock .formation-picker button b { font-size: 12px; }
+.screen.board > .match-dock .formation-picker button span { font-size: 8px; letter-spacing: 0.08em; }
+.screen.board > .match-dock .formation-picker button i { font-size: 8.5px; }
+
+/* Cap chips: compact + tight. */
+.screen.board > .match-dock .cap-chip5 { font-size: 10.5px; padding: 3px 8px; }
+
+/* ============================================================
+   Clash: the duelling lanes physically MARCH to midfield and MEET.
+   Grid cols are [l-ydef][l-yatk][p4-mid][l-tatk][l-tdef], each side
+   lane ~1.06fr and the mid ~0.42fr, so translateX percents (relative
+   to each lane's OWN width) are tuned so the pair overlaps on the
+   center column WITHOUT leaving the pitch:
+     A → your-attack (col 2) slides RIGHT, their-defense (col 5,
+         two lanes + mid away) slides LEFT a full lane to converge.
+     B → their-attack (col 4) slides LEFT, your-defense (col 1)
+         slides RIGHT a full lane to converge.
+   The non-duelling pair recedes (dim + slight shrink). Timing lives
+   in MatchBoard (revealStep): duelA ~700ms, duelB ~1400ms.
+   ============================================================ */
+.pitch4[data-duel] .lane4 {
+  transition: transform 700ms cubic-bezier(0.25, 0.9, 0.3, 1), opacity 350ms ease;
+}
+/* Phase A — your attack vs their defense meet at the centre */
+.pitch4[data-duel="A"] .l-yatk { transform: translateX(85%) scale(1.05); z-index: 6; }
+.pitch4[data-duel="A"] .l-tdef { transform: translateX(-130%) scale(1.05); z-index: 6; }
 .pitch4[data-duel="A"] .l-tatk,
-.pitch4[data-duel="A"] .l-ydef { transform: none; opacity: 0.3; }
-.pitch4[data-duel="B"] .l-tatk,
-.pitch4[data-duel="B"] .l-ydef { transform: scale(1.07); z-index: 6; }
+.pitch4[data-duel="A"] .l-ydef { opacity: 0.22; transform: scale(0.94); }
+/* Phase B — their attack vs your defense meet at the centre */
+.pitch4[data-duel="B"] .l-tatk { transform: translateX(-85%) scale(1.05); z-index: 6; }
+.pitch4[data-duel="B"] .l-ydef { transform: translateX(130%) scale(1.05); z-index: 6; }
 .pitch4[data-duel="B"] .l-yatk,
-.pitch4[data-duel="B"] .l-tdef { transform: none; opacity: 0.3; }
+.pitch4[data-duel="B"] .l-tdef { opacity: 0.22; transform: scale(0.94); }
+
+/* ============================================================
+   v10 — GOAL blast (design wordmark). Authoritative over the
+   merged v4xg .goal-blast (this is last in the cascade).
+   ============================================================ */
+.goal-blast {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: radial-gradient(60% 50% at 50% 50%, rgba(10, 13, 21, 0.5), rgba(6, 8, 14, 0.88));
+}
+.goal-blast .gb-net {
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px 14px);
+  -webkit-mask-image: radial-gradient(60% 50% at 50% 50%, #000, transparent 75%);
+  mask-image: radial-gradient(60% 50% at 50% 50%, #000, transparent 75%);
+}
+.goal-blast .gb-text {
+  font-size: clamp(90px, 14vw, 190px);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+.goal-blast.you .gb-text { color: #e8c873; }
+.goal-blast.them .gb-text { color: #ff6a5c; }
+.goal-blast .gb-sub {
+  font-size: clamp(13px, 1.4vw, 18px);
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  color: rgba(255, 255, 255, 0.9);
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: tabular-nums;
+}
