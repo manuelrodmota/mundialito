@@ -1705,3 +1705,7 @@
   border-color: rgba(232, 200, 115, 0.4);
   background: rgba(232, 200, 115, 0.08);
 }
+/* Deck-builder header title — was inheriting a dark colour, near-invisible. */
+.builder-head h2 { color: var(--txt, #f5f7fb); }
+/* Roomier left padding on the deck-browser dropdowns + search. */
+.filters select, .filters input[type="text"] { padding-left: 14px; }

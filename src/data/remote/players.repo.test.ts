@@ -101,7 +101,8 @@ describe("fetchAvailableSeasons", () => {
   it("returns deduplicated sorted seasons descending", async () => {
     const queryBuilder = {
       select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockResolvedValue({
         data: [{ season: 2026 }, { season: 2022 }, { season: 2026 }, { season: 1970 }],
         error: null,
       }),
@@ -117,7 +118,8 @@ describe("fetchTeamsForSeason", () => {
     const queryBuilder = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockResolvedValue({
         data: [{ team: "Brazil" }, { team: "Argentina" }, { team: "Brazil" }],
         error: null,
       }),
