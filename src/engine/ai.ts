@@ -131,7 +131,8 @@ function pickLanes(
  * Picks valid tacticals to play, respecting the per-half cap and gate requirements.
  * Rationing strategy: hold Penalty/Hand of God for high-value moments;
  * use VAR/Offside reactively; Water Break only when high fatigue.
- * GDD §18 AI heuristic.
+ * Signature tactics for the opponent team are prioritised when held and gate-passed.
+ * GDD §18 AI heuristic, §9 signature team behaviour.
  */
 function pickTacticals(
   state: PlayerState,
@@ -140,9 +141,18 @@ function pickTacticals(
 ): TacticalCard[] {
   if (!canPlayTactical(state)) return [];
 
+  const signatureIds = new Set(
+    (m.opponent.signatureTactical ?? []).map((t) => t.id),
+  );
+
+  const sortedCandidates = [
+    ...tacticals.filter((t) => signatureIds.has(t.id)),
+    ...tacticals.filter((t) => !signatureIds.has(t.id)),
+  ];
+
   const chosen: TacticalCard[] = [];
 
-  for (const tac of tacticals) {
+  for (const tac of sortedCandidates) {
     if (chosen.length >= 2) break;
     if (!canPlayTactical({ ...state, tacticalsThisHalf: state.tacticalsThisHalf + chosen.length })) break;
     if (!tacticalGatePassed(state, tac.effect)) continue;

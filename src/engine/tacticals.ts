@@ -83,6 +83,9 @@ export function resolveInstants(m: MatchState): void {
     "offsideTrap",
     "referee",
     "injury",
+    "waterBreak",
+    "substitution",
+    "teamTalk",
   ];
 
   for (const kind of order) {
@@ -107,11 +110,10 @@ function collectInstants(m: MatchState): InstantEntry[] {
   for (const idx of [0, 1] as const) {
     const state = m.players[idx]!;
     for (const cip of [...state.board.attack, ...state.board.defense]) {
-      if (
-        cip.card.type === "tactical" &&
-        (cip.card as TacticalCard).category === "instant"
-      ) {
-        result.push({ playerIdx: idx, card: cip.card as TacticalCard });
+      if (cip.card.type !== "tactical") continue;
+      const t = cip.card as TacticalCard;
+      if (t.category === "instant" || t.category === "skill") {
+        result.push({ playerIdx: idx, card: t });
       }
     }
   }
@@ -164,6 +166,11 @@ function applyInstantEffect(
     }
     case "substitution": {
       self.tacticBonus += effect.amount ?? 8;
+      break;
+    }
+    case "teamTalk": {
+      self.fatigue = Math.max(0, Math.floor(self.fatigue / 2));
+      self.tacticBonus += effect.amount ?? 5;
       break;
     }
     default:

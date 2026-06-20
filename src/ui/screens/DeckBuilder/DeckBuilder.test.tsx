@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { PlayerCard } from '../../../engine/types'
+import type { PlayerCard, Card } from '../../../engine/types'
 
 vi.mock('framer-motion', async (orig) => ({
   ...(await orig<typeof import('framer-motion')>()),
@@ -15,6 +15,8 @@ vi.mock('../../../data/remote/client', () => ({
 const mockFetchPlayers = vi.fn()
 vi.mock('../../../data/remote/players.repo', () => ({
   fetchPlayers: (...args: unknown[]) => mockFetchPlayers(...args),
+  fetchAvailableSeasons: () => Promise.resolve([2026, 2022, 2018, 1950]),
+  fetchTeamsForSeason: () => Promise.resolve(['Argentina', 'Brazil', 'France']),
 }))
 
 function makePremium(overrides: Partial<PlayerCard> = {}): PlayerCard {
@@ -30,6 +32,24 @@ function makePremium(overrides: Partial<PlayerCard> = {}): PlayerCard {
     def: 45,
     cost: 3,
     rarity: 'epic',
+    slots: 1,
+    ...overrides,
+  }
+}
+
+function makeCommon(overrides: Partial<PlayerCard> = {}): PlayerCard {
+  return {
+    id: `c-${Math.random()}`,
+    type: 'player',
+    name: 'Common Player',
+    nation: 'ARG',
+    worldCup: 2026,
+    position: 'MID',
+    overall: 65,
+    atk: 60,
+    def: 62,
+    cost: 1,
+    rarity: 'common',
     slots: 1,
     ...overrides,
   }
@@ -90,5 +110,189 @@ describe('DeckBuilder', () => {
     await waitFor(() => screen.getByRole('button', { name: 'Menu' }))
     await user.click(screen.getByRole('button', { name: 'Menu' }))
     expect(onBack).toHaveBeenCalled()
+  })
+
+  describe('Quickplay defaults (20 player slots / 3 tactical cap / roster 16)', () => {
+    it('renders the 20-slot budget hint text', async () => {
+      mockFetchPlayers.mockResolvedValue([makePremium()])
+      const { DeckBuilder } = await import('./index')
+
+      render(<DeckBuilder onDeckReady={() => {}} onBack={() => {}} />)
+      await waitFor(() => {
+        expect(screen.getByText(/20-slot budget/i)).toBeInTheDocument()
+      })
+    })
+
+    it('renders the tactical cap hint as "up to 3 tactical cards"', async () => {
+      mockFetchPlayers.mockResolvedValue([makePremium()])
+      const { DeckBuilder } = await import('./index')
+
+      render(<DeckBuilder onDeckReady={() => {}} onBack={() => {}} />)
+      await waitFor(() => {
+        expect(screen.getByText(/up to 3 tactical cards/i)).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('Arcade XI builder (playerBudget=10, tacticalCap=1, rosterSize=11)', () => {
+    async function renderArcadeBuilder(onDeckReady: (deck: Card[], captainId: string) => void = () => {}) {
+      const premiums = [makePremium({ id: 'p1', name: 'Premium 1', slots: 5 })]
+      const commons = Array.from({ length: 15 }, (_, i) =>
+        makeCommon({ id: `c${i}`, name: `Common ${i}` }),
+      )
+      mockFetchPlayers.mockResolvedValue([...premiums, ...commons])
+
+      vi.resetModules()
+      const { DeckBuilder } = await import('./index')
+      const user = userEvent.setup()
+
+      render(
+        <DeckBuilder
+          playerBudget={10}
+          tacticalCap={1}
+          rosterSize={11}
+          onDeckReady={onDeckReady}
+          onBack={() => {}}
+        />,
+      )
+
+      await waitFor(() => screen.getByText(/10-slot budget/i))
+      return { user, premiums, commons }
+    }
+
+    it('shows the 10-slot budget in the hint text', async () => {
+      await renderArcadeBuilder()
+      expect(screen.getByText(/10-slot budget/i)).toBeInTheDocument()
+    })
+
+    it('renders the tactical cap hint as "up to 1 tactical card" (singular)', async () => {
+      await renderArcadeBuilder()
+      expect(screen.getByText(/up to 1 tactical card[^s]/i)).toBeInTheDocument()
+    })
+
+    it('shows a slot meter tracking progress against the 10-slot budget', async () => {
+      await renderArcadeBuilder()
+      const slotMeter = document.querySelector('.slot-meter')
+      expect(slotMeter).toBeInTheDocument()
+    })
+
+    it('confirm button is disabled when no picks have been made (captain required)', async () => {
+      await renderArcadeBuilder()
+      const btns = screen.getAllByRole('button')
+      const confirmBtn = btns.find((b) => b.classList.contains('btn-gold'))
+      expect(confirmBtn).toBeDisabled()
+    })
+
+    it('confirm button label shows the correct per-prop budget (10 not 20)', async () => {
+      await renderArcadeBuilder()
+      const btns = screen.getAllByRole('button')
+      const confirmBtn = btns.find((b) => b.classList.contains('btn-gold'))
+      expect(confirmBtn?.textContent).toMatch(/\/10 slots/)
+    })
+
+    it('clicking Fill bench does not throw and updates picks pane', async () => {
+      const { user } = await renderArcadeBuilder()
+      const fillBtn = screen.getByRole('button', { name: /Fill bench/i })
+      await user.click(fillBtn)
+      expect(screen.getByText(/Bench · random commons/i)).toBeInTheDocument()
+    })
+
+    it('calls onDeckReady with an 11-player deck when a pick + fill + confirm flows through', async () => {
+      const capturedDecks: { deck: Card[]; captainId: string }[] = []
+
+      const premiums = [makePremium({ id: 'solo', name: 'Solo Star', slots: 5 })]
+      const commons = Array.from({ length: 15 }, (_, i) =>
+        makeCommon({ id: `cx${i}`, name: `Common X${i}` }),
+      )
+      mockFetchPlayers.mockResolvedValue([...premiums, ...commons])
+
+      vi.resetModules()
+      const { DeckBuilder } = await import('./index')
+      const user = userEvent.setup()
+
+      render(
+        <DeckBuilder
+          playerBudget={10}
+          tacticalCap={1}
+          rosterSize={11}
+          onDeckReady={(deck, captainId) => capturedDecks.push({ deck, captainId })}
+          onBack={() => {}}
+        />,
+      )
+
+      await waitFor(() => screen.getByText(/10-slot budget/i))
+
+      const firstCard = document.querySelector('.pool-cell [data-rarity]') as HTMLElement
+      await user.click(firstCard)
+
+      await user.click(screen.getByRole('button', { name: /Fill bench/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText(/Bench · random commons/i)).toBeInTheDocument()
+      })
+
+      const btns = screen.getAllByRole('button')
+      const confirmBtn = btns.find((b) => b.classList.contains('btn-gold')) as HTMLButtonElement
+
+      await waitFor(() => expect(confirmBtn).not.toBeDisabled())
+
+      await user.click(confirmBtn)
+
+      await waitFor(() => expect(capturedDecks).toHaveLength(1))
+      const players = capturedDecks[0]!.deck.filter((c) => c.type === 'player')
+      expect(players).toHaveLength(11)
+    })
+
+    it('fills the bench from the stable 2026 pool even when the browsed edition is common-sparse', async () => {
+      const capturedDecks: { deck: Card[]; captainId: string }[] = []
+
+      // WC 2026: plentiful commons (the bench source). WC 1950: common-sparse (1 common),
+      // like the real data — would leave the deck without a cycling pile if tied to it.
+      const pool2026 = [
+        ...Array.from({ length: 6 }, (_, i) => makePremium({ id: `p26-${i}`, name: `P26 ${i}`, slots: 2 })),
+        ...Array.from({ length: 16 }, (_, i) => makeCommon({ id: `c26-${i}`, name: `C26 ${i}` })),
+      ]
+      const pool1950 = [
+        makePremium({ id: 'p1950', name: 'Ghiggia', slots: 3, worldCup: 1950 }),
+        makeCommon({ id: 'c1950', name: 'Moran', worldCup: 1950 }),
+      ]
+      mockFetchPlayers.mockImplementation((filters: { season?: number } = {}) =>
+        Promise.resolve(filters.season === 1950 ? pool1950 : pool2026),
+      )
+
+      vi.resetModules()
+      const { DeckBuilder } = await import('./index')
+      const user = userEvent.setup()
+
+      render(
+        <DeckBuilder
+          playerBudget={10}
+          tacticalCap={1}
+          rosterSize={11}
+          onDeckReady={(deck, captainId) => capturedDecks.push({ deck, captainId })}
+          onBack={() => {}}
+        />,
+      )
+
+      await waitFor(() => screen.getByText(/10-slot budget/i))
+
+      // Browse the common-sparse WC 1950 edition and pick its lone premium.
+      const edition = document.querySelector('.edition-select') as HTMLSelectElement
+      await user.selectOptions(edition, '1950')
+      await waitFor(() => expect(document.querySelector('.pool-cell [data-rarity]')).toBeInTheDocument())
+      await user.click(document.querySelector('.pool-cell [data-rarity]') as HTMLElement)
+      await user.click(screen.getByRole('button', { name: /Fill bench/i }))
+
+      const btns = screen.getAllByRole('button')
+      const confirmBtn = btns.find((b) => b.classList.contains('btn-gold')) as HTMLButtonElement
+      await waitFor(() => expect(confirmBtn).not.toBeDisabled())
+      await user.click(confirmBtn)
+
+      await waitFor(() => expect(capturedDecks).toHaveLength(1))
+      const players = capturedDecks[0]!.deck.filter((c) => c.type === 'player')
+      // 1 premium + 10 commons sampled from the 2026 bench pool → a full 11-player roster.
+      expect(players).toHaveLength(11)
+      expect(players.filter((c) => c.rarity === 'common').length).toBeGreaterThanOrEqual(9)
+    })
   })
 })

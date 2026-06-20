@@ -4,7 +4,7 @@ summary: >-
   `mundialito-client` is a TypeScript single-page application responsible for
   delivering the entire user-facing frontend experience. Built on React 19.2.6
   and ...
-last_updated: '2026-06-19T21:50:27.000Z'
+last_updated: '2026-06-20T17:20:19.000Z'
 tags:
   - service
   - typescript
@@ -16,7 +16,7 @@ service_id: mundialito-client
 
 ## Purpose
 
-`mundialito-client` is a TypeScript single-page application responsible for delivering the entire user-facing frontend experience. Built on React 19.2.6 and served by Vite on port 5173 in development, it acts as a pure client-side SPA with no server-side rendering. The application hosts an interactive card/board game (World Cup Clash). Its source separates three pure-logic / presentation layers: `src/engine/` holds the canonical v10 domain types + tuning constants + a seeded PRNG, plus the full match-resolution engine + opponent AI — built fresh from the GDD rules, **not** ported from the `design/` prototypes (xG scoring, the effective-stats fold, fatigue, card flow, lineup validation, lane commit/reveal, tactical resolution, statuses, momentum, win/golden-goal ET, the `resolveRound` state machine, and the AI heuristic); `src/data/` holds the static game data (player pool, tactical catalog, opponent teams); and `src/ui/` holds the presentational React component library + design-token layer. The UI is presentational/stateless and imports `src/engine/` **types only** (`import type`) — it never depends on engine runtime behaviour.
+`mundialito-client` is a TypeScript single-page application responsible for delivering the entire user-facing frontend experience. Built on React 19.2.6 and served by Vite on port 5173 in development, it acts as a pure client-side SPA with no server-side rendering. The application hosts an interactive card/board game (World Cup Clash). Its source separates four pure-logic / presentation layers: `src/engine/` holds the canonical v10 domain types + tuning constants + a seeded PRNG, plus the full match-resolution engine + opponent AI — built fresh from the GDD rules, **not** ported from the `design/` prototypes (xG scoring, the effective-stats fold, fatigue, card flow, lineup validation, lane commit/reveal, tactical resolution, statuses, momentum, win/golden-goal ET, the `resolveRound` state machine, and the AI heuristic); `src/run/` holds a framework-agnostic run-orchestration tier (Arcade Run state machine, matchmaking, rewards) that reuses the engine per stage and may import engine types + static `data/`; `src/data/` holds the static game data (player pool, tactical catalog, opponent teams); and `src/ui/` holds the presentational React component library + design-token layer. The UI is presentational/stateless and imports `src/engine/` **types only** (`import type`) — it never depends on engine runtime behaviour.
 
 ---
 
@@ -56,23 +56,27 @@ src/
     match.ts        # state machine: newMatch / startRound / resolveRound / halftime / beginExtraTime
     ai.ts           # opponent AI heuristic (decideTurn)
     index.ts        # public surface (types + constants + rng + match-engine API)
+  run/              # Pure framework-agnostic TS Arcade Run tier (reuses the engine per stage)
+    runState.ts matchmaking.ts rewards.ts   # 7-stop ladder + permadeath, tier-gated draw, rarity rewards
+    index.ts        # public surface
   data/             # Game data layer
     remote/         # typed Supabase access (client, database.types, derive, mappers, players.repo, opponents.repo) — primary source
     players.ts / playerPool.ts   # static fallback pool + shared toPlayerCard derivation
     tacticals.ts                 # 19 tactical cards (static — not in the CSVs)
     opponents.ts                 # static fallback opponent teams
   ui/               # Presentational React component library + design-token layer
-    tokens/         # ported CSS tokens + v8-ordered class CSS (index.css)
+    tokens/         # ported CSS tokens + class CSS consolidated into css/v9.css (index.css)
     data/nations.ts # shared nation flag-band map + crest sources
     jersey/         # per-nation procedural SVG kit (WCJersey, kitForNation)
     atoms/ molecules/ organisms/   # presentational atomic-design tree (import type only — never engine runtime)
-    screens/        # stateful, data-aware screens: DeckBuilder, DifficultyPicker, Quickplay (container), ResultScreen
-    quickplay/      # orchestration tier: useQuickplayMatch hook + buildQuickplayDeck — the ONLY src/ui island that imports engine RUNTIME + Supabase repos
+    screens/        # stateful, data-aware screens: DeckBuilder, DifficultyPicker, Quickplay, Arcade (run shell), RunMap, LockerRoom, RunSummary, ResultScreen
+    quickplay/      # orchestration tier: useQuickplayMatch hook + buildQuickplayDeck (engine RUNTIME + Supabase repos)
+    run/            # orchestration tier: useArcadeRun hook — the Arcade Run island (engine RUNTIME + src/run logic + static data)
     gallery/        # #ds living design-system gallery
     index.ts        # public barrel
 ```
 
-**Tier rule:** presentational components (`atoms`/`molecules`/`organisms`) import `src/engine` **types only**; the **orchestration tier** (`src/ui/quickplay/` hooks/helpers + `src/ui/screens/` containers) is the deliberate integration layer that imports the engine runtime API + the Supabase repos and feeds `MatchState` to the board via props.
+**Tier rule:** presentational components (`atoms`/`molecules`/`organisms`) import `src/engine` **types only**; the **orchestration tier** (`src/ui/quickplay/` + `src/ui/run/` hooks/helpers + `src/ui/screens/` containers, plus the pure-TS `src/run/` tier) is the deliberate integration layer that imports the engine runtime API + the Supabase repos / static data and feeds `MatchState` to the board via props.
 
 A parallel `design/` directory at the repository root holds the iterative JSX prototypes + design system (`Board*.jsx`, `ds/DS*.jsx`, `jsx/Card2.jsx`, the jersey handoff). These files are **not part of the production Vite bundle** — they are the sanctioned look/feel source that `src/ui/` is ported from (the latest version is authoritative).
 
@@ -86,7 +90,7 @@ The lifecycle describes how a user's browser session initializes the application
 
 1. **Vite entry** (`src/main.tsx`) — Vite serves `index.html`, which loads the compiled JS bundle. `main.tsx` calls `ReactDOM.createRoot` to mount the React tree into the DOM.
 2. **App shell** (`src/App.tsx`) — The root `App` component renders. No router or auth guard layer has been detected; screen selection is state/hash-driven.
-3. **Screen selection** — `App.tsx` renders the `#ds` design-system gallery when the URL hash/query selects it; otherwise a top-level **screen-state machine** (a `Screen` union driven by `useState`, **no router**) selects the active screen, defaulting to the `MainMenu` mode-select. **Quickplay is a complete loop**: `MainMenu → Quickplay` mounts the `src/ui/screens/Quickplay` container, which runs deck builder → difficulty picker → match board → result, driven by the `useQuickplayMatch` orchestrator hook (the integration tier that calls `newMatch`/`startRound`/`resolveRound`/`decideTurn`, picks an opponent by difficulty from Supabase, and threads one seeded `Rng`). Collection / How-to-Play still route to a reusable `PlaceholderScreen`; Arcade Run is gated ("coming soon") in MVP. The production `src/` tree no longer uses the prototype's `window.WCC_ENGINE` global.
+3. **Screen selection** — `App.tsx` renders the `#ds` design-system gallery when the URL hash/query selects it; otherwise a top-level **screen-state machine** (a `Screen` union driven by `useState`, **no router**) selects the active screen, defaulting to the `MainMenu` mode-select. **Two complete loops now exist.** `MainMenu → Quickplay` mounts the `src/ui/screens/Quickplay` container (deck builder → difficulty picker → match board → result) driven by the `useQuickplayMatch` hook. `MainMenu → Arcade Run` (no longer gated) mounts the `src/ui/screens/Arcade` shell driven by the `useArcadeRun` hook — a 7-match knockout run routing XI-builder → Run Map → match board → Locker Room → Run Summary/Trophy, reusing the same engine per stage (`newMatch(..., "run")`) plus the pure-TS `src/run/` tier (run-state, matchmaking, rewards). Both hooks call `newMatch`/`startRound`/`resolveRound`/`decideTurn` and thread one seeded `Rng`. Collection / How-to-Play still route to a reusable `PlaceholderScreen`. The production `src/` tree no longer uses the prototype's `window.WCC_ENGINE` global.
 
 ---
 

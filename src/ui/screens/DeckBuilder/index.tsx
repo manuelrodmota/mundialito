@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import type { PlayerCard, TacticalCard, Card } from '../../../engine/types'
 import { makeRng } from '../../../engine'
-import { fetchPlayers } from '../../../data/remote/players.repo'
+import { fetchPlayers, fetchAvailableSeasons, fetchTeamsForSeason } from '../../../data/remote/players.repo'
 import { getSupabaseClient } from '../../../data/remote/client'
 import { tacticals } from '../../../data'
 import { buildQuickplayDeck } from '../../quickplay/buildQuickplayDeck'
@@ -11,24 +11,36 @@ import { CardDetailModal } from '../../organisms/CardDetailModal'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 
-const PLAYER_BUDGET = 20
-const TACTICAL_CAP = 3
-const ROSTER_SIZE = 16
-
 interface DeckBuilderProps {
   onDeckReady: (deck: Card[], captainId: string) => void
   onBack: () => void
+  /** Maximum premium player slots the user may spend. Defaults to 20 for Quickplay. */
+  playerBudget?: number
+  /** Maximum tactical card slots allowed. Defaults to 3 for Quickplay. */
+  tacticalCap?: number
+  /** Total roster size including bench commons. Defaults to 16 for Quickplay. */
+  rosterSize?: number
 }
 
 type LoadState = 'loading' | 'error' | 'empty' | 'ready'
 
 /** Full deck-builder screen. Loads the 2026 Supabase pool, splits it into
  *  premiums (hand-pickable) and commons (bench-fill only). Lets the user pick
- *  up to 20 premium slots + 3 tacticals + a captain, then fills the bench with
- *  random commons on demand.
+ *  premium slots up to `playerBudget` + up to `tacticalCap` tacticals + a captain,
+ *  then fills the bench with random commons on demand.
+ *
+ *  Defaults to Quickplay parameters (20/3/16) so existing callers are unaffected.
+ *  The Arcade Run XI builder mounts with (10/1/11) for a lean starting squad.
+ *
  *  Two-pane layout: pool pane (browse + filter) + picks pane (squad summary + confirm).
  */
-export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
+export function DeckBuilder({
+  onDeckReady,
+  onBack,
+  playerBudget = 20,
+  tacticalCap = 3,
+  rosterSize = 16,
+}: DeckBuilderProps) {
   const [premiums, setPremiums] = useState<PlayerCard[]>([])
   const [commonPool, setCommonPool] = useState<PlayerCard[]>([])
   const [loadState, setLoadState] = useState<LoadState>('loading')
@@ -43,46 +55,77 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
   const [positionValue, setPositionValue] = useState('all')
   const [rarityValue, setRarityValue] = useState('all')
   const [ratingMin, setRatingMin] = useState(60)
+  const [seasonValue, setSeasonValue] = useState(2026)
+  const [countryValue, setCountryValue] = useState('all')
+  const [seasons, setSeasons] = useState<number[]>([2026])
+  const [countries, setCountries] = useState<string[]>([])
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const tacticsRef = useRef<HTMLDivElement>(null)
 
+  // Distinct WC editions, loaded once (drives the edition selector).
+  useEffect(() => {
+    fetchAvailableSeasons(getSupabaseClient())
+      .then((list) => { if (list.length > 0) setSeasons(list) })
+      .catch(() => { /* keep the 2026 default */ })
+  }, [])
+
+  // Stable bench common pool, loaded once from the plentiful default WC 2026 edition
+  // (~1000 commons). The bench auto-fills with random commons, but some editions are
+  // common-sparse (WC 1950 has a single common), so tying the bench to the browsed
+  // edition would leave the deck with no cycling pile. This pool is edition-independent.
+  useEffect(() => {
+    fetchPlayers({ season: 2026, limit: 2000 }, getSupabaseClient())
+      .then((players) => setCommonPool(players.filter((p) => p.rarity === 'common')))
+      .catch(() => { /* bench fill will be limited if this fails */ })
+  }, [])
+
+  // Players + country list for the selected WC edition. Re-runs when the edition changes.
+  // (loadState is reset to 'loading' by the season-change handler, not synchronously here.)
   useEffect(() => {
     const client = getSupabaseClient()
-    fetchPlayers({ season: 2026, limit: 400 }, client)
-      .then((players) => {
+    let cancelled = false
+    Promise.all([
+      fetchPlayers({ season: seasonValue, limit: 2000 }, client),
+      fetchTeamsForSeason(seasonValue, client).catch(() => [] as string[]),
+    ])
+      .then(([players, teamList]) => {
+        if (cancelled) return
         const premiumList = players.filter((p) => p.rarity !== 'common')
-        const commonList = players.filter((p) => p.rarity === 'common')
+        setCountries(teamList)
         if (premiumList.length === 0) {
           setLoadState('empty')
         } else {
+          // Only the premium grid is edition-specific; the bench common pool is loaded
+          // once above (edition-independent) so sparse editions still fill the bench.
           setPremiums(premiumList)
-          setCommonPool(commonList)
           setLoadState('ready')
         }
       })
-      .catch(() => setLoadState('error'))
-  }, [])
+      .catch(() => { if (!cancelled) setLoadState('error') })
+    return () => { cancelled = true }
+  }, [seasonValue])
 
   const filteredPlayers = useMemo(() => {
     return premiums.filter((p) => {
       if (searchValue && !p.name.toLowerCase().includes(searchValue.toLowerCase())) return false
+      if (countryValue !== 'all' && p.nation !== countryValue) return false
       if (positionValue !== 'all' && p.position !== positionValue) return false
       if (rarityValue !== 'all' && p.rarity.toLowerCase() !== rarityValue.toLowerCase()) return false
       if (p.overall < ratingMin) return false
       return true
     })
-  }, [premiums, searchValue, positionValue, rarityValue, ratingMin])
+  }, [premiums, searchValue, countryValue, positionValue, rarityValue, ratingMin])
 
   const slotsUsed = picks.reduce((sum, p) => sum + p.slots, 0)
-  const isOverBudget = slotsUsed > PLAYER_BUDGET
+  const isOverBudget = slotsUsed > playerBudget
   const hasCaptain = captainId !== null
   const tacSlotsUsed = tacPicks.reduce((sum, t) => sum + t.slots, 0)
 
   function handleAddPlayer(player: PlayerCard) {
     if (picks.some((p) => p.id === player.id)) return
-    if (picks.length >= ROSTER_SIZE) return // roster is capped at ROSTER_SIZE players
-    if (slotsUsed + player.slots > PLAYER_BUDGET) return
+    if (picks.length >= rosterSize) return
+    if (slotsUsed + player.slots > playerBudget) return
     setPicks((prev) => [...prev, player])
     setBenchCommons([]) // picks changed — invalidate the rolled bench (re-roll via Fill bench)
     if (!captainId) setCaptainId(player.id)
@@ -103,7 +146,7 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
 
   function handleAddTactical(tac: TacticalCard) {
     if (tacPicks.some((t) => t.id === tac.id)) return
-    if (tacSlotsUsed + tac.slots > TACTICAL_CAP) return
+    if (tacSlotsUsed + tac.slots > tacticalCap) return
     setTacPicks((prev) => [...prev, tac])
   }
 
@@ -117,7 +160,7 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
 
   function handleFillCommons() {
     if (commonPool.length === 0) return
-    const needed = Math.max(0, ROSTER_SIZE - picks.length)
+    const needed = Math.max(0, rosterSize - picks.length)
     if (needed === 0) return
     const rng = makeRng(fillSeed * 31337)
     const shuffled = rng.shuffle([...commonPool])
@@ -135,9 +178,9 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
       tacticalPicks: tacPicks,
       captainId,
       commonPool,
-      rosterSize: ROSTER_SIZE,
-      playerBudget: PLAYER_BUDGET,
-      tacticalCap: TACTICAL_CAP,
+      rosterSize,
+      playerBudget,
+      tacticalCap,
       rng,
     })
 
@@ -148,7 +191,10 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
     return (
       <div className="screen builder">
         <div className="stadium-bg" />
-        <p style={{ padding: 40, textAlign: 'center' }}>Loading players…</p>
+        <div className="builder-loading">
+          <div className="loader-ring" aria-hidden="true" />
+          <p>Loading players…</p>
+        </div>
       </div>
     )
   }
@@ -186,7 +232,7 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
 
   const confirmLabel = canConfirm
     ? 'Confirm squad'
-    : `${picks.length} picks · ${slotsUsed}/20 slots${hasCaptain ? '' : ' · pick a captain'}`
+    : `${picks.length} picks · ${slotsUsed}/${playerBudget} slots${hasCaptain ? '' : ' · pick a captain'}`
 
   const groups: [string, (PlayerCard | TacticalCard)[]][] = [
     ['Legendaries', picks.filter((p) => p.rarity === 'legendary')],
@@ -202,9 +248,9 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
         <div>
           <h2>Build Your Squad</h2>
           <div className="hint">
-            Spend a 20-slot budget on a premium core (rares, epics, legendaries) + up to 3 tactical
-            cards. The bench auto-fills with random commons — you can&apos;t hand-pick them. Crown a
-            captain.
+            Spend a {playerBudget}-slot budget on a premium core (rares, epics, legendaries) + up
+            to {tacticalCap} tactical card{tacticalCap !== 1 ? 's' : ''}. The bench auto-fills with
+            random commons — you can&apos;t hand-pick them. Crown a captain.
           </div>
         </div>
         <button className="btn btn-ghost" onClick={onBack}>Menu</button>
@@ -215,6 +261,12 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
           <Filters
             searchValue={searchValue}
             onSearchChange={setSearchValue}
+            seasonValue={seasonValue}
+            onSeasonChange={(s) => { setLoadState('loading'); setSeasonValue(s); setCountryValue('all') }}
+            seasonOptions={seasons}
+            countryValue={countryValue}
+            onCountryChange={setCountryValue}
+            countryOptions={countries}
             positionValue={positionValue}
             onPositionChange={setPositionValue}
             rarityValue={rarityValue}
@@ -228,7 +280,7 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
             <div className="pool-grid2">
               {filteredPlayers.map((player) => {
                 const isPicked = picks.some((p) => p.id === player.id)
-                const wouldExceed = !isPicked && slotsUsed + player.slots > PLAYER_BUDGET
+                const wouldExceed = !isPicked && slotsUsed + player.slots > playerBudget
                 return (
                   <div key={player.id} className="pool-cell">
                     <PlayerCardComponent
@@ -256,13 +308,13 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
             </div>
 
             <div className="pool-divider" ref={tacticsRef}>
-              <span>Tactical cards · up to 3</span>
+              <span>Tactical cards · up to {tacticalCap}</span>
             </div>
 
             <div className="pool-grid2">
               {tacticals.map((tac) => {
                 const isPicked = tacPicks.some((t) => t.id === tac.id)
-                const wouldExceed = !isPicked && tacSlotsUsed + tac.slots > TACTICAL_CAP
+                const wouldExceed = !isPicked && tacSlotsUsed + tac.slots > tacticalCap
                 return (
                   <div key={tac.id} className="pool-cell">
                     <TacticCard
@@ -290,14 +342,14 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
         </div>
 
         <div className="picks-pane" style={{ width: 340 }}>
-          <SlotMeter used={slotsUsed} cap={PLAYER_BUDGET} />
+          <SlotMeter used={slotsUsed} cap={playerBudget} />
           <div className="slot-meter">
             <div className="row">
               <span>Picks</span>
               <b>{totalPicks}</b>
             </div>
             <div className="track">
-              <i style={{ width: Math.min(100, Math.round((totalPicks / ROSTER_SIZE) * 100)) + '%' }} />
+              <i style={{ width: Math.min(100, Math.round((totalPicks / rosterSize) * 100)) + '%' }} />
             </div>
           </div>
 

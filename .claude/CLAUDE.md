@@ -39,6 +39,8 @@ This project is **World Cup Clash**, a **Slay the Spire–style arcade roguelike
 | Static asset | `src/assets/{name}` | `src/assets/hero.png` |
 | Match engine (pure TS, framework-agnostic) | `src/engine/{name}.ts` | `src/engine/engine.ts` |
 | Co-located engine test (Vitest) | `src/engine/{name}.test.ts` | `src/engine/match.test.ts` |
+| Run orchestration (framework-agnostic TS; engine + static data, no UI) | `src/run/{name}.ts` | `src/run/runState.ts` |
+| Co-located run test (Vitest) | `src/run/{name}.test.ts` | `src/run/rewards.test.ts` |
 | UI component — presentational (atomic design) | `src/ui/{atoms\|molecules\|organisms}/{Name}/index.tsx` | `src/ui/atoms/Button/index.tsx` |
 | UI screen — stateful, data-aware container | `src/ui/screens/{Name}/index.tsx` | `src/ui/screens/Quickplay/index.tsx` |
 | UI orchestration — hook/helper wiring engine runtime + repos | `src/ui/{mode}/{name}.ts` | `src/ui/quickplay/useQuickplayMatch.ts` |
@@ -55,6 +57,9 @@ project/
 └── src/
     ├── assets/  # Static asset
     ├── engine/  # Pure TS match engine — no JSX/DOM; public surface via index.ts; co-located *.test.ts
+    ├── run/     # Framework-agnostic TS run-orchestration tier (Arcade Run: runState/matchmaking/rewards);
+                 #   sibling to engine/, public surface via index.ts, co-located *.test.ts. May import engine
+                 #   types + static data/ (e.g. opponents) — UNLIKE engine/, which imports neither.
     ├── data/    # Game data: static pool (players/tacticals/opponents) + remote/ typed Supabase repos+mappers (barrel remote/index.ts)
     └── ui/      # React UI; barrel src/ui/index.ts. Two tiers:
                  #   PRESENTATIONAL (engine import type-only): atoms/ molecules/ organisms/

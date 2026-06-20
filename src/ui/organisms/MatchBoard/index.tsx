@@ -19,6 +19,8 @@ import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { crestSrc } from '../../data/nations'
 import { XGFloat } from '../Lanes'
+import { Overlay } from '../Modal'
+import { Goal } from '../Goal'
 
 const ROUND_TO_MINUTE = (round: number, extraTime: boolean): string => {
   if (extraTime) return `90+${(round - 10) * 9}'`
@@ -211,27 +213,43 @@ export function MatchBoard({
   const [formation, setFormation] = useState<Formation>(p0.formation)
   const [selectedHandId, setSelectedHandId] = useState<string | null>(null)
 
-  // Reveal animation step: 0 plan/idle · 1 your-attack clash · 2 their-attack clash · 3 report.
+  // Reveal cinematic, fully sequenced so each beat finishes before the next starts:
+  //   1 your-attack clash → 2 YOUR goal (if scored, gated) → 3 their-attack clash
+  //   → 4 THEIR goal (if scored, gated) → 5 round report.
+  // Goal steps hold the GOAL blast (auto-advance after GOAL_HOLD, or click-to-dismiss),
+  // so the opponent's attack only plays after your goal and the report only after theirs.
   const [revealStep, setRevealStep] = useState(0)
-  const duel: 'A' | 'B' | null = revealStep === 1 ? 'A' : revealStep === 2 ? 'B' : null
+  const youScored = (roundReport?.youGoalsThisRound ?? 0) > 0
+  const theyScored = (roundReport?.themGoalsThisRound ?? 0) > 0
+  const duel: 'A' | 'B' | null = revealStep === 1 ? 'A' : revealStep === 3 ? 'B' : null
   const showYouXg = revealStep >= 1
-  const showThemXg = revealStep >= 2
-  const showReport = revealStep >= 3
+  const showThemXg = revealStep >= 3
+  const showGoalYou = revealStep === 2
+  const showGoalThem = revealStep === 4
+  const showReport = revealStep >= 5
+  const CLASH_MS = 1100
+  const GOAL_HOLD = 1900
 
-  // Drive the clash sequence with timeouts only (no synchronous setState in the effect body);
-  // the cleanup resets the step to 0 when we leave reveal, so the next reveal starts clean.
+  // Each step schedules the next; cleanup clears the pending timer. Goal steps (2,4) can be
+  // advanced early by clicking the overlay (setRevealStep below).
   useEffect(() => {
     if (!isReveal) return
-    const timers = [
-      setTimeout(() => setRevealStep(1), 700),
-      setTimeout(() => setRevealStep(2), 1400),
-      setTimeout(() => setRevealStep(3), 2200),
-    ]
-    return () => {
-      timers.forEach(clearTimeout)
-      setRevealStep(0)
-    }
-  }, [isReveal, revealBoards])
+    let t: ReturnType<typeof setTimeout> | undefined
+    if (revealStep === 0) t = setTimeout(() => setRevealStep(1), 40)
+    else if (revealStep === 1) t = setTimeout(() => setRevealStep(youScored ? 2 : 3), CLASH_MS)
+    else if (revealStep === 2) t = setTimeout(() => setRevealStep(3), GOAL_HOLD)
+    else if (revealStep === 3) t = setTimeout(() => setRevealStep(theyScored ? 4 : 5), CLASH_MS)
+    else if (revealStep === 4) t = setTimeout(() => setRevealStep(5), GOAL_HOLD)
+    return () => { if (t) clearTimeout(t) }
+  }, [isReveal, revealStep, youScored, theyScored])
+
+  // Reset to plan when leaving reveal, so the next round starts the cinematic clean.
+  // Deferred via a timer so the reset is not a synchronous setState in the effect body.
+  useEffect(() => {
+    if (isReveal) return
+    const t = setTimeout(() => setRevealStep(0), 0)
+    return () => clearTimeout(t)
+  }, [isReveal])
 
   // Require an 8px drag before dnd activates, so a plain click selects a card (click-to-place)
   // instead of being swallowed as a micro-drag.
@@ -320,7 +338,13 @@ export function MatchBoard({
   const mercyLabel = mercyDiff > 0 ? `–${3 - mercyDiff} to mercy` : undefined
   const mercyHot = mercyDiff >= 2
 
-  const handCards = p0.hand.filter((c) => c.type === 'player') as PlayerCard[]
+  // Staged cards live in the lane state until commit (the engine only splices the
+  // hand on commit), so exclude them from the hand fan — otherwise a placed card
+  // shows in both the lane and the hand.
+  const stagedIds = new Set<string>([...attackCards, ...defenseCards].map((c) => c.id))
+  const handCards = (p0.hand.filter((c) => c.type === 'player') as PlayerCard[]).filter(
+    (c) => !stagedIds.has(c.id),
+  )
 
   const attackFx = laneFx ? laneFx(attackCards, 'attack') : null
   const defenseFx = laneFx ? laneFx(defenseCards, 'defense') : null
@@ -500,14 +524,14 @@ export function MatchBoard({
                   <div className="p4-mid" />
 
                   {renderFaceDownLane(
-                    opponentIntent?.cardCount ?? 0,
+                    opponentIntent?.attackCount ?? 0,
                     'atk',
                     'them-attack-lane',
                     'l-tatk',
                     'Their attack',
                   )}
                   {renderFaceDownLane(
-                    0,
+                    opponentIntent?.defenseCount ?? 0,
                     'def',
                     'them-defense-lane',
                     'l-tdef',
@@ -531,11 +555,23 @@ export function MatchBoard({
           </div>
         </div>
 
+        {/* GOAL blast — your goal plays after your clash; theirs after their clash.
+            Click (or auto-advance) continues the cinematic to the next beat. */}
+        {showGoalYou && roundReport && (
+          <Overlay open onClick={() => setRevealStep(3)}>
+            <Goal isYou score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal - (theyScored ? 1 : 0)]} />
+          </Overlay>
+        )}
+        {showGoalThem && roundReport && (
+          <Overlay open onClick={() => setRevealStep(5)}>
+            <Goal isYou={false} scorer={match.opponent.name} score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal]} />
+          </Overlay>
+        )}
+
         {/* action dock — cap chips + formation + tactical slot + lock-in button */}
         <div className="match-dock">
 
           <CapChip kind="players" current={attackCards.length + defenseCards.length} max={5} />
-          <CapChip kind="tactics" current={p0.tacticalsThisHalf} max={2} />
           {showStarCore && <CapChip kind="star" />}
 
           <FormationPicker selected={formation} onSelect={setFormation} />

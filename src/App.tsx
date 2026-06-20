@@ -4,6 +4,7 @@ import './ui/tokens/index.css'
 import { MainMenu } from './ui/organisms/MainMenu'
 import { PlaceholderScreen } from './ui/organisms/PlaceholderScreen'
 import { Quickplay } from './ui/screens/Quickplay'
+import { Arcade } from './ui/screens/Arcade'
 
 const DesignSystemGallery = lazy(() =>
   import('./ui/gallery/DesignSystemGallery').then((m) => ({
@@ -18,7 +19,7 @@ function isGalleryRoute(): boolean {
   )
 }
 
-type Screen = 'menu' | 'quickplay' | 'collection' | 'howToPlay'
+type Screen = 'menu' | 'quickplay' | 'arcade' | 'collection' | 'howToPlay'
 
 function App() {
   const [screen, setScreen] = useState<Screen>('menu')
@@ -35,6 +36,7 @@ function App() {
     return (
       <MainMenu
         onQuickplay={() => setScreen('quickplay')}
+        onArcade={() => setScreen('arcade')}
         onCollection={() => setScreen('collection')}
         onHowToPlay={() => setScreen('howToPlay')}
       />
@@ -44,6 +46,12 @@ function App() {
   if (screen === 'quickplay') {
     return (
       <Quickplay onBack={() => setScreen('menu')} />
+    )
+  }
+
+  if (screen === 'arcade') {
+    return (
+      <Arcade onHome={() => setScreen('menu')} />
     )
   }
 

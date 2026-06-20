@@ -11,15 +11,11 @@ describe('MainMenu', () => {
     expect(btn).toHaveClass('btn-gold')
   })
 
-  it('renders Arcade Run as a disabled button', () => {
+  it('renders Arcade Run as an enabled primary button', () => {
     render(<MainMenu onQuickplay={vi.fn()} />)
     const btn = screen.getByRole('button', { name: 'Arcade Run' })
-    expect(btn).toBeDisabled()
-  })
-
-  it('shows a "Coming soon" label alongside Arcade Run', () => {
-    render(<MainMenu onQuickplay={vi.fn()} />)
-    expect(screen.getByText('Coming soon')).toBeInTheDocument()
+    expect(btn).toBeInTheDocument()
+    expect(btn).not.toBeDisabled()
   })
 
   it('renders Collection and How to Play actions', () => {
@@ -36,11 +32,11 @@ describe('MainMenu', () => {
     expect(onQuickplay).toHaveBeenCalledTimes(1)
   })
 
-  it('does not call onQuickplay when Arcade Run is clicked (disabled)', async () => {
+  it('calls onArcade when Arcade Run is clicked', async () => {
     const user = userEvent.setup()
-    const onQuickplay = vi.fn()
-    render(<MainMenu onQuickplay={onQuickplay} />)
+    const onArcade = vi.fn()
+    render(<MainMenu onQuickplay={vi.fn()} onArcade={onArcade} />)
     await user.click(screen.getByRole('button', { name: 'Arcade Run' }))
-    expect(onQuickplay).not.toHaveBeenCalled()
+    expect(onArcade).toHaveBeenCalledTimes(1)
   })
 })

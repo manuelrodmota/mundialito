@@ -3,7 +3,7 @@ import { decideTurn } from "./ai.ts";
 import { newMatch, startRound, resolveRound } from "./match.ts";
 import { makeRng } from "./rng.ts";
 import { validLineup } from "./validateLineup.ts";
-import type { Card, MatchState, OpponentTeam, PlayerCard } from "./types.ts";
+import type { Card, MatchState, OpponentTeam, PlayerCard, TacticalCard } from "./types.ts";
 
 function makePlayerCard(id: string, overrides: Partial<PlayerCard> = {}): PlayerCard {
   return {
@@ -165,5 +165,121 @@ describe("AI-vs-AI full match", () => {
     expect(m1.players[0]!.goals).toBe(m2.players[0]!.goals);
     expect(m1.players[1]!.goals).toBe(m2.players[1]!.goals);
     expect(m1.round).toBe(m2.round);
+  });
+});
+
+describe("AI signature-tactical bias (WCC-036)", () => {
+  function makeTacticalCard(id: string, kind: TacticalCard["effect"]["kind"]): TacticalCard {
+    return {
+      id,
+      type: "tactical",
+      name: id,
+      category: "skill",
+      cost: 1,
+      slots: 1,
+      rarity: "rare",
+      effect: { kind },
+    };
+  }
+
+  function makeOppWithSignature(signatureTactical: TacticalCard[]): OpponentTeam {
+    return {
+      id: "sig-opp",
+      name: "Signature Team",
+      nation: "Brazil",
+      year: 1970,
+      tier: "S",
+      strength: 95,
+      squad: [],
+      preferredFormation: "offensive",
+      isChampion: true,
+      signatureTactical,
+    };
+  }
+
+  it("AI plays its signature tactical when held and gate passes", () => {
+    const sigTac = makeTacticalCard("sig-tiki", "tikiTaka");
+    const otherTac = makeTacticalCard("other-wasting", "timeWasting");
+
+    const oppWithSig = makeOppWithSignature([sigTac]);
+
+    const aiDeck: Card[] = [
+      ...makeDeck(8, "b"),
+      sigTac,
+      otherTac,
+    ];
+
+    const rng = makeRng(42);
+    const m = newMatch(
+      42,
+      { deck: makeDeck(10, "a"), captainId: "a0" },
+      { deck: aiDeck, captainId: "b0" },
+      oppWithSig,
+    );
+
+    startRound(m, rng);
+
+    m.players[1]!.hand = [sigTac, otherTac];
+
+    const decision = decideTurn(m, 1, rng);
+
+    expect(decision.tacticals.some((t) => t.id === "sig-tiki")).toBe(true);
+  });
+
+  it("AI still plays a non-signature tactical when signature has unmet gate", () => {
+    const sigTac: TacticalCard = {
+      id: "sig-penalty",
+      type: "tactical",
+      name: "Penalty Kick",
+      category: "skill",
+      cost: 2,
+      slots: 1,
+      rarity: "epic",
+      effect: { kind: "penalty", amount: 0.85, requiresPosition: "FWD", requiresCount: 1 },
+    };
+    const otherTac = makeTacticalCard("other-wasting", "timeWasting");
+
+    const oppWithSig = makeOppWithSignature([sigTac]);
+
+    const rng = makeRng(77);
+    const m = newMatch(
+      77,
+      { deck: makeDeck(10, "a"), captainId: "a0" },
+      { deck: makeDeck(10, "b"), captainId: "b0" },
+      oppWithSig,
+    );
+
+    startRound(m, rng);
+
+    m.players[1]!.hand = [sigTac, otherTac];
+    m.players[1]!.board = { attack: [], defense: [] };
+    m.players[0]!.goals = 2;
+
+    const decision = decideTurn(m, 1, rng);
+
+    expect(decision.tacticals.some((t) => t.id === "other-wasting")).toBe(true);
+  });
+
+  it("AI determinism is preserved with signature bias: same seed → same tacticals", () => {
+    const sigTac = makeTacticalCard("sig-tiki", "tikiTaka");
+    const oppWithSig = makeOppWithSignature([sigTac]);
+
+    function runWithSig(seed: number): TacticalCard[] {
+      const rng = makeRng(seed);
+      const aiDeck: Card[] = [...makeDeck(8, "b"), sigTac];
+      const m = newMatch(
+        seed,
+        { deck: makeDeck(10, "a"), captainId: "a0" },
+        { deck: aiDeck, captainId: "b0" },
+        oppWithSig,
+      );
+      startRound(m, rng);
+      const decision = decideTurn(m, 1, rng);
+      return decision.tacticals;
+    }
+
+    const run1 = runWithSig(99);
+    const run2 = runWithSig(99);
+    expect(run1.map((t) => t.id)).toEqual(run2.map((t) => t.id));
   });
 });

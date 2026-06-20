@@ -20,6 +20,15 @@ vi.mock('./ui/screens/Quickplay', () => ({
   ),
 }))
 
+vi.mock('./ui/screens/Arcade', () => ({
+  Arcade: ({ onHome }: { onHome: () => void }) => (
+    <div>
+      <h1>Arcade Run</h1>
+      <button type="button" onClick={onHome}>Back to menu</button>
+    </div>
+  ),
+}))
+
 describe('App', () => {
   it('shows the main menu as the default screen', () => {
     render(<App />)
@@ -42,10 +51,16 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Quickplay' })).toBeInTheDocument()
   })
 
-  it('shows Arcade Run as gated (disabled) on the main menu', () => {
+  it('shows Arcade Run as an enabled button on the main menu', () => {
     render(<App />)
-    expect(screen.getByRole('button', { name: 'Arcade Run' })).toBeDisabled()
-    expect(screen.getByText('Coming soon')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Arcade Run' })).not.toBeDisabled()
+  })
+
+  it('transitions to the Arcade screen when Arcade Run is clicked', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Arcade Run' }))
+    expect(screen.getByRole('heading', { name: 'Arcade Run' })).toBeInTheDocument()
   })
 
   it('transitions to the Collection placeholder', async () => {

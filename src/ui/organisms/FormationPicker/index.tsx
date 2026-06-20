@@ -8,8 +8,8 @@ interface FormationOption {
 }
 
 const FORMATION_OPTIONS: FormationOption[] = [
-  { formation: 'balanced', code: '4-4-2', label: 'Balanced', description: 'ATK ×1.0 · DEF ×1.0' },
   { formation: 'offensive', code: '4-3-3', label: 'Offensive', description: 'ATK ×1.25 · DEF ×0.75' },
+  { formation: 'balanced', code: '4-4-2', label: 'Balanced', description: 'ATK ×1.0 · DEF ×1.0' },
   { formation: 'defensive', code: '5-4-1', label: 'Defensive', description: 'ATK ×0.75 · DEF ×1.25' },
 ]
 

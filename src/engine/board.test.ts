@@ -116,6 +116,21 @@ describe("intentOf", () => {
     expect(intent.visibleTacticals).toHaveLength(0);
   });
 
+  it("exposes per-lane card counts (how they'll play) without identities", () => {
+    const a1 = makePlayerCard("atk-1");
+    const a2 = makePlayerCard("atk-2");
+    const d1 = makePlayerCard("def-1");
+    const s = makeState({ hand: [a1, a2, d1] });
+    commitCard(s, a1, "attack");
+    commitCard(s, a2, "attack");
+    commitCard(s, d1, "defense");
+
+    const intent = intentOf(s);
+    expect(intent.cardCount).toBe(3);
+    expect(intent.attackCount).toBe(2);
+    expect(intent.defenseCount).toBe(1);
+  });
+
   it("includes face-up tacticals in visibleTacticals", () => {
     const tac = makeTactical("tac1");
     const s = makeState({ hand: [tac] });

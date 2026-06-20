@@ -7,6 +7,8 @@ const baseIntent: Intent = {
   formation: 'balanced',
   visibleTacticals: [],
   cardCount: 3,
+  attackCount: 2,
+  defenseCount: 1,
   staminaSpent: 6,
 }
 
