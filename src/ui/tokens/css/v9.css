@@ -1573,9 +1573,10 @@
    which lifts up into the dock's vertical space, is never painted behind it. */
 .screen.board > .hand-dock { min-height: 156px; position: relative; z-index: 20; }
 
-/* Deck-builder pool: selecting a card must NOT lift it 0.4*cw upward (board.css .fan-card.selected,
-   meant for the hand fan) or the top row clips behind the filters bar. Scale in place instead. */
-.pool-grid2 .fan-card.selected { transform: scale(1.04) !important; z-index: 5; }
+/* Deck-builder pool: the board.css .fan-card.selected lift (0.4*cw ≈ 60px, for the hand fan)
+   clips the top row behind the filters. Use a small lift + scale so the card still pops up
+   a bit without being clipped (top-row clearance is ~58px). */
+.pool-grid2 .fan-card.selected { transform: translateY(-14px) scale(1.05) !important; z-index: 5; }
 
 /* Compact, sleek formation picker — the biggest pitch-space win is min-width:0 on buttons. */
 .screen.board > .match-dock .formation-picker { gap: 5px; }
@@ -1610,17 +1611,20 @@
 .pitch4[data-duel] .lane4 {
   transition: transform 700ms cubic-bezier(0.25, 0.9, 0.3, 1), opacity 350ms ease;
 }
-/* Phase A — your attack and their defense slide to the centre and sit SIDE BY SIDE
-   (the far lane moves more than the near lane so they end adjacent, not overlapping). */
-.pitch4[data-duel="A"] .l-yatk { transform: translateX(75%) scale(1.04); z-index: 6; }
-.pitch4[data-duel="A"] .l-tdef { transform: translateX(-195%) scale(1.04); z-index: 6; }
+/* Phase A — your attack and their defense slide to the centre and sit SIDE BY SIDE.
+   Values are the design ground-truth (design/css/v4.css): the near lane (l-yatk)
+   moves +40%, the far lane (l-tdef, two columns away) moves -140% so they meet with
+   air between them. NO scale-up on the active lanes — scaling them widened the cards
+   and made them overlap; the design only lifts z-index and dims the idle pair. */
+.pitch4[data-duel="A"] .l-yatk { transform: translateX(40%); z-index: 6; }
+.pitch4[data-duel="A"] .l-tdef { transform: translateX(-140%); z-index: 6; }
 .pitch4[data-duel="A"] .l-tatk,
-.pitch4[data-duel="A"] .l-ydef { opacity: 0.18; transform: scale(0.92); }
+.pitch4[data-duel="A"] .l-ydef { opacity: 0.18; transform: scale(0.94); }
 /* Phase B — their attack and your defense slide to the centre, side by side */
-.pitch4[data-duel="B"] .l-tatk { transform: translateX(-75%) scale(1.04); z-index: 6; }
-.pitch4[data-duel="B"] .l-ydef { transform: translateX(195%) scale(1.04); z-index: 6; }
+.pitch4[data-duel="B"] .l-tatk { transform: translateX(-40%); z-index: 6; }
+.pitch4[data-duel="B"] .l-ydef { transform: translateX(140%); z-index: 6; }
 .pitch4[data-duel="B"] .l-yatk,
-.pitch4[data-duel="B"] .l-tdef { opacity: 0.18; transform: scale(0.92); }
+.pitch4[data-duel="B"] .l-tdef { opacity: 0.18; transform: scale(0.94); }
 
 /* ============================================================
    v10 — GOAL blast (design wordmark). Authoritative over the
@@ -1668,3 +1672,8 @@
   z-index: 1;
   font-variant-numeric: tabular-nums;
 }
+
+/* Keep lane cards clear of the absolutely-positioned opponent-intent banner (top:6px).
+   The pitch has overflow:hidden so the banner cannot move above it — instead the cards
+   start lower in the lane (matches the design, where cards sit mid-pitch). */
+.screen.board .p4-grid .lane4 { padding-top: 46px; }
