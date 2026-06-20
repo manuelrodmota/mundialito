@@ -70,6 +70,16 @@ export function DeckBuilder({
       .catch(() => { /* keep the 2026 default */ })
   }, [])
 
+  // Stable bench common pool, loaded once from the plentiful default WC 2026 edition
+  // (~1000 commons). The bench auto-fills with random commons, but some editions are
+  // common-sparse (WC 1950 has a single common), so tying the bench to the browsed
+  // edition would leave the deck with no cycling pile. This pool is edition-independent.
+  useEffect(() => {
+    fetchPlayers({ season: 2026, limit: 2000 }, getSupabaseClient())
+      .then((players) => setCommonPool(players.filter((p) => p.rarity === 'common')))
+      .catch(() => { /* bench fill will be limited if this fails */ })
+  }, [])
+
   // Players + country list for the selected WC edition. Re-runs when the edition changes.
   // (loadState is reset to 'loading' by the season-change handler, not synchronously here.)
   useEffect(() => {
@@ -82,13 +92,13 @@ export function DeckBuilder({
       .then(([players, teamList]) => {
         if (cancelled) return
         const premiumList = players.filter((p) => p.rarity !== 'common')
-        const commonList = players.filter((p) => p.rarity === 'common')
         setCountries(teamList)
         if (premiumList.length === 0) {
           setLoadState('empty')
         } else {
+          // Only the premium grid is edition-specific; the bench common pool is loaded
+          // once above (edition-independent) so sparse editions still fill the bench.
           setPremiums(premiumList)
-          setCommonPool(commonList)
           setLoadState('ready')
         }
       })

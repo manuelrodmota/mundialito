@@ -15,7 +15,7 @@ vi.mock('../../../data/remote/client', () => ({
 const mockFetchPlayers = vi.fn()
 vi.mock('../../../data/remote/players.repo', () => ({
   fetchPlayers: (...args: unknown[]) => mockFetchPlayers(...args),
-  fetchAvailableSeasons: () => Promise.resolve([2026, 2022, 2018]),
+  fetchAvailableSeasons: () => Promise.resolve([2026, 2022, 2018, 1950]),
   fetchTeamsForSeason: () => Promise.resolve(['Argentina', 'Brazil', 'France']),
 }))
 
@@ -241,6 +241,58 @@ describe('DeckBuilder', () => {
       await waitFor(() => expect(capturedDecks).toHaveLength(1))
       const players = capturedDecks[0]!.deck.filter((c) => c.type === 'player')
       expect(players).toHaveLength(11)
+    })
+
+    it('fills the bench from the stable 2026 pool even when the browsed edition is common-sparse', async () => {
+      const capturedDecks: { deck: Card[]; captainId: string }[] = []
+
+      // WC 2026: plentiful commons (the bench source). WC 1950: common-sparse (1 common),
+      // like the real data — would leave the deck without a cycling pile if tied to it.
+      const pool2026 = [
+        ...Array.from({ length: 6 }, (_, i) => makePremium({ id: `p26-${i}`, name: `P26 ${i}`, slots: 2 })),
+        ...Array.from({ length: 16 }, (_, i) => makeCommon({ id: `c26-${i}`, name: `C26 ${i}` })),
+      ]
+      const pool1950 = [
+        makePremium({ id: 'p1950', name: 'Ghiggia', slots: 3, worldCup: 1950 }),
+        makeCommon({ id: 'c1950', name: 'Moran', worldCup: 1950 }),
+      ]
+      mockFetchPlayers.mockImplementation((filters: { season?: number } = {}) =>
+        Promise.resolve(filters.season === 1950 ? pool1950 : pool2026),
+      )
+
+      vi.resetModules()
+      const { DeckBuilder } = await import('./index')
+      const user = userEvent.setup()
+
+      render(
+        <DeckBuilder
+          playerBudget={10}
+          tacticalCap={1}
+          rosterSize={11}
+          onDeckReady={(deck, captainId) => capturedDecks.push({ deck, captainId })}
+          onBack={() => {}}
+        />,
+      )
+
+      await waitFor(() => screen.getByText(/10-slot budget/i))
+
+      // Browse the common-sparse WC 1950 edition and pick its lone premium.
+      const edition = document.querySelector('.edition-select') as HTMLSelectElement
+      await user.selectOptions(edition, '1950')
+      await waitFor(() => expect(document.querySelector('.pool-cell [data-rarity]')).toBeInTheDocument())
+      await user.click(document.querySelector('.pool-cell [data-rarity]') as HTMLElement)
+      await user.click(screen.getByRole('button', { name: /Fill bench/i }))
+
+      const btns = screen.getAllByRole('button')
+      const confirmBtn = btns.find((b) => b.classList.contains('btn-gold')) as HTMLButtonElement
+      await waitFor(() => expect(confirmBtn).not.toBeDisabled())
+      await user.click(confirmBtn)
+
+      await waitFor(() => expect(capturedDecks).toHaveLength(1))
+      const players = capturedDecks[0]!.deck.filter((c) => c.type === 'player')
+      // 1 premium + 10 commons sampled from the 2026 bench pool → a full 11-player roster.
+      expect(players).toHaveLength(11)
+      expect(players.filter((c) => c.rarity === 'common').length).toBeGreaterThanOrEqual(9)
     })
   })
 })
