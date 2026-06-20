@@ -13,6 +13,9 @@ export interface Intent {
   formation: Formation;
   visibleTacticals: TacticalCard[];
   cardCount: number;
+  /** How many cards the opponent committed to each lane (counts only — identities stay hidden). */
+  attackCount: number;
+  defenseCount: number;
   staminaSpent: number;
 }
 
@@ -80,6 +83,8 @@ export function intentOf(state: PlayerState): Intent {
     formation: state.formation,
     visibleTacticals,
     cardCount: allCards.length,
+    attackCount: state.board.attack.length,
+    defenseCount: state.board.defense.length,
     staminaSpent,
   };
 }

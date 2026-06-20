@@ -72,6 +72,7 @@ export function RunMap({ runState, nextOpponent, onPlayNext, onBack }: RunMapPro
       {nextOpponent && (
         <NextPanel
           name={nextOpponent.name}
+          nation={nextOpponent.nation}
           year={`'${String(nextOpponent.year).slice(-2)}`}
           round={STAGE_DISPLAY[runState.matchIndex] ?? STAGE_LABELS[runState.stage]}
           tier={nextOpponent.tier}

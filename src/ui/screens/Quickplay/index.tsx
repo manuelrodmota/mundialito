@@ -68,11 +68,16 @@ export function Quickplay({ onBack }: QuickplayProps) {
     }
   }, [nextRound, viewState.roundReport, viewState.match])
 
+  // Hold the GOAL blast until the MatchBoard clash + xG floats have played
+  // (duel steps land at 0.7s / 1.4s; report at 2.2s). Queuing the full-screen
+  // celebration immediately would cover the clash and hide the xG.
   useEffect(() => {
     const all = viewState.goalEvents
     if (all.length > consumedRef.current) {
-      setPendingGoals((prev) => [...prev, ...all.slice(consumedRef.current)])
+      const fresh = all.slice(consumedRef.current)
       consumedRef.current = all.length
+      const t = setTimeout(() => setPendingGoals((prev) => [...prev, ...fresh]), 1500)
+      return () => clearTimeout(t)
     }
   }, [viewState.goalEvents])
 

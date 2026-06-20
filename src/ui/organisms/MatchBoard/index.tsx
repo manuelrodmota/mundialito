@@ -320,7 +320,13 @@ export function MatchBoard({
   const mercyLabel = mercyDiff > 0 ? `–${3 - mercyDiff} to mercy` : undefined
   const mercyHot = mercyDiff >= 2
 
-  const handCards = p0.hand.filter((c) => c.type === 'player') as PlayerCard[]
+  // Staged cards live in the lane state until commit (the engine only splices the
+  // hand on commit), so exclude them from the hand fan — otherwise a placed card
+  // shows in both the lane and the hand.
+  const stagedIds = new Set<string>([...attackCards, ...defenseCards].map((c) => c.id))
+  const handCards = (p0.hand.filter((c) => c.type === 'player') as PlayerCard[]).filter(
+    (c) => !stagedIds.has(c.id),
+  )
 
   const attackFx = laneFx ? laneFx(attackCards, 'attack') : null
   const defenseFx = laneFx ? laneFx(defenseCards, 'defense') : null
@@ -500,14 +506,14 @@ export function MatchBoard({
                   <div className="p4-mid" />
 
                   {renderFaceDownLane(
-                    opponentIntent?.cardCount ?? 0,
+                    opponentIntent?.attackCount ?? 0,
                     'atk',
                     'them-attack-lane',
                     'l-tatk',
                     'Their attack',
                   )}
                   {renderFaceDownLane(
-                    0,
+                    opponentIntent?.defenseCount ?? 0,
                     'def',
                     'them-defense-lane',
                     'l-tdef',
@@ -535,7 +541,6 @@ export function MatchBoard({
         <div className="match-dock">
 
           <CapChip kind="players" current={attackCards.length + defenseCards.length} max={5} />
-          <CapChip kind="tactics" current={p0.tacticalsThisHalf} max={2} />
           {showStarCore && <CapChip kind="star" />}
 
           <FormationPicker selected={formation} onSelect={setFormation} />

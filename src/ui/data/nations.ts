@@ -104,8 +104,26 @@ import turkiye from '../assets/crests/turkiye.svg'
 import uruguay from '../assets/crests/uruguay.svg'
 import usa from '../assets/crests/usa.svg'
 import uzbekistan from '../assets/crests/uzbekistan.svg'
+import cameroon from '../assets/crests/cameroon.svg'
+import chile from '../assets/crests/chile.svg'
+import denmark from '../assets/crests/denmark.svg'
+import hungary from '../assets/crests/hungary.svg'
+import italy from '../assets/crests/italy.svg'
+import nigeria from '../assets/crests/nigeria.svg'
+import poland from '../assets/crests/poland.svg'
+import serbia from '../assets/crests/serbia.svg'
+import slovenia from '../assets/crests/slovenia.svg'
 
 const CRESTS: Record<string, string> = {
+  Cameroon: cameroon,
+  Chile: chile,
+  Denmark: denmark,
+  Hungary: hungary,
+  Italy: italy,
+  Nigeria: nigeria,
+  Poland: poland,
+  Serbia: serbia,
+  Slovenia: slovenia,
   Algeria: algeria,
   Argentina: argentina,
   Australia: australia,
@@ -166,4 +184,36 @@ const CRESTS: Record<string, string> = {
 /** Returns the Vite-fingerprinted crest URL for nations with art, or null otherwise. */
 export function crestSrc(nation: string): string | null {
   return CRESTS[nation] ?? null
+}
+
+/** ISO 3166-1 alpha-2 codes for the circle-flags fallback (used when no bundled crest exists). */
+const NATION_CODES: Record<string, string> = {
+  Argentina: 'ar', France: 'fr', Brazil: 'br', England: 'gb-eng', Portugal: 'pt',
+  Spain: 'es', Germany: 'de', Netherlands: 'nl', Belgium: 'be', Croatia: 'hr',
+  Uruguay: 'uy', Italy: 'it', Morocco: 'ma', Japan: 'jp', USA: 'us',
+  'United States': 'us', Mexico: 'mx', Senegal: 'sn', Poland: 'pl',
+  'South Korea': 'kr', Norway: 'no', Canada: 'ca', Nigeria: 'ng', Cameroon: 'cm',
+  Egypt: 'eg', Algeria: 'dz', Sweden: 'se', Denmark: 'dk', Scotland: 'gb-sct',
+  Wales: 'gb-wls', Australia: 'au', Iran: 'ir', Qatar: 'qa', 'Saudi Arabia': 'sa',
+  Ecuador: 'ec', Colombia: 'co', Chile: 'cl', Hungary: 'hu', Georgia: 'ge',
+  Serbia: 'rs', Switzerland: 'ch', Ghana: 'gh', Slovenia: 'si', Russia: 'ru',
+  'Ivory Coast': 'ci', "Côte d'Ivoire": 'ci', Tunisia: 'tn', 'Costa Rica': 'cr',
+  Austria: 'at', Bosnia: 'ba', 'Bosnia and Herzegovina': 'ba', 'Cape Verde': 'cv',
+  Curacao: 'cw', 'Curaçao': 'cw', Czechia: 'cz', 'Czech Republic': 'cz',
+  'DR Congo': 'cd', Haiti: 'ht', Jordan: 'jo', 'New Zealand': 'nz', Panama: 'pa',
+  Paraguay: 'py', 'South Africa': 'za', Türkiye: 'tr', Turkey: 'tr',
+  Uzbekistan: 'uz', Peru: 'pe', Romania: 'ro', Ukraine: 'ua', Greece: 'gr',
+  Bulgaria: 'bg', 'Northern Ireland': 'gb-nir', 'Republic of Ireland': 'ie',
+  Ireland: 'ie', Honduras: 'hn', Slovakia: 'sk', Angola: 'ao',
+}
+
+/** Remote circle-flags URL (https://github.com/HatScripts/circle-flags) for a nation, or null. */
+export function flagUrl(nation: string): string | null {
+  const code = NATION_CODES[nation]
+  return code ? `https://hatscripts.github.io/circle-flags/flags/${code}.svg` : null
+}
+
+/** Best available round badge for a nation: bundled crest first, else the circle-flags flag, else null. */
+export function teamBadge(nation: string): string | null {
+  return crestSrc(nation) ?? flagUrl(nation)
 }
