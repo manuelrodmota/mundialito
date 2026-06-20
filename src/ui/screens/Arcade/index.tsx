@@ -1,13 +1,11 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useCallback } from 'react'
 import { laneFx } from '../../../engine'
 import { useArcadeRun } from '../../run/useArcadeRun'
-import type { GoalEvent } from '../../run/useArcadeRun'
 import { DeckBuilder } from '../DeckBuilder'
 import { RunMap } from '../RunMap'
 import { LockerRoom } from '../LockerRoom'
 import { RunSummary } from '../RunSummary'
 import { MatchBoard } from '../../organisms/MatchBoard'
-import { GoalCelebration } from '../../organisms/GoalCelebration'
 import type { Card, TacticalCard } from '../../../engine/types'
 
 interface ArcadeProps {
@@ -19,9 +17,6 @@ interface ArcadeProps {
  *  GoalCelebration queue, commitTurn staging, reveal separation.
  */
 export function Arcade({ onHome }: ArcadeProps) {
-  const [pendingGoals, setPendingGoals] = useState<GoalEvent[]>([])
-  const consumedRef = useRef(0)
-
   const {
     viewState,
     startRun,
@@ -56,28 +51,6 @@ export function Arcade({ onHome }: ArcadeProps) {
     nextRound()
   }, [nextRound])
 
-  // Hold the GOAL blast until the MatchBoard clash + xG floats have played
-  // (duel steps land at 0.7s / 1.4s; report at 2.2s). Queuing the full-screen
-  // celebration immediately would cover the clash and hide the xG.
-  useEffect(() => {
-    const all = viewState.goalEvents
-    if (all.length > consumedRef.current) {
-      const fresh = all.slice(consumedRef.current)
-      consumedRef.current = all.length
-      const t = setTimeout(() => setPendingGoals((prev) => [...prev, ...fresh]), 1500)
-      return () => clearTimeout(t)
-    }
-  }, [viewState.goalEvents])
-
-  const handleGoalDismiss = useCallback(() => {
-    setPendingGoals((prev) => prev.slice(1))
-  }, [])
-
-  const handleRestart = useCallback(() => {
-    setPendingGoals([])
-    consumedRef.current = 0
-  }, [])
-
   if (phase === 'building') {
     return (
       <DeckBuilder
@@ -104,10 +77,6 @@ export function Arcade({ onHome }: ArcadeProps) {
   if (phase === 'match' && matchSnapshot) {
     return (
       <>
-        <GoalCelebration
-          events={pendingGoals}
-          onDismiss={handleGoalDismiss}
-        />
         <MatchBoard
           match={matchSnapshot}
           onCommit={handleCommit}
@@ -158,10 +127,7 @@ export function Arcade({ onHome }: ArcadeProps) {
     return (
       <RunSummary
         runState={runState}
-        onRestart={() => {
-          handleRestart()
-          startRun(runState.deck, runState.captainId)
-        }}
+        onRestart={() => startRun(runState.deck, runState.captainId)}
         onHome={onHome}
       />
     )

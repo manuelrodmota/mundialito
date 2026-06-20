@@ -203,7 +203,7 @@
 
 /* readout */
 .readout {
-  position: absolute; right: 18px; top: 72px; bottom: 170px; width: 320px; z-index: 20;
+  position: absolute; right: 18px; top: 162px; bottom: 150px; width: 320px; z-index: 20;
   background: rgba(8, 11, 18, 0.93); border: 1px solid var(--line);
   border-radius: 14px; padding: 16px; backdrop-filter: blur(8px);
   display: flex; flex-direction: column; gap: 8px;
@@ -363,7 +363,7 @@
 .bracket-screen { align-items: center; justify-content: center; gap: 34px; padding: 30px; }
 .bracket-head { text-align: center; z-index: 1; }
 .bracket-head .kicker { color: var(--gold); font-weight: 700; letter-spacing: 0.3em; font-size: 12px; text-transform: uppercase; }
-.bracket-head h2 { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; margin-top: 6px; }
+.bracket-head h2 { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; margin-top: 6px; color: var(--txt, #f5f7fb); }
 .bracket-head .sub { color: var(--txt-dim); font-size: 13.5px; margin-top: 6px; }
 
 .ladder { display: flex; align-items: flex-start; z-index: 1; }

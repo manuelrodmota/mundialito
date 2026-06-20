@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import type { Card } from '../../../engine/types'
 import { laneFx } from '../../../engine'
 import { useQuickplayMatch } from '../../quickplay/useQuickplayMatch'
@@ -6,8 +6,6 @@ import { DeckBuilder } from '../DeckBuilder'
 import { DifficultyPicker } from '../DifficultyPicker'
 import { MatchBoard } from '../../organisms/MatchBoard'
 import { ResultScreen } from '../ResultScreen'
-import { GoalCelebration } from '../../organisms/GoalCelebration'
-import type { GoalEvent } from '../../quickplay/useQuickplayMatch'
 
 type QuickplaySubScreen = 'deckbuilder' | 'difficulty' | 'match' | 'result'
 
@@ -23,10 +21,6 @@ export function Quickplay({ onBack }: QuickplayProps) {
   const [subScreen, setSubScreen] = useState<QuickplaySubScreen>('deckbuilder')
   const [builtDeck, setBuiltDeck] = useState<Card[] | null>(null)
   const [captainId, setCaptainId] = useState<string | null>(null)
-  const [pendingGoals, setPendingGoals] = useState<GoalEvent[]>([])
-  // Single-source goal queue: drain newly-emitted goalEvents into pendingGoals exactly once
-  // (avoids the two-source derivation that re-added a goal on every dismiss).
-  const consumedRef = useRef(0)
 
   const {
     viewState,
@@ -68,27 +62,8 @@ export function Quickplay({ onBack }: QuickplayProps) {
     }
   }, [nextRound, viewState.roundReport, viewState.match])
 
-  // Hold the GOAL blast until the MatchBoard clash + xG floats have played
-  // (duel steps land at 0.7s / 1.4s; report at 2.2s). Queuing the full-screen
-  // celebration immediately would cover the clash and hide the xG.
-  useEffect(() => {
-    const all = viewState.goalEvents
-    if (all.length > consumedRef.current) {
-      const fresh = all.slice(consumedRef.current)
-      consumedRef.current = all.length
-      const t = setTimeout(() => setPendingGoals((prev) => [...prev, ...fresh]), 1500)
-      return () => clearTimeout(t)
-    }
-  }, [viewState.goalEvents])
-
-  const handleGoalDismiss = useCallback(() => {
-    setPendingGoals((prev) => prev.slice(1))
-  }, [])
-
   const handleRematch = useCallback(async () => {
     await rematch()
-    setPendingGoals([])
-    consumedRef.current = 0
     setSubScreen('match')
   }, [rematch])
 
@@ -116,10 +91,6 @@ export function Quickplay({ onBack }: QuickplayProps) {
   if (subScreen === 'match' && viewState.match) {
     return (
       <>
-        <GoalCelebration
-          events={pendingGoals}
-          onDismiss={handleGoalDismiss}
-        />
         <MatchBoard
           match={viewState.match}
           onCommit={handleCommit}
