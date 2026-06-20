@@ -139,3 +139,44 @@
   color: #ffe6a3; background: rgba(40, 30, 6, 0.92);
   border: 1px solid rgba(232, 200, 115, 0.6);
 }
+
+/* ============================================================
+   Board v10 — action-dock sits above the hand-dock so it is
+   never obscured by the hand fan. The readout panel is
+   absolutely-positioned over the pitch during reveal phase.
+   ============================================================ */
+
+/* Action dock — opaque background keeps chips/formation visible over hand. */
+.action-dock {
+  position: relative;
+  z-index: 10;
+  background: rgba(8, 12, 24, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Readout panel (round report) — floats over the pitch/hand area. */
+.screen.board .readout {
+  position: relative;
+  z-index: 20;
+  margin: 0 auto;
+  max-width: 520px;
+  width: calc(100% - 48px);
+}
+
+/* Face-down card placeholder smooth entrance. */
+.face-down-card {
+  animation: facedown-in 220ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+@keyframes facedown-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .face-down-card { animation: none; }
+}
+
+/* Full-size field cards (96px) — override compact rules for lane cards. */
+.lane4-cards .wcard:not(.compact) .strip { padding: 3% 6%; }
+
+/* Hand cards at 118px — wider than field cards; ensure they flow in the fan. */
+.hand-dock .fan2 .hcard { flex-shrink: 0; }

@@ -31,7 +31,8 @@ export function Quickplay({ onBack }: QuickplayProps) {
     setDifficulty,
     start,
     commitTurn,
-    resolveCurrentRound,
+    reveal,
+    nextRound,
     rematch,
   } = useQuickplayMatch()
 
@@ -50,19 +51,17 @@ export function Quickplay({ onBack }: QuickplayProps) {
   const handleCommit = useCallback(
     (opts: Parameters<typeof commitTurn>[0]) => {
       commitTurn(opts)
-      resolveCurrentRound()
-
-      if (viewState.match?.winner !== null) {
-        setSubScreen('result')
-      } else {
-        const newGoals = viewState.goalEvents.slice(pendingGoals.length)
-        if (newGoals.length > 0) {
-          setPendingGoals(newGoals)
-        }
-      }
+      reveal()
     },
-    [commitTurn, resolveCurrentRound, viewState, pendingGoals.length],
+    [commitTurn, reveal],
   )
+
+  const handleNextRound = useCallback(() => {
+    nextRound()
+    if (viewState.roundReport?.decided || viewState.match?.winner !== null) {
+      setSubScreen('result')
+    }
+  }, [nextRound, viewState.roundReport, viewState.match])
 
   const handleGoalDismiss = useCallback(() => {
     setPendingGoals((prev) => prev.slice(1))
@@ -96,16 +95,25 @@ export function Quickplay({ onBack }: QuickplayProps) {
   }
 
   if (subScreen === 'match' && viewState.match) {
+    const newGoals = viewState.goalEvents.slice(pendingGoals.length)
+    const displayGoals = newGoals.length > 0 ? [...pendingGoals, ...newGoals] : pendingGoals
+
     return (
       <>
         <GoalCelebration
-          events={pendingGoals}
+          events={displayGoals}
           onDismiss={handleGoalDismiss}
         />
         <MatchBoard
           match={viewState.match}
           onCommit={handleCommit}
+          onReveal={reveal}
+          onNextRound={handleNextRound}
           canCommit={viewState.canCommit}
+          opponentIntent={viewState.opponentIntent}
+          revealBoards={viewState.revealBoards}
+          roundReport={viewState.roundReport}
+          phase={viewState.phase === 'reveal' ? 'reveal' : 'playing'}
           laneFx={laneFx}
         />
         {viewState.error && (
@@ -118,6 +126,16 @@ export function Quickplay({ onBack }: QuickplayProps) {
   }
 
   if (subScreen === 'result' && viewState.match?.winner !== null && viewState.match) {
+    return (
+      <ResultScreen
+        match={viewState.match}
+        onRematch={handleRematch}
+        onBack={onBack}
+      />
+    )
+  }
+
+  if (viewState.phase === 'result' && viewState.match?.winner !== null && viewState.match) {
     return (
       <ResultScreen
         match={viewState.match}
