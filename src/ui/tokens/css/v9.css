@@ -54,15 +54,38 @@
   z-index: 6;
 }
 .builder .pool-scroll {
-  padding-top: 46px;
+  padding-top: 72px;
 }
 
 /* Hand cards read as draggable. */
 .hand-dock .fan2 .hcard { cursor: grab; }
 .hand-dock .fan2 .hcard:active { cursor: grabbing; }
 
-/* The pitch is the centrepiece — give it the lion's share of the board height. */
-.screen.board .pitch-wrap4 { min-height: 50vh; }
+/* Board column layout: the pitch flexes to fill; every other section is fixed-height
+   (flex:none) so nothing overlaps and the tall hand fan has its own row. */
+.screen.board > .pitch-wrap4 { flex: 1 1 0; min-height: 0; }
+.screen.board > .side-strip,
+.screen.board > .match-dock,
+.screen.board > .hand-dock,
+.screen.board > .et-banner7 { flex: 0 0 auto; }
+.screen.board > .hand-dock { min-height: 156px; align-items: flex-end; }
+/* Gentler hand fan so each card (and its jersey) stays readable. */
+.screen.board .hand-dock .fan2 > * + * { margin-left: -20px; }
+
+/* Match action dock — a single horizontal row (overrides the legacy absolute/column
+   .action-dock from v2.css; this is a distinct class to avoid that collision). */
+.screen.board > .match-dock {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 26px;
+  background: rgba(8, 12, 24, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
 
 /* Compact (field) cards: drop the figure's bottom gap so the small jersey fills the body. */
 .wcard.compact .strip { padding: 2% 6% 6%; }
@@ -145,14 +168,6 @@
    never obscured by the hand fan. The readout panel is
    absolutely-positioned over the pitch during reveal phase.
    ============================================================ */
-
-/* Action dock — opaque background keeps chips/formation visible over hand. */
-.action-dock {
-  position: relative;
-  z-index: 10;
-  background: rgba(8, 12, 24, 0.95);
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-}
 
 /* Readout panel (round report) — floats over the pitch/hand area. */
 .screen.board .readout {

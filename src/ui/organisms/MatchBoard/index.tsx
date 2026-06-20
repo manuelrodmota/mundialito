@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { DndContext } from '@dnd-kit/core'
+import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { useDraggable } from '@dnd-kit/core'
 import type { MatchState, PlayerCard, TacticalCard, Formation, Card, CardInPlay } from '../../../engine/types'
@@ -94,7 +94,7 @@ function DraggableCard({
         className={`hcard${selected ? ' selected' : ''}`}
         onClick={handleClick}
       >
-        <PlayerCardComponent card={card as PlayerCard} size={118} isCaptain={isCaptain} />
+        <PlayerCardComponent card={card as PlayerCard} size={104} isCaptain={isCaptain} />
       </div>
     )
   }
@@ -108,7 +108,7 @@ function DraggableCard({
       className={`hcard${selected ? ' selected' : ''}`}
       onClick={handleClick}
     >
-      <TacticCard card={card as TacticalCard} size={118} />
+      <TacticCard card={card as TacticalCard} size={104} />
     </div>
   )
 }
@@ -222,6 +222,10 @@ export function MatchBoard({
       setRevealStep(0)
     }
   }, [isReveal, revealBoards])
+
+  // Require an 8px drag before dnd activates, so a plain click selects a card (click-to-place)
+  // instead of being swallowed as a micro-drag.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
@@ -357,7 +361,7 @@ export function MatchBoard({
   )
 
   return (
-    <DndContext onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className={`screen board v4board${match.extraTime ? ' et-mode' : ''}`}>
         <div className="stadium-bg" />
 
@@ -519,7 +523,7 @@ export function MatchBoard({
 
         {/* action dock — cap chips + formation + tactical slot + lock-in button */}
         <div
-          className="action-dock"
+          className="match-dock"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -583,7 +587,7 @@ export function MatchBoard({
         )}
 
         {/* hand dock — fan of draggable+clickable player cards */}
-        <div className="hand-dock" style={{ '--hw': '118px' } as React.CSSProperties}>
+        <div className="hand-dock" style={{ '--hw': '104px' } as React.CSSProperties}>
           <div className="pile-col7 left">
             <DeckPile kind="draw" count={p0.drawPile.length} label="Draw" />
             <DeckPile kind="locked" count={p0.locked.length} label="Bench" cue="returns at HT" />
