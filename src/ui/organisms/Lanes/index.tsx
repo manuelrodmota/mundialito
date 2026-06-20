@@ -21,6 +21,8 @@ interface LaneProps {
   fx?: LaneFx | null
   /** Number of cards staged in the lane — drives the measured packing. */
   count?: number
+  /** Click-to-place: called when the user clicks the lane zone with a card selected in hand. */
+  onZoneClick?: () => void
 }
 
 /** A droppable attack or defense lane — glows gold (`.droppable`) when a card hovers over it.
@@ -32,7 +34,7 @@ interface LaneProps {
  * it never spills off the pitch. The figures are computed engine-side so they can't drift from
  * resolution; this component only renders them.
  */
-export function Lane({ id, kind, label, children, lw = 92, fx = null, count = 0 }: LaneProps) {
+export function Lane({ id, kind, label, children, lw = 92, fx = null, count = 0, onZoneClick }: LaneProps) {
   const { setNodeRef, isOver } = useDroppable({ id })
   const laneRef = useRef<HTMLDivElement | null>(null)
   const [pack, setPack] = useState<{ ovl: number | null; dx: number }>({ ovl: null, dx: 0 })
@@ -86,6 +88,7 @@ export function Lane({ id, kind, label, children, lw = 92, fx = null, count = 0 
       ref={setRefs}
       className={`lane4 mine ${kind}-lane${isOver ? ' droppable' : ''}${grpCls ? ' ' + grpCls : ''}`}
       style={{ '--lw': lw + 'px' } as CSSProperties}
+      onClick={onZoneClick}
     >
       {fx && (
         <div className="lane-fx4">

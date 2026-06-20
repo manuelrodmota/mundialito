@@ -1,3 +1,44 @@
+/* ============================================================
+   Builder screen — height-contained so only .pool-scroll scrolls
+   ============================================================ */
+.screen.builder {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* pool-pane must be a column flex so filters stay fixed above .pool-scroll */
+.pool-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ============================================================
+   Info button — solid white circle, raised above card surface
+   ============================================================ */
+.card-info-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+  border: none;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  z-index: 6;
+  line-height: 1;
+}
+
 /* WORLD CUP CLASH v9 / v10 balance pass — UI additions
    - star-core discount chip in the action dock (lights up when a lane holds a premium)
    The gentle field cost (2/2/3/4), the half-price support discount, diminishing returns,

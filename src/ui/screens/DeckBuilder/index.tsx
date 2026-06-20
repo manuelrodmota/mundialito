@@ -22,16 +22,20 @@ interface DeckBuilderProps {
 
 type LoadState = 'loading' | 'error' | 'empty' | 'ready'
 
-/** Full deck-builder screen. Loads the 2026 Supabase premium pool, lets the user pick
- *  up to 20 premium slots + 3 tacticals + a captain, then auto-fills commons on confirm.
+/** Full deck-builder screen. Loads the 2026 Supabase pool, splits it into
+ *  premiums (hand-pickable) and commons (bench-fill only). Lets the user pick
+ *  up to 20 premium slots + 3 tacticals + a captain, then fills the bench with
+ *  random commons on demand.
  *  Two-pane layout: pool pane (browse + filter) + picks pane (squad summary + confirm).
  */
 export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
-  const [allPlayers, setAllPlayers] = useState<PlayerCard[]>([])
+  const [premiums, setPremiums] = useState<PlayerCard[]>([])
+  const [commonPool, setCommonPool] = useState<PlayerCard[]>([])
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [picks, setPicks] = useState<PlayerCard[]>([])
   const [captainId, setCaptainId] = useState<string | null>(null)
   const [tacPicks, setTacPicks] = useState<TacticalCard[]>([])
+  const [benchCommons, setBenchCommons] = useState<PlayerCard[]>([])
   const [fillSeed, setFillSeed] = useState(1)
   const [modalCard, setModalCard] = useState<PlayerCard | TacticalCard | null>(null)
 
@@ -45,12 +49,15 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
 
   useEffect(() => {
     const client = getSupabaseClient()
-    fetchPlayers({ season: 2026, limit: 200 }, client)
+    fetchPlayers({ season: 2026, limit: 400 }, client)
       .then((players) => {
-        const premiums = players.filter((p) => p.rarity !== 'common')
-        if (premiums.length === 0) setLoadState('empty')
-        else {
-          setAllPlayers(premiums)
+        const premiumList = players.filter((p) => p.rarity !== 'common')
+        const commonList = players.filter((p) => p.rarity === 'common')
+        if (premiumList.length === 0) {
+          setLoadState('empty')
+        } else {
+          setPremiums(premiumList)
+          setCommonPool(commonList)
           setLoadState('ready')
         }
       })
@@ -58,14 +65,14 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
   }, [])
 
   const filteredPlayers = useMemo(() => {
-    return allPlayers.filter((p) => {
+    return premiums.filter((p) => {
       if (searchValue && !p.name.toLowerCase().includes(searchValue.toLowerCase())) return false
       if (positionValue !== 'all' && p.position !== positionValue) return false
       if (rarityValue !== 'all' && p.rarity.toLowerCase() !== rarityValue.toLowerCase()) return false
       if (p.overall < ratingMin) return false
       return true
     })
-  }, [allPlayers, searchValue, positionValue, rarityValue, ratingMin])
+  }, [premiums, searchValue, positionValue, rarityValue, ratingMin])
 
   const slotsUsed = picks.reduce((sum, p) => sum + p.slots, 0)
   const isOverBudget = slotsUsed > PLAYER_BUDGET
@@ -101,14 +108,23 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
     setTacPicks((prev) => prev.filter((t) => t.id !== tac.id))
   }
 
+  function handleRemoveBenchCommon(player: PlayerCard) {
+    setBenchCommons((prev) => prev.filter((p) => p.id !== player.id))
+  }
+
   function handleFillCommons() {
+    if (commonPool.length === 0) return
+    const needed = Math.max(0, ROSTER_SIZE - picks.length)
+    if (needed === 0) return
+    const rng = makeRng(fillSeed * 31337)
+    const shuffled = rng.shuffle([...commonPool])
+    setBenchCommons(shuffled.slice(0, needed))
     setFillSeed((s) => s + 1)
   }
 
   function handleConfirm() {
     if (!captainId || isOverBudget || picks.length === 0) return
 
-    const commonPool = allPlayers.filter((p) => p.rarity === 'common')
     const rng = makeRng(fillSeed * 31337)
 
     const { deck } = buildQuickplayDeck({
@@ -159,6 +175,7 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
   }
 
   const canConfirm = hasCaptain && !isOverBudget && picks.length > 0
+  const totalPicks = picks.length + benchCommons.length
 
   const gks = picks.filter((p) => p.position === 'GK').length
   const avg = (k: 'atk' | 'def') =>
@@ -225,8 +242,7 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
                     />
                     <button
                       type="button"
-                      className="btn btn-ghost"
-                      style={{ position: 'absolute', top: 4, right: 4, padding: '2px 6px', fontSize: 11 }}
+                      className="card-info-btn"
                       onClick={(e) => { e.stopPropagation(); setModalCard(player) }}
                     >
                       ℹ
@@ -258,8 +274,7 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
                     />
                     <button
                       type="button"
-                      className="btn btn-ghost"
-                      style={{ position: 'absolute', top: 4, right: 4, padding: '2px 6px', fontSize: 11 }}
+                      className="card-info-btn"
                       onClick={(e) => { e.stopPropagation(); setModalCard(tac) }}
                     >
                       ℹ
@@ -276,10 +291,10 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
           <div className="slot-meter">
             <div className="row">
               <span>Picks</span>
-              <b>{picks.length}</b>
+              <b>{totalPicks}</b>
             </div>
             <div className="track">
-              <i style={{ width: Math.min(100, Math.round((picks.length / ROSTER_SIZE) * 100)) + '%' }} />
+              <i style={{ width: Math.min(100, Math.round((totalPicks / ROSTER_SIZE) * 100)) + '%' }} />
             </div>
           </div>
 
@@ -288,13 +303,18 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-ghost" style={{ flex: 1, padding: '9px 10px', fontSize: 13 }} onClick={handleFillCommons}>
+            <button
+              className="btn btn-ghost"
+              style={{ flex: 1, padding: '9px 10px', fontSize: 13 }}
+              onClick={handleFillCommons}
+              disabled={commonPool.length === 0}
+            >
               Fill bench (random)
             </button>
             <button
               className="btn btn-ghost"
               style={{ padding: '9px 12px', fontSize: 13 }}
-              onClick={() => { setPicks([]); setTacPicks([]); setCaptainId(null) }}
+              onClick={() => { setPicks([]); setTacPicks([]); setCaptainId(null); setBenchCommons([]) }}
             >
               Clear
             </button>
@@ -333,6 +353,21 @@ export function DeckBuilder({ onDeckReady, onBack }: DeckBuilderProps) {
                   })}
                 </div>
               ) : null
+            )}
+
+            {benchCommons.length > 0 && (
+              <div>
+                <div className="group-h">Bench · random commons · {benchCommons.length}</div>
+                {benchCommons.map((player) => (
+                  <PickRow
+                    key={player.id}
+                    rating={player.overall}
+                    name={player.name}
+                    slots={player.slots}
+                    onRemove={() => handleRemoveBenchCommon(player)}
+                  />
+                ))}
+              </div>
             )}
           </div>
 

@@ -8,6 +8,7 @@ import type { LaneFx } from '../../../engine/effectiveStats'
 import { Scoreboard } from '../Scoreboard'
 import { ExtraTimeBanner } from '../ExtraTime'
 import { Lane } from '../Lanes'
+import { PitchMarkings } from '../PitchMarkings'
 import { DeckPile } from '../../molecules/DeckPile'
 import { XGMeter } from '../../molecules/Meters'
 import { FormationPicker } from '../FormationPicker'
@@ -16,6 +17,7 @@ import { TacticalSlot } from '../TacticalSlot'
 import { IntentStrip } from '../IntentStrip'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
+import { crestSrc } from '../../data/nations'
 
 const ROUND_TO_MINUTE = (round: number, extraTime: boolean): string => {
   if (extraTime) return `90+${(round - 10) * 9}'`
@@ -35,29 +37,71 @@ function fatigueHeat(fatigue: number): 0 | 1 | 2 | 3 {
   return 0
 }
 
+const TIER_MAP: Record<string, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 }
+
+/** Renders filled/empty star spans for opponent tier (S=5…D=1). */
+function TierStars({ tier }: { tier: string }) {
+  const count = TIER_MAP[tier] ?? 1
+  return (
+    <span style={{ letterSpacing: 1, fontSize: 12 }}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <span key={i} style={{ color: i < count ? '#FFD700' : 'rgba(255,255,255,0.25)' }}>
+          {i < count ? '★' : '☆'}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 function DraggableCard({
   card,
   isCaptain,
+  selected,
+  onSelect,
 }: {
   card: Card
   isCaptain: boolean
+  selected: boolean
+  onSelect: (id: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: card.id })
   const style = transform
     ? { transform: `translate(${transform.x}px, ${transform.y}px)`, position: 'relative' as const, zIndex: 99 }
     : undefined
 
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      onSelect(card.id)
+    },
+    [card.id, onSelect],
+  )
+
   if (card.type === 'player') {
     return (
-      <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-        <PlayerCardComponent card={card as PlayerCard} size={80} isCaptain={isCaptain} />
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...listeners}
+        {...attributes}
+        className={`hcard${selected ? ' selected' : ''}`}
+        onClick={handleClick}
+      >
+        <PlayerCardComponent card={card as PlayerCard} size={112} isCaptain={isCaptain} />
       </div>
     )
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <TacticCard card={card as TacticalCard} size={80} />
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`hcard${selected ? ' selected' : ''}`}
+      onClick={handleClick}
+    >
+      <TacticCard card={card as TacticalCard} size={112} />
     </div>
   )
 }
@@ -103,6 +147,7 @@ export function MatchBoard({
   const [attackCards, setAttackCards] = useState<PlayerCard[]>([])
   const [defenseCards, setDefenseCards] = useState<PlayerCard[]>([])
   const [formation, setFormation] = useState<Formation>(p0.formation)
+  const [selectedHandId, setSelectedHandId] = useState<string | null>(null)
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
@@ -126,6 +171,34 @@ export function MatchBoard({
     }
   }, [p0.hand, attackCards, defenseCards])
 
+  const handleSelectHandCard = useCallback((id: string) => {
+    setSelectedHandId((prev) => (prev === id ? null : id))
+  }, [])
+
+  const handleAttackZoneClick = useCallback(() => {
+    if (!selectedHandId) return
+    const card = p0.hand.find((c) => c.id === selectedHandId)
+    if (!card || card.type !== 'player') return
+    const alreadyPlaced =
+      attackCards.some((c) => c.id === selectedHandId) ||
+      defenseCards.some((c) => c.id === selectedHandId)
+    if (alreadyPlaced) return
+    setAttackCards((prev) => [...prev, card as PlayerCard])
+    setSelectedHandId(null)
+  }, [selectedHandId, p0.hand, attackCards, defenseCards])
+
+  const handleDefenseZoneClick = useCallback(() => {
+    if (!selectedHandId) return
+    const card = p0.hand.find((c) => c.id === selectedHandId)
+    if (!card || card.type !== 'player') return
+    const alreadyPlaced =
+      attackCards.some((c) => c.id === selectedHandId) ||
+      defenseCards.some((c) => c.id === selectedHandId)
+    if (alreadyPlaced) return
+    setDefenseCards((prev) => [...prev, card as PlayerCard])
+    setSelectedHandId(null)
+  }, [selectedHandId, p0.hand, attackCards, defenseCards])
+
   const handleRemoveFromAttack = useCallback((card: PlayerCard) => {
     setAttackCards((prev) => prev.filter((c) => c.id !== card.id))
   }, [])
@@ -138,6 +211,7 @@ export function MatchBoard({
     onCommit({ formation, attackCards, defenseCards })
     setAttackCards([])
     setDefenseCards([])
+    setSelectedHandId(null)
   }, [onCommit, formation, attackCards, defenseCards])
 
   const availableTacticals = p0.hand.filter((c) => c.type === 'tactical') as TacticalCard[]
@@ -163,56 +237,61 @@ export function MatchBoard({
 
   const committed = attackCards.length + defenseCards.length
 
+  const oppCrest = crestSrc(match.opponent.nation)
+
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <div className={`screen board${match.extraTime ? ' et-mode' : ''}`}>
         <div className="stadium-bg" />
 
-        {/* opponent top strip */}
-        <div className="side-strip top">
-          <div className="opp-id">
+        {/* top bar: LEFT identity | CENTER scoreboard | RIGHT meters+chips */}
+        <div className="side-strip top" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* LEFT: opponent identity — crest + name + tier stars */}
+          <div className="opp-id" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 80, gap: 4 }}>
+            {oppCrest ? (
+              <img src={oppCrest} alt={match.opponent.nation} style={{ width: 36, height: 36, objectFit: 'contain' }} />
+            ) : null}
             <span className="nm">{match.opponent.name}</span>
-            <span className="sub3">{match.opponent.tier}</span>
+            <TierStars tier={match.opponent.tier} />
           </div>
 
-          <Scoreboard
-            them={p1.goals}
-            you={p0.goals}
-            code={match.opponent.nation}
-            minute={minute}
-            phase={phase}
-            mercy={mercyLabel}
-            mercyHot={mercyHot}
-            et={match.extraTime}
-            xg={{
-              code: match.opponent.nation,
-              themXg: p1.xg % 1,
-              themHeat: fatigueHeat(p1.fatigue),
-              youXg: p0.xg % 1,
-              youClose: (p0.xg % 1) > 0.7,
-            }}
-          />
-
-          <div className="board-meters">
-            <XGMeter
-              goals={p1.goals}
-              xg={p1.xg % 1}
-              heat={fatigueHeat(p1.fatigue)}
-              label={match.opponent.name}
-            />
-            <XGMeter
-              goals={p0.goals}
-              xg={p0.xg % 1}
-              heat={fatigueHeat(p0.fatigue)}
-              label="YOU"
-              mine
+          {/* CENTER: scoreboard — score + clock + mercy only (no xg prop) */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <Scoreboard
+              them={p1.goals}
+              you={p0.goals}
+              code={match.opponent.nation}
+              nation={match.opponent.nation}
+              minute={minute}
+              phase={phase}
+              mercy={mercyLabel}
+              mercyHot={mercyHot}
+              et={match.extraTime}
             />
           </div>
 
-          <div className="board-chips">
-            <CapChip kind="players" current={attackCards.length + defenseCards.length} max={5} />
-            <CapChip kind="tactics" current={p0.tacticalsThisHalf} max={2} />
-            {showStarCore && <CapChip kind="star" />}
+          {/* RIGHT: dual xG meters + cap chips */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            <div className="board-meters">
+              <XGMeter
+                goals={p1.goals}
+                xg={p1.xg % 1}
+                heat={fatigueHeat(p1.fatigue)}
+                label={match.opponent.name}
+              />
+              <XGMeter
+                goals={p0.goals}
+                xg={p0.xg % 1}
+                heat={fatigueHeat(p0.fatigue)}
+                label="YOU"
+                mine
+              />
+            </div>
+            <div className="board-chips">
+              <CapChip kind="players" current={attackCards.length + defenseCards.length} max={5} />
+              <CapChip kind="tactics" current={p0.tacticalsThisHalf} max={2} />
+              {showStarCore && <CapChip kind="star" />}
+            </div>
           </div>
         </div>
 
@@ -222,6 +301,8 @@ export function MatchBoard({
         {/* pitch */}
         <div className="pitch-wrap4">
           <div className="pitch4">
+            <PitchMarkings />
+
             <div className="dirhint4 l">
               <span className="who4">You attack</span>
             </div>
@@ -236,7 +317,15 @@ export function MatchBoard({
             )}
 
             <div className="p4-grid">
-              <Lane id="defense-lane" kind="def" label="DEFENSE" lw={80} fx={defenseFx} count={defenseCards.length}>
+              <Lane
+                id="defense-lane"
+                kind="def"
+                label="DEFENSE"
+                lw={80}
+                fx={defenseFx}
+                count={defenseCards.length}
+                onZoneClick={handleDefenseZoneClick}
+              >
                 {defenseCards.map((card) => (
                   <div key={card.id} onClick={() => handleRemoveFromDefense(card)} style={{ cursor: 'pointer' }}>
                     <PlayerCardComponent
@@ -249,7 +338,15 @@ export function MatchBoard({
                 ))}
               </Lane>
 
-              <Lane id="attack-lane" kind="atk" label="ATTACK" lw={80} fx={attackFx} count={attackCards.length}>
+              <Lane
+                id="attack-lane"
+                kind="atk"
+                label="ATTACK"
+                lw={80}
+                fx={attackFx}
+                count={attackCards.length}
+                onZoneClick={handleAttackZoneClick}
+              >
                 {attackCards.map((card) => (
                   <div key={card.id} onClick={() => handleRemoveFromAttack(card)} style={{ cursor: 'pointer' }}>
                     <PlayerCardComponent
@@ -294,16 +391,22 @@ export function MatchBoard({
           )}
         </div>
 
-        {/* hand dock */}
+        {/* hand dock — fan of draggable+clickable player cards */}
         <div className="hand-dock">
           <div className="pile-col7 left">
             <DeckPile kind="draw" count={p0.drawPile.length} label="Draw" />
             <DeckPile kind="locked" count={p0.locked.length} label="Bench" cue="returns at HT" />
           </div>
 
-          <div className="fan2">
+          <div className="fan2" style={{ '--hw': '112px' } as React.CSSProperties}>
             {handCards.map((card) => (
-              <DraggableCard key={card.id} card={card} isCaptain={card.id === p0.captainId} />
+              <DraggableCard
+                key={card.id}
+                card={card}
+                isCaptain={card.id === p0.captainId}
+                selected={selectedHandId === card.id}
+                onSelect={handleSelectHandCard}
+              />
             ))}
           </div>
 
