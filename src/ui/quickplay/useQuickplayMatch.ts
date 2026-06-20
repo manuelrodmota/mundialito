@@ -146,15 +146,38 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
         throw new Error('No opponent available for the selected difficulty')
       }
 
+      // Supabase campaign→ratings joins can come back empty/sparse; guarantee a usable squad
+      // by falling back to a static opponent (which always has a full, typed squad).
+      const playerCount = (o: typeof opponent) =>
+        o?.squad?.filter((c) => c.type === 'player').length ?? 0
+      if (playerCount(opponent) < 5) {
+        const sameTier = staticOpponents.filter((o) => o.tier === opponent!.tier)
+        const fbPool = sameTier.length > 0 ? sameTier : staticOpponents
+        opponent = fbPool[Math.floor(rng.next() * fbPool.length)] ?? fbPool[0] ?? opponent
+      }
+
       const commonPool = await fetchPlayers({ season: 2026, limit: 100 }, client)
         .catch(() => [] as PlayerCard[])
       const commonCards = commonPool.filter((c) => c.rarity === 'common')
 
+      const oppPlayers = opponent.squad.filter((c) => c.type === 'player') as PlayerCard[]
+      // Pick premiums up to the 20-slot budget (and ≤10 bodies) so buildQuickplayDeck never
+      // rejects an over-budget opponent core.
+      const oppPremiums: PlayerCard[] = []
+      let oppSlots = 0
+      for (const c of oppPlayers.filter((c) => c.rarity !== 'common')) {
+        if (oppPremiums.length >= 10 || oppSlots + c.slots > 20) continue
+        oppPremiums.push(c)
+        oppSlots += c.slots
+      }
+      // Captain is the top premium, or any player if the squad has no premiums — never empty.
+      const oppCaptain = oppPremiums[0] ?? oppPlayers[0]
+
       const opponentDeck = buildQuickplayDeck({
-        premiumPicks: opponent.squad.filter((c) => c.rarity !== 'common').slice(0, 10),
+        premiumPicks: oppPremiums,
         tacticalPicks: opponent.signatureTactical ?? [],
-        captainId: opponent.squad[0]?.id ?? '',
-        commonPool: [...commonCards, ...opponent.squad.filter((c) => c.rarity === 'common')],
+        captainId: oppCaptain?.id ?? '',
+        commonPool: [...commonCards, ...oppPlayers.filter((c) => c.rarity === 'common')],
         rosterSize: 16,
         playerBudget: 20,
         tacticalCap: 3,
