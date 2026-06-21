@@ -1376,6 +1376,50 @@
   padding-top: 72px;
 }
 
+/* ============================================================
+   Assisted vs Free mode — toggle, position sections, need chips
+   ============================================================ */
+.builder-mode-tabs {
+  padding: 14px 28px 10px;
+  background: #0a0e18;
+  position: relative;
+  z-index: 7;
+}
+
+/* Position-sectioned assisted browser. */
+.assist-section { margin-bottom: 26px; }
+.assist-head {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 0 14px;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--txt-dim);
+}
+.assist-pos { color: var(--txt); }
+.assist-need {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
+  padding: 2px 9px; border-radius: 999px; text-transform: none;
+}
+.assist-need.met { color: #7ee0a8; background: rgba(80, 200, 130, 0.14); }
+.assist-need.unmet { color: #ffce6b; background: rgba(255, 190, 80, 0.14); }
+.assist-showall {
+  margin-left: auto;
+  font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: none;
+  cursor: pointer; color: var(--txt-dim);
+  background: none; border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 12px;
+}
+.assist-showall:hover { color: var(--txt); border-color: var(--brand); }
+.assist-empty { margin: 2px 0 4px; }
+
+/* Per-position balance chips in the picks pane. */
+.squad-needs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.need-chip {
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.03em;
+  padding: 3px 9px; border-radius: 999px;
+}
+.need-chip.met { color: #7ee0a8; background: rgba(80, 200, 130, 0.14); }
+.need-chip.unmet { color: #ffce6b; background: rgba(255, 190, 80, 0.14); }
+
 /* Hand cards read as draggable. */
 .hand-dock .fan2 .hcard { cursor: grab; }
 .hand-dock .fan2 .hcard:active { cursor: grabbing; }
@@ -1404,6 +1448,16 @@
   padding: 8px 26px;
   background: rgba(8, 12, 24, 0.95);
   border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* The tactical card is taller than the formation chips beside it; anchor the slot to
+   the dock floor so it sits low and compact instead of riding up over the pitch. */
+.screen.board > .match-dock .tactical-slot {
+  align-self: flex-end;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Compact (field) cards: drop the figure's bottom gap so the small jersey fills the body. */

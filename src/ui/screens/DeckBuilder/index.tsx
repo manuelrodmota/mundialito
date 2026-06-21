@@ -5,7 +5,9 @@ import { fetchPlayers, fetchAvailableSeasons, fetchTeamsForSeason } from '../../
 import { getSupabaseClient } from '../../../data/remote/client'
 import { tacticals } from '../../../data'
 import { buildQuickplayDeck } from '../../quickplay/buildQuickplayDeck'
+import { recommendedSpread, POSITION_ORDER } from '../../quickplay/curatePool'
 import { Filters } from '../../organisms/Filters'
+import { AssistedPool } from '../../organisms/AssistedPool'
 import { PickRow, SlotMeter } from '../../molecules/PickRow'
 import { CardDetailModal } from '../../organisms/CardDetailModal'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
@@ -50,6 +52,10 @@ export function DeckBuilder({
   const [benchCommons, setBenchCommons] = useState<PlayerCard[]>([])
   const [fillSeed, setFillSeed] = useState(1)
   const [modalCard, setModalCard] = useState<PlayerCard | TacticalCard | null>(null)
+  // Assisted = position-guided sections that nudge toward a balanced core; free = the
+  // full flat grid. Both share the same picks/captain/slots state, so toggling never
+  // loses a selection. Default to assisted so newcomers get the guided path first.
+  const [mode, setMode] = useState<'assisted' | 'free'>('assisted')
 
   const [searchValue, setSearchValue] = useState('')
   const [positionValue, setPositionValue] = useState('all')
@@ -121,6 +127,14 @@ export function DeckBuilder({
   const isOverBudget = slotsUsed > playerBudget
   const hasCaptain = captainId !== null
   const tacSlotsUsed = tacPicks.reduce((sum, t) => sum + t.slots, 0)
+
+  // Recommended balanced core, derived from engine position synergies and scaled to
+  // this mode's budget/roster (Quickplay 20/16 vs Arcade XI 10/11). Drives the
+  // assisted view's per-position "need" indicators.
+  const recommended = useMemo(
+    () => recommendedSpread({ rosterSize, playerBudget }),
+    [rosterSize, playerBudget],
+  )
 
   function handleAddPlayer(player: PlayerCard) {
     if (picks.some((p) => p.id === player.id)) return
@@ -258,6 +272,24 @@ export function DeckBuilder({
 
       <div className="builder-body">
         <div className="pool-pane">
+          <div className="builder-tabs builder-mode-tabs" role="tablist" aria-label="Selection mode">
+            <button
+              role="tab"
+              aria-selected={mode === 'assisted'}
+              className={mode === 'assisted' ? 'on' : ''}
+              onClick={() => setMode('assisted')}
+            >
+              ⚖ Assisted
+            </button>
+            <button
+              role="tab"
+              aria-selected={mode === 'free'}
+              className={mode === 'free' ? 'on' : ''}
+              onClick={() => setMode('free')}
+            >
+              ⊞ Free
+            </button>
+          </div>
           <Filters
             searchValue={searchValue}
             onSearchChange={setSearchValue}
@@ -277,35 +309,49 @@ export function DeckBuilder({
             onRatingMinChange={setRatingMin}
           />
           <div className="pool-scroll" ref={scrollRef}>
-            <div className="pool-grid2">
-              {filteredPlayers.map((player) => {
-                const isPicked = picks.some((p) => p.id === player.id)
-                const wouldExceed = !isPicked && slotsUsed + player.slots > playerBudget
-                return (
-                  <div key={player.id} className="pool-cell">
-                    <PlayerCardComponent
-                      card={player}
-                      size={150}
-                      isCaptain={captainId === player.id}
-                      selected={isPicked}
-                      unaffordable={wouldExceed}
-                      showSlots
-                      onClick={() => {
-                        if (isPicked) handleRemovePlayer(player)
-                        else handleAddPlayer(player)
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="card-info-btn"
-                      onClick={(e) => { e.stopPropagation(); setModalCard(player) }}
-                    >
-                      ℹ
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
+            {mode === 'assisted' ? (
+              <AssistedPool
+                players={filteredPlayers}
+                picks={picks}
+                slotsUsed={slotsUsed}
+                playerBudget={playerBudget}
+                captainId={captainId}
+                recommended={recommended}
+                onAdd={handleAddPlayer}
+                onRemove={handleRemovePlayer}
+                onInfo={(player) => setModalCard(player)}
+              />
+            ) : (
+              <div className="pool-grid2">
+                {filteredPlayers.map((player) => {
+                  const isPicked = picks.some((p) => p.id === player.id)
+                  const wouldExceed = !isPicked && slotsUsed + player.slots > playerBudget
+                  return (
+                    <div key={player.id} className="pool-cell">
+                      <PlayerCardComponent
+                        card={player}
+                        size={150}
+                        isCaptain={captainId === player.id}
+                        selected={isPicked}
+                        unaffordable={wouldExceed}
+                        showSlots
+                        onClick={() => {
+                          if (isPicked) handleRemovePlayer(player)
+                          else handleAddPlayer(player)
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="card-info-btn"
+                        onClick={(e) => { e.stopPropagation(); setModalCard(player) }}
+                      >
+                        ℹ
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
 
             <div className="pool-divider" ref={tacticsRef}>
               <span>Tactical cards · up to {tacticalCap}</span>
@@ -356,6 +402,21 @@ export function DeckBuilder({
           <div className="hint">
             ⚔ avg {avg('atk')} · ⛨ avg {avg('def')} · {tacPicks.length} tactical card{tacPicks.length !== 1 ? 's' : ''} · {gks} GK
           </div>
+
+          {mode === 'assisted' && (
+            <div className="squad-needs" aria-label="Recommended balance">
+              {POSITION_ORDER.map((pos) => {
+                const have = picks.filter((p) => p.position === pos).length
+                const need = recommended[pos]
+                const met = have >= need
+                return (
+                  <span key={pos} className={`need-chip ${met ? 'met' : 'unmet'}`}>
+                    {met ? '✓' : '⚠'} {pos} {have}/{need}
+                  </span>
+                )
+              })}
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button

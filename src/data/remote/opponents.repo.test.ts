@@ -35,6 +35,7 @@ function makeRatingRow(overrides: Partial<RatingRow> = {}): RatingRow {
     era_boost: 5.12,
     rating_source: "historical_estimate",
     player_id: null,
+    position_code: null,
     ...overrides,
   };
 }

@@ -81,6 +81,7 @@ export type Database = {
           player: string
           player_id: string | null
           podium_finish: string | null
+          position_code: string | null
           rating_source: string | null
           season: number
           team: string
@@ -95,6 +96,7 @@ export type Database = {
           player: string
           player_id?: string | null
           podium_finish?: string | null
+          position_code?: string | null
           rating_source?: string | null
           season: number
           team: string
@@ -109,6 +111,7 @@ export type Database = {
           player?: string
           player_id?: string | null
           podium_finish?: string | null
+          position_code?: string | null
           rating_source?: string | null
           season?: number
           team?: string

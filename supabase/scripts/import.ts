@@ -225,8 +225,10 @@ async function main(): Promise<void> {
   console.log(`Inserted ${campaignRows.length} campaign_teams.`);
 
   // ── Build squad lookup for normalization ───────────────────────────────────
-  // key: "normalizedName|year|normalizedTeamName" → player_id
-  type SquadLookupEntry = { player_id: string; tournament_year: number; team_name: string };
+  // key: "normalizedName|year|normalizedTeamName" → { player_id, position_code }
+  // position_code is the authoritative source of a card's position (incl. GK); the
+  // ratings CSV has none and the player_id FK is unusable for 2026 (empty in source).
+  type SquadLookupEntry = { player_id: string; position_code: string; tournament_year: number; team_name: string };
   const squadLookup = new Map<string, SquadLookupEntry>();
   for (const row of squads) {
     const year = parseInt(row.tournament_id.replace("WC-", ""), 10);
@@ -236,6 +238,7 @@ async function main(): Promise<void> {
     if (!squadLookup.has(lookupKey)) {
       squadLookup.set(lookupKey, {
         player_id: row.player_id,
+        position_code: row.position_code.toUpperCase(),
         tournament_year: year,
         team_name: row.team_name,
       });
@@ -254,8 +257,11 @@ async function main(): Promise<void> {
     const lookupKey = `${nameKey}|${season}|${teamKey}`;
 
     let resolvedPlayerId: string | null = null;
+    let resolvedPosition: string | null = null;
     if (squadLookup.has(lookupKey)) {
-      resolvedPlayerId = squadLookup.get(lookupKey)!.player_id;
+      const entry = squadLookup.get(lookupKey)!;
+      resolvedPlayerId = entry.player_id || null;
+      resolvedPosition = entry.position_code || null;
       matched++;
     } else {
       unmatched++;
@@ -274,6 +280,7 @@ async function main(): Promise<void> {
       era_boost: row.era_boost ? parseFloat(row.era_boost) : null,
       rating_source: row.rating_source || null,
       player_id: resolvedPlayerId,
+      position_code: resolvedPosition,
     };
   });
 
