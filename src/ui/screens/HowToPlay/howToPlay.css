@@ -1,0 +1,156 @@
+/* How to Play — concise one-pager guide */
+
+.htp {
+  height: 100vh;
+  overflow-y: auto;
+  position: relative;
+  padding: 28px 20px 64px;
+}
+
+.htp .stadium-bg { position: fixed; }
+
+.htp-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.htp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.htp-head h1 {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.htp-head .kicker {
+  display: block;
+  color: var(--gold);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  font-size: 11px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.htp-card {
+  background: var(--night-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.htp-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  margin: 0 0 8px;
+  color: var(--txt);
+}
+
+.htp-card h2 .ico {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.htp-card p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--txt-dim);
+  margin: 0;
+}
+
+.htp-card p + p { margin-top: 8px; }
+
+.htp-card b { color: var(--txt); font-weight: 700; }
+.htp-card .gold { color: var(--gold); font-weight: 700; }
+
+.htp-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  counter-reset: htp;
+}
+
+.htp-steps li {
+  position: relative;
+  padding-left: 34px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--txt-dim);
+  counter-increment: htp;
+}
+
+.htp-steps li::before {
+  content: counter(htp);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  background: var(--brand);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 999px;
+}
+
+.htp-bullets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.htp-bullets li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--txt-dim);
+}
+
+.htp-bullets li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--gold);
+}
+
+.htp-foot {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.htp-tip {
+  text-align: center;
+  font-size: 13px;
+  color: var(--txt-dim);
+}
+.htp-tip .gold { color: var(--gold); font-weight: 700; }

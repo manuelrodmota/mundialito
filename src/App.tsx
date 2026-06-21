@@ -5,6 +5,7 @@ import { MainMenu } from './ui/organisms/MainMenu'
 import { PlaceholderScreen } from './ui/organisms/PlaceholderScreen'
 import { Quickplay } from './ui/screens/Quickplay'
 import { Arcade } from './ui/screens/Arcade'
+import { HowToPlay } from './ui/screens/HowToPlay'
 
 const DesignSystemGallery = lazy(() =>
   import('./ui/gallery/DesignSystemGallery').then((m) => ({
@@ -65,13 +66,7 @@ function App() {
     )
   }
 
-  return (
-    <PlaceholderScreen
-      title="How to Play"
-      note="Game guide coming soon"
-      onBack={() => setScreen('menu')}
-    />
-  )
+  return <HowToPlay onBack={() => setScreen('menu')} />
 }
 
 export default App

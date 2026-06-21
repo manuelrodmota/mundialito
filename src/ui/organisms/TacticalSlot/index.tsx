@@ -64,7 +64,7 @@ export function TacticalSlot({
           </div>
           <TacticCard
             card={activeTactical}
-            size={120}
+            size={96}
             description={TACTICAL_DESCRIPTIONS[activeTactical.effect.kind]}
           />
         </div>
@@ -79,7 +79,7 @@ export function TacticalSlot({
               className="tac-play-btn"
               onClick={() => onPlayTactical(tac)}
             >
-              <TacticCard card={tac} size={80} />
+              <TacticCard card={tac} size={64} />
             </button>
           ))}
         </div>

@@ -62,14 +62,52 @@ North star: **FIFA Ultimate Team card art on a Slay-the-Spire run** — stadium-
 
 ## Getting started
 
+The app reads its game data (players, teams, ratings) from a **local Supabase Postgres** —
+without it the client throws on boot and the UI renders empty. First-time setup is the full
+chain below, not just `install` + `dev`.
+
+### Prerequisites
+
+- **Docker** running (the local Supabase stack runs in containers).
+- **Supabase CLI ≥ 2.50** (`supabase --version`; `brew upgrade supabase` if older). The
+  committed `supabase/config.toml` uses keys that older CLIs reject.
+
+### First-time setup
+
 ```bash
-# Install dependencies
+# 1. Install dependencies
 pnpm install        # (npm works for most tasks; this repo carries a pnpm lockfile)
 
-# Dev server / production build / lint (current scaffold)
+# 2. Create your local env file (points the client at the local stack)
+cp .env.example .env.local
+
+# 3. Bring up the local Supabase stack (first run pulls Docker images — slow)
+pnpm supabase:start
+
+# 4. Apply migrations to the local DB (schema + RLS + grants)
+pnpm db:reset
+
+# 5. Seed the game data from the CSVs. The import runs server-side, so it needs the
+#    SERVICE_ROLE / SECRET key + API URL from `supabase status` (NOT the VITE_* anon key):
+SUPABASE_URL="http://127.0.0.1:54421" \
+SUPABASE_SERVICE_ROLE_KEY="<SECRET_KEY or SERVICE_ROLE_KEY from `supabase status`>" \
+  pnpm seed
+
+# 6. Run the app
 pnpm dev
+```
+
+> Grab the keys/URLs any time with `supabase status`. The browser only ever uses the
+> **anon** key (in `.env.local`); the service-role/secret key is seed/server-only and must
+> never be a `VITE_*` var or committed.
+
+### Day-to-day
+
+```bash
+pnpm dev            # dev server (needs the local stack already up)
 pnpm build          # tsc -b && vite build  (type-check gates the bundle)
 pnpm lint
+pnpm supabase:stop  # stop the local stack when you're done
 ```
 
 ## Testing

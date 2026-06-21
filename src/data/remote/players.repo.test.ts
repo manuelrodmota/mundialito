@@ -19,6 +19,7 @@ function makeRow(overrides: Partial<RatingRow> = {}): RatingRow {
     era_boost: null,
     rating_source: null,
     player_id: null,
+    position_code: null,
     ...overrides,
   };
 }

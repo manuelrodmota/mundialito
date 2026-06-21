@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import type { Card } from '../../../engine/types'
 import { laneFx } from '../../../engine'
 import { useQuickplayMatch } from '../../quickplay/useQuickplayMatch'
+import { useFirstMatchOnboarding } from '../../onboarding/useFirstMatchOnboarding'
 import { DeckBuilder } from '../DeckBuilder'
 import { DifficultyPicker } from '../DifficultyPicker'
 import { MatchBoard } from '../../organisms/MatchBoard'
@@ -21,6 +22,7 @@ export function Quickplay({ onBack }: QuickplayProps) {
   const [subScreen, setSubScreen] = useState<QuickplaySubScreen>('deckbuilder')
   const [builtDeck, setBuiltDeck] = useState<Card[] | null>(null)
   const [captainId, setCaptainId] = useState<string | null>(null)
+  const onboarding = useFirstMatchOnboarding()
 
   const {
     viewState,
@@ -102,6 +104,10 @@ export function Quickplay({ onBack }: QuickplayProps) {
           roundReport={viewState.roundReport}
           phase={viewState.phase === 'reveal' ? 'reveal' : 'playing'}
           laneFx={laneFx}
+          onboarding={onboarding.active}
+          onOnboardingDone={onboarding.dismiss}
+          onSurrender={onBack}
+          surrenderKind="match"
         />
         {viewState.error && (
           <div className="qp-error" role="alert">

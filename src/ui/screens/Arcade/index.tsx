@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { laneFx } from '../../../engine'
 import { useArcadeRun } from '../../run/useArcadeRun'
+import { useFirstMatchOnboarding } from '../../onboarding/useFirstMatchOnboarding'
 import { DeckBuilder } from '../DeckBuilder'
 import { RunMap } from '../RunMap'
 import { LockerRoom } from '../LockerRoom'
@@ -29,9 +30,11 @@ export function Arcade({ onHome }: ArcadeProps) {
     setCaptain,
     removeDeckCard,
     proceedToNextStage,
+    surrenderRun,
   } = useArcadeRun()
 
   const { phase, runState, matchSnapshot, reward, nextOpponent } = viewState
+  const onboarding = useFirstMatchOnboarding()
 
   const handleDeckReady = useCallback(
     (deck: Card[], captainId: string) => {
@@ -88,6 +91,9 @@ export function Arcade({ onHome }: ArcadeProps) {
           roundReport={viewState.roundReport}
           phase={viewState.revealBoards ? 'reveal' : 'playing'}
           laneFx={laneFx}
+          onboarding={onboarding.active}
+          onOnboardingDone={onboarding.dismiss}
+          onSurrender={surrenderRun}
         />
         {viewState.error && (
           <div className="qp-error" role="alert">

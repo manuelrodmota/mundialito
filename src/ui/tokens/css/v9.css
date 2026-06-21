@@ -1376,6 +1376,50 @@
   padding-top: 72px;
 }
 
+/* ============================================================
+   Assisted vs Free mode — toggle, position sections, need chips
+   ============================================================ */
+.builder-mode-tabs {
+  padding: 14px 28px 10px;
+  background: #0a0e18;
+  position: relative;
+  z-index: 7;
+}
+
+/* Position-sectioned assisted browser. */
+.assist-section { margin-bottom: 26px; }
+.assist-head {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 0 14px;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--txt-dim);
+}
+.assist-pos { color: var(--txt); }
+.assist-need {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
+  padding: 2px 9px; border-radius: 999px; text-transform: none;
+}
+.assist-need.met { color: #7ee0a8; background: rgba(80, 200, 130, 0.14); }
+.assist-need.unmet { color: #ffce6b; background: rgba(255, 190, 80, 0.14); }
+.assist-showall {
+  margin-left: auto;
+  font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: none;
+  cursor: pointer; color: var(--txt-dim);
+  background: none; border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 12px;
+}
+.assist-showall:hover { color: var(--txt); border-color: var(--brand); }
+.assist-empty { margin: 2px 0 4px; }
+
+/* Per-position balance chips in the picks pane. */
+.squad-needs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.need-chip {
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.03em;
+  padding: 3px 9px; border-radius: 999px;
+}
+.need-chip.met { color: #7ee0a8; background: rgba(80, 200, 130, 0.14); }
+.need-chip.unmet { color: #ffce6b; background: rgba(255, 190, 80, 0.14); }
+
 /* Hand cards read as draggable. */
 .hand-dock .fan2 .hcard { cursor: grab; }
 .hand-dock .fan2 .hcard:active { cursor: grabbing; }
@@ -1404,6 +1448,30 @@
   padding: 8px 26px;
   background: rgba(8, 12, 24, 0.95);
   border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Just-in-time planning coach — a soft amber nudge beside the Lock-in button when
+   the staged attack is thin. Self-clears as the lineup improves; never blocks play. */
+.screen.board > .match-dock .plan-hint {
+  max-width: 360px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.32;
+  color: var(--warn);
+  background: rgba(255, 158, 80, 0.10);
+  border: 1px solid rgba(255, 158, 80, 0.34);
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+
+/* The tactical card is taller than the formation chips beside it; anchor the slot to
+   the dock floor so it sits low and compact instead of riding up over the pitch. */
+.screen.board > .match-dock .tactical-slot {
+  align-self: flex-end;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Compact (field) cards: drop the figure's bottom gap so the small jersey fills the body. */
@@ -1482,6 +1550,30 @@
   border: 1px solid rgba(232, 200, 115, 0.6);
 }
 
+/* fx pills are hoverable for an explainer cover, even though the fx row itself is click-through. */
+.lane4 .fx-pill { position: relative; pointer-events: auto; cursor: help; }
+.lane4 .fx-tip {
+  position: absolute; top: calc(100% + 7px); left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  width: 224px; max-width: 60vw;
+  background: rgba(10, 14, 24, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px; padding: 10px 12px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0; line-height: 1.5;
+  color: var(--txt-dim, #98a0b3); white-space: normal; text-align: left;
+  text-transform: none;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.6);
+  opacity: 0; visibility: hidden; transition: opacity 140ms, transform 140ms;
+  z-index: 30;
+}
+.lane4 .fx-tip b { display: block; color: var(--txt, #eef0f6); font-size: 12px; font-weight: 800; margin-bottom: 3px; letter-spacing: 0.02em; }
+.lane4 .fx-tip b.inl { display: inline; font-size: inherit; margin: 0; color: var(--gold, #e8c873); }
+.lane4 .fx-pill:hover .fx-tip,
+.lane4 .fx-pill:focus .fx-tip,
+.lane4 .fx-pill:focus-visible .fx-tip {
+  opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
+}
+
 /* ============================================================
    Board v10 — action-dock sits above the hand-dock so it is
    never obscured by the hand fan. The readout panel is
@@ -1528,11 +1620,26 @@
   background: rgba(255, 255, 255, 0.04); border-left: 3px solid transparent;
 }
 .screen.board .readout .line.l-note { color: var(--txt-dim, #93a0b8); font-size: 11.5px; }
+.screen.board .readout .line.l-summary { color: #fff; font-weight: 800; font-size: 13.5px; background: rgba(127, 86, 217, 0.16); border-left-color: #7f56d9; }
+.screen.board .readout .line.l-side { color: var(--txt, #eef0f6); }
+.screen.board .readout .line.l-side.to-them { color: var(--txt-dim, #93a0b8); border-left-color: #e8c873; }
 .screen.board .readout .line.l-xg { color: #c9b6ff; border-left-color: #7f56d9; }
 .screen.board .readout .line.l-xg.to-them { color: #ffd9a0; border-left-color: #e8c873; }
 .screen.board .readout .line.l-goal { color: #fff; font-weight: 800; border-left-color: #3fbf6f; background: rgba(63, 191, 111, 0.12); }
 .screen.board .readout .line.l-onform { color: #ff9a6c; border-left-color: #ff6a5c; }
 .screen.board .readout .line.l-halftime { color: #cfe0ff; border-left-color: #5aa7e8; }
+.screen.board .readout .readout-details { margin-top: 2px; }
+.screen.board .readout .readout-details > summary {
+  cursor: pointer; list-style: none; padding: 4px 2px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--txt-dim, #93a0b8);
+}
+.screen.board .readout .readout-details > summary::-webkit-details-marker { display: none; }
+.screen.board .readout .readout-details > summary::before { content: '▸ '; }
+.screen.board .readout .readout-details[open] > summary::before { content: '▾ '; }
+.screen.board .readout .readout-details[open] > summary { margin-bottom: 6px; }
+.screen.board .readout .readout-details .line { margin-bottom: 6px; }
+.screen.board .readout .readout-details .line:last-child { margin-bottom: 0; }
 @media (prefers-reduced-motion: reduce) {
   .screen.board .readout { animation: none; }
 }
@@ -1594,6 +1701,27 @@
 
 /* Cap chips: compact + tight. */
 .screen.board > .match-dock .cap-chip5 { font-size: 10.5px; padding: 3px 8px; }
+
+/* Surrender control — subtle ghost pill in the bottom strip; opens a confirm modal. */
+.surrender-btn {
+  font: inherit; cursor: pointer;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+  color: var(--txt-dim, #98a0b3);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.1));
+  border-radius: 999px; padding: 5px 13px;
+  transition: background 140ms, color 140ms, border-color 140ms;
+}
+.surrender-btn:hover {
+  color: #ffb4ad;
+  background: rgba(217, 45, 32, 0.16);
+  border-color: rgba(217, 45, 32, 0.5);
+}
+.surrender-modal { display: flex; flex-direction: column; gap: 10px; max-width: 340px; text-align: center; }
+.surrender-modal h3 { font-size: 20px; font-weight: 800; }
+.surrender-modal p { color: var(--txt-dim, #98a0b3); font-size: 13.5px; line-height: 1.55; margin: 0; }
+.surrender-actions { display: flex; gap: 10px; margin-top: 6px; }
+.surrender-actions .btn { flex: 1; padding: 11px 16px; font-size: 14px; }
 
 /* ============================================================
    Clash: the duelling lanes physically MARCH to midfield and MEET.

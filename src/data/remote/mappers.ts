@@ -21,7 +21,14 @@ import {
 type RatingRow = Tables<"player_ratings">;
 type CampaignRow = Tables<"campaign_teams">;
 
-export interface RatingRowWithPosition extends RatingRow {
+/**
+ * A player_ratings row with an optional position_code. The column now lives on the
+ * schema (populated by the import from the matched squad row), so a plain RatingRow
+ * already carries it; this kept-for-compatibility alias keeps it optional for callers
+ * (e.g. tests) that build rows without one — the mapper then falls back to the
+ * ratings heuristic.
+ */
+export interface RatingRowWithPosition extends Omit<RatingRow, "position_code"> {
   position_code?: string | null;
 }
 

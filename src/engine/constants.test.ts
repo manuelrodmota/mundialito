@@ -15,6 +15,8 @@ import {
   XG_FLOOR,
   XG_SLOPE,
   XG_CAP,
+  GOAL_THRESHOLD,
+  DEF_COEFF,
   HALFTIME_ROUND,
   ROUND_CAP,
   FORMATIONS,
@@ -127,17 +129,19 @@ describe("v10 balance knobs", () => {
     expect(STAR_SYNERGY_DISCOUNT).toBe(0.5);
   });
 
-  it("xG curve constants match v10 spec", () => {
-    expect(XG_FLOOR).toBe(0.05);
-    expect(XG_SLOPE).toBe(210);
-    expect(XG_CAP).toBe(0.5);
+  it("xG curve constants match v10.1 spec", () => {
+    expect(XG_FLOOR).toBe(0.1);
+    expect(XG_SLOPE).toBe(180);
+    expect(XG_CAP).toBe(0.55);
+    expect(GOAL_THRESHOLD).toBe(0.8);
+    expect(DEF_COEFF).toBe(0.9);
   });
 });
 
 describe("formation multipliers", () => {
-  it("offensive boosts attack and weakens defense", () => {
-    expect(FORMATIONS.offensive.atkMult).toBe(1.25);
-    expect(FORMATIONS.offensive.defMult).toBe(0.75);
+  it("offensive boosts attack and weakens defense (v10.1 softened ±18%)", () => {
+    expect(FORMATIONS.offensive.atkMult).toBe(1.18);
+    expect(FORMATIONS.offensive.defMult).toBe(0.82);
   });
 
   it("balanced is neutral", () => {
@@ -145,9 +149,9 @@ describe("formation multipliers", () => {
     expect(FORMATIONS.balanced.defMult).toBe(1.0);
   });
 
-  it("defensive weakens attack and boosts defense", () => {
-    expect(FORMATIONS.defensive.atkMult).toBe(0.75);
-    expect(FORMATIONS.defensive.defMult).toBe(1.25);
+  it("defensive weakens attack and boosts defense (v10.1 softened ±18%)", () => {
+    expect(FORMATIONS.defensive.atkMult).toBe(0.82);
+    expect(FORMATIONS.defensive.defMult).toBe(1.18);
   });
 });
 

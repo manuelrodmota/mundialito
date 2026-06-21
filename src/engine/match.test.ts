@@ -149,7 +149,7 @@ describe("resolveRound", () => {
     const xgAfter0 = m.players[0]!.xg + m.players[0]!.goals;
     const xgAfter1 = m.players[1]!.xg + m.players[1]!.goals;
     expect(xgAfter0).toBeGreaterThan(xgBefore0);
-    expect(xgAfter1).toBeGreaterThanOrEqual(0.05);
+    expect(xgAfter1).toBeGreaterThanOrEqual(0.1); // XG_FLOOR
     void xgBefore1;
   });
 

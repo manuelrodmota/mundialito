@@ -13,7 +13,7 @@
 import type { Card, MatchState, OpponentTeam, PlayerState } from "./types.ts";
 import type { Rng } from "./rng.ts";
 import { makeRng } from "./rng.ts";
-import { HALFTIME_ROUND, ET_XG_MULT, STAMINA } from "./constants.ts";
+import { HALFTIME_ROUND, ET_XG_MULT, STAMINA, DEF_COEFF } from "./constants.ts";
 import { buildOpeningHand, drawToHand, returnLockedToDrawPile, routeCard } from "./cards.ts";
 import { xgAdd, addXg } from "./xg.ts";
 import { computeEffectiveStats } from "./effectiveStats.ts";
@@ -152,8 +152,10 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
   const defEff0 = applyDefensiveTacticals(m, 0, stats0.defEff);
   const defEff1 = applyDefensiveTacticals(m, 1, stats1.defEff);
 
-  let xg0 = xgAdd(stats0.atkEff, defEff1);
-  let xg1 = xgAdd(stats1.atkEff, defEff0);
+  // v10.1: DEF_COEFF (<1) keeps a stacked back line from out-suppressing attack
+  // into a 0–0 grind — defense still suppresses, just not to a standstill (§7/§19.9).
+  let xg0 = xgAdd(stats0.atkEff, defEff1 * DEF_COEFF);
+  let xg1 = xgAdd(stats1.atkEff, defEff0 * DEF_COEFF);
 
   if (m.extraTime) {
     xg0 *= ET_XG_MULT;

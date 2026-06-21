@@ -1,0 +1,126 @@
+/* CoachMarks — spotlight + tooltip guided tour, portaled to <body>. */
+
+.coach-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  /* The dimming itself comes from the spotlight's huge box-shadow; this layer is
+     transparent but captures pointer events so the board can't be touched mid-tour. */
+  background: transparent;
+}
+
+.coach-spotlight {
+  position: fixed;
+  border-radius: 14px;
+  border: 2px solid var(--gold, #e8c873);
+  box-shadow:
+    0 0 0 9999px rgba(7, 9, 15, 0.8),
+    0 0 0 4px rgba(232, 200, 115, 0.28),
+    0 0 22px rgba(232, 200, 115, 0.35);
+  pointer-events: none;
+  transition: top 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    left 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    height 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* When no target is found we dim the whole screen and center the pop. */
+.coach-veil.no-target {
+  background: rgba(7, 9, 15, 0.8);
+}
+
+.coach-pop {
+  position: fixed;
+  width: 300px;
+  max-width: calc(100vw - 24px);
+  background: var(--night-2, #131826);
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.1));
+  border-radius: 14px;
+  padding: 16px 18px 14px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  color: var(--txt, #eef0f6);
+  animation: coach-pop-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.coach-pop.place-above { transform: translateY(-100%); }
+.coach-pop.centered { left: 50% !important; top: 50% !important; transform: translate(-50%, -50%); }
+
+@keyframes coach-pop-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+}
+.coach-pop.place-above { animation: none; }
+
+.coach-step {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold, #e8c873);
+  margin-bottom: 6px;
+}
+
+.coach-pop h3 {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0 0 6px;
+  color: var(--txt, #eef0f6);
+}
+
+.coach-pop p {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--txt-dim, #98a0b3);
+  margin: 0;
+}
+
+.coach-dots {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0 12px;
+}
+
+.coach-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background 160ms;
+}
+.coach-dots span.on { background: var(--gold, #e8c873); }
+
+.coach-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.coach-skip {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--txt-dim, #98a0b3);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 4px;
+}
+.coach-skip:hover { color: var(--txt, #eef0f6); }
+
+.coach-next {
+  background: linear-gradient(180deg, #f0d68a, #c89a2e);
+  color: #3a2a05;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  font-size: 13.5px;
+  padding: 9px 18px;
+  border-radius: 9px;
+  box-shadow: 0 3px 12px rgba(232, 200, 115, 0.3);
+}
+.coach-next:hover { filter: brightness(1.06); }
+
+@media (prefers-reduced-motion: reduce) {
+  .coach-spotlight { transition: none; }
+  .coach-pop { animation: none; }
+}
