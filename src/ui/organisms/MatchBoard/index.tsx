@@ -23,6 +23,7 @@ import { Modal, Overlay } from '../Modal'
 import { Goal } from '../Goal'
 import { CoachMarks } from '../CoachMarks'
 import { MATCH_ONBOARDING_STEPS } from '../CoachMarks/steps'
+import { planHint } from '../../onboarding/planHint'
 
 const ROUND_TO_MINUTE = (round: number, extraTime: boolean): string => {
   if (extraTime) return `90+${(round - 10) * 9}'`
@@ -416,6 +417,18 @@ export function MatchBoard({
 
   const committed = attackCards.length + defenseCards.length
 
+  // Just-in-time planning coach — nudges a thin attack at the moment of the mistake
+  // (a lone star ≈ two defenders). Self-clears when the lineup improves; never blocks.
+  const coachHint = isReveal
+    ? null
+    : planHint({
+        attackCount: attackCards.length,
+        formation,
+        opponentDefenseCount: opponentIntent?.defenseCount ?? 0,
+        notLeading: p0.goals <= p1.goals,
+        canAddPlayer: handCards.length > 0,
+      })
+
   const oppCrest = crestSrc(match.opponent.nation)
 
   const intentMeta = opponentIntent ? FORMATION_LABELS[opponentIntent.formation] : null
@@ -649,7 +662,10 @@ export function MatchBoard({
             onPlayTactical={(tac) => onPlayTactical?.(tac)}
           />
 
-          <div style={{ marginLeft: 'auto' }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+            {coachHint && (
+              <span className="plan-hint" role="status">💡 {coachHint}</span>
+            )}
             {!isReveal && canCommit && (
               <button className="btn btn-gold" data-coach="commit" onClick={handleCommit}>
                 {committed > 0 ? 'Lock in & reveal' : 'Pass round'}

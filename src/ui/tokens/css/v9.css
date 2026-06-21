@@ -1450,6 +1450,20 @@
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
+/* Just-in-time planning coach — a soft amber nudge beside the Lock-in button when
+   the staged attack is thin. Self-clears as the lineup improves; never blocks play. */
+.screen.board > .match-dock .plan-hint {
+  max-width: 360px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.32;
+  color: var(--warn);
+  background: rgba(255, 158, 80, 0.10);
+  border: 1px solid rgba(255, 158, 80, 0.34);
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+
 /* The tactical card is taller than the formation chips beside it; anchor the slot to
    the dock floor so it sits low and compact instead of riding up over the pitch. */
 .screen.board > .match-dock .tactical-slot {

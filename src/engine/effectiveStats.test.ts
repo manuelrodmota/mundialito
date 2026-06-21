@@ -129,10 +129,10 @@ describe("laneStack", () => {
 });
 
 describe("applyFormation (WCC-008)", () => {
-  it("offensive: ATK ×1.25, DEF ×0.75", () => {
+  it("offensive: ATK ×1.18, DEF ×0.82 (v10.1 softened)", () => {
     const r = applyFormation(100, 100, "offensive");
-    expect(r.atk).toBe(125);
-    expect(r.def).toBe(75);
+    expect(r.atk).toBeCloseTo(118, 4);
+    expect(r.def).toBeCloseTo(82, 4);
   });
 
   it("balanced: both ×1.0 (identity)", () => {
@@ -141,10 +141,10 @@ describe("applyFormation (WCC-008)", () => {
     expect(r.def).toBe(100);
   });
 
-  it("defensive: ATK ×0.75, DEF ×1.25", () => {
+  it("defensive: ATK ×0.82, DEF ×1.18 (v10.1 softened)", () => {
     const r = applyFormation(100, 100, "defensive");
-    expect(r.atk).toBe(75);
-    expect(r.def).toBe(125);
+    expect(r.atk).toBeCloseTo(82, 4);
+    expect(r.def).toBeCloseTo(118, 4);
   });
 });
 
@@ -182,7 +182,7 @@ describe("computeEffectiveStats integration", () => {
       board: { attack: [atkCard], defense: [defCard] },
     });
     const { atkEff, defEff } = computeEffectiveStats(s);
-    expect(atkEff).toBeCloseTo(100 * 1.25, 4);
-    expect(defEff).toBeCloseTo(100 * 0.75, 4);
+    expect(atkEff).toBeCloseTo(100 * 1.18, 4);
+    expect(defEff).toBeCloseTo(100 * 0.82, 4);
   });
 });

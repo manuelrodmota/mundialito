@@ -7,7 +7,7 @@
  */
 
 import type { PlayerState } from "./types.ts";
-import { XG_FLOOR, XG_SLOPE, XG_CAP } from "./constants.ts";
+import { XG_FLOOR, XG_SLOPE, XG_CAP, GOAL_THRESHOLD } from "./constants.ts";
 import { clamp } from "./util.ts";
 
 /**
@@ -26,9 +26,9 @@ export function xgAdd(atkEff: number, defEff: number): number {
  */
 export function addXg(state: PlayerState, amount: number, round: number): void {
   state.xg += amount;
-  while (state.xg >= 1) {
+  while (state.xg >= GOAL_THRESHOLD) {
     state.goals += 1;
-    state.xg -= 1;
+    state.xg -= GOAL_THRESHOLD;
     if (state.scoredFirstAt === null) {
       state.scoredFirstAt = round;
     }

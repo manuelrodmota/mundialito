@@ -37,14 +37,21 @@ function tacticalCards(hand: Card[]): TacticalCard[] {
 
 /**
  * Picks the formation based on game state.
- * Defensive when fresh (<= 10 fatigue) and holding a lead.
+ * Defensive when fresh (<= 10 fatigue) and holding a comfortable (2+) lead.
  * Offensive when chasing or when fatigue is high (attack to rest backline).
- * GDD §18 AI heuristic; biases toward opponent.preferredFormation.
+ * While level, ALWAYS balanced — nobody parks the bus (or goes all-out) at 0–0
+ * from kickoff. Team identity shows when protecting a lead / chasing and via
+ * signature tacticals, not as a static formation from the opening whistle.
+ * (Bunkering at 0–0 walled the opening Arcade match; over-attacking goalfested.)
+ * GDD §18 AI heuristic.
  */
 function pickFormation(state: PlayerState, opp: PlayerState, m: MatchState): Formation {
   const goalLead = state.goals - opp.goals;
   const isFresh = state.fatigue <= 10;
-  const isHolding = goalLead > 0;
+  // Only park the bus on a comfortable (2+) lead — bunkering on a slim 1-goal
+  // edge snowballs an early goal into an impenetrable wall (felt unfair in the
+  // opening Arcade match). A 1-goal lead falls through to the neutral stance.
+  const isHolding = goalLead >= 2;
   const isChasing = goalLead < 0;
   const highFatigue = state.fatigue >= 20;
 
@@ -60,7 +67,9 @@ function pickFormation(state: PlayerState, opp: PlayerState, m: MatchState): For
     return "offensive";
   }
 
-  return m.opponent.preferredFormation;
+  // Level (or a slim 1-goal edge): the sane neutral stance — neither bunker
+  // nor all-out. Identity comes through when ahead/behind and via tacticals.
+  return "balanced";
 }
 
 /**
@@ -85,16 +94,22 @@ function pickLanes(
   const premiums = available.filter((c) => c.rarity !== "common");
   const commons = available.filter((c) => c.rarity === "common");
 
+  // Always keep a real back line: never abandon defense to chase the formation
+  // stance. The formation MULTIPLIER (×1.25 atk on offensive) supplies the
+  // attacking bias; the lane split stays football-sane so the AI doesn't get
+  // overrun. Floor ≈ 40% of the cap goes to defense.
+  const defFloor = Math.max(1, Math.ceil(cap * 0.4));
+
   let atkTarget: number;
   let defTarget: number;
 
   switch (formation) {
     case "offensive":
-      atkTarget = Math.ceil(cap * 0.65);
-      defTarget = cap - atkTarget;
+      defTarget = defFloor;
+      atkTarget = cap - defTarget;
       break;
     case "defensive":
-      defTarget = Math.ceil(cap * 0.65);
+      defTarget = Math.max(defFloor, Math.ceil(cap * 0.6));
       atkTarget = cap - defTarget;
       break;
     default:
@@ -102,27 +117,27 @@ function pickLanes(
       defTarget = cap - atkTarget;
   }
 
+  // Sudden death while trailing: push the attack hard, but keep one at the back
+  // (an empty defense just gifts the golden goal).
   if (isChasing && m.extraTime) {
-    atkTarget = cap;
-    defTarget = 0;
+    defTarget = 1;
+    atkTarget = cap - 1;
   }
 
-  const shuffledPremiums = rng.shuffle(premiums);
-  const shuffledCommons = rng.shuffle(commons);
-
-  const attack: PlayerCard[] = [];
-  const defense: PlayerCard[] = [];
-  const pool = [...shuffledPremiums, ...shuffledCommons];
-
-  for (const card of pool) {
-    if (attack.length < atkTarget) {
-      attack.push(card);
-    } else if (defense.length < defTarget) {
-      defense.push(card);
-    } else {
-      break;
-    }
-  }
+  // Field the best attackers up front and the best defenders at the back, so
+  // premium DEF cards actually defend (they used to get dumped into attack).
+  // rng tie-breaks keep variety without scrambling the position split.
+  void premiums;
+  void commons;
+  // Precompute a per-card tie-break once (a comparator must be consistent —
+  // calling rng.next() inside it would compare a pair differently each time).
+  const jitter = new Map(available.map((c) => [c.id, rng.next()]));
+  const tb = (c: PlayerCard) => jitter.get(c.id) ?? 0;
+  const byAtk = [...available].sort((a, b) => b.atk - a.atk || tb(b) - tb(a));
+  const attack = byAtk.slice(0, Math.max(0, atkTarget));
+  const rest = available.filter((c) => !attack.includes(c));
+  const byDef = rest.sort((a, b) => b.def - a.def || tb(b) - tb(a));
+  const defense = byDef.slice(0, Math.max(0, defTarget));
 
   return { attack, defense };
 }
@@ -258,18 +273,21 @@ export function decideTurn(m: MatchState, aiIdx: 0 | 1, rng: Rng): AiDecision {
     tempState.board.defense.push({ card, lane: "defense", statuses: [], faceDown: true });
   }
 
-  let finalAttack = attack;
-  let finalDefense = defense;
+  const finalAttack = [...attack];
+  const finalDefense = [...defense];
 
-  if (!validLineup(tempState, m.round)) {
-    finalAttack = attack.slice(0, 1);
-    finalDefense = [];
+  // Trim to a legal lineup by dropping the weakest card from the larger lane
+  // (keeps the lineup as full as stamina allows instead of collapsing to one).
+  const syncTemp = () => {
     tempState.board.attack = finalAttack.map((c) => ({ card: c, lane: "attack" as const, statuses: [], faceDown: true }));
-    tempState.board.defense = [];
-    if (!validLineup(tempState, m.round)) {
-      finalAttack = [];
-      finalDefense = [];
-    }
+    tempState.board.defense = finalDefense.map((c) => ({ card: c, lane: "defense" as const, statuses: [], faceDown: true }));
+  };
+  let trimGuard = 0;
+  while (!validLineup(tempState, m.round) && trimGuard++ < 12) {
+    if (finalDefense.length >= finalAttack.length && finalDefense.length > 0) finalDefense.pop();
+    else if (finalAttack.length > 0) finalAttack.pop();
+    else break;
+    syncTemp();
   }
 
   commitAiCards(state, finalAttack, finalDefense, chosenTacticals);
