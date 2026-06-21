@@ -1,6 +1,7 @@
 export { Arcade } from './Arcade'
 export { DeckBuilder } from './DeckBuilder'
 export { DifficultyPicker } from './DifficultyPicker'
+export { HowToPlay } from './HowToPlay'
 export { LockerRoom } from './LockerRoom'
 export { Quickplay } from './Quickplay'
 export { ResultScreen } from './ResultScreen'

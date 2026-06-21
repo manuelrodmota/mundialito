@@ -97,7 +97,8 @@ export function Lane({ id, kind, label, children, lw = 92, fx = null, count = 0,
           {fx.lossPct >= 1 && (
             <span
               className="fx-pill stack"
-              title={`Diminishing returns — a lane's contributions are weighted high→low (×1.00 / 0.85 / 0.70 / 0.55 / 0.40 / 0.25). These ${count} cards together output ${100 - fx.lossPct}% of their raw stats. A few strong cards beat a wall.`}
+              tabIndex={0}
+              onClick={(e) => e.stopPropagation()}
             >
               <svg
                 viewBox="0 0 24 24"
@@ -111,14 +112,26 @@ export function Lane({ id, kind, label, children, lw = 92, fx = null, count = 0,
                 <rect x="9" y="3" width="12" height="12.5" rx="2.2" fill="rgba(40,18,8,0.92)" />
               </svg>
               −{fx.lossPct}% stacked
+              <span className="fx-tip" role="tooltip">
+                <b>Crowded lane</b>
+                Piling cards into one lane gives diminishing returns. These {count} cards play at{' '}
+                <b className="inl">{100 - fx.lossPct}%</b> of their combined stats — a few strong
+                cards beat a big crowd.
+              </span>
             </span>
           )}
           {fx.starcore && fx.saved > 0 && (
             <span
               className="fx-pill core"
-              title={`Star core — a premium card anchors this lane, so every other card in it is half-price (min 1). You save ${fx.saved}⚡ this round.`}
+              tabIndex={0}
+              onClick={(e) => e.stopPropagation()}
             >
               ★ −{fx.saved}⚡ star core
+              <span className="fx-tip" role="tooltip">
+                <b>Star core</b>
+                A star anchors this lane, so every other card here costs half stamina (min 1). You
+                save <b className="inl">{fx.saved}⚡</b> this round.
+              </span>
             </span>
           )}
         </div>

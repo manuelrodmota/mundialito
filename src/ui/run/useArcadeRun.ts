@@ -127,6 +127,8 @@ export interface UseArcadeRunReturn {
   setCaptain: (id: string) => void
   removeDeckCard: (id: string) => void
   proceedToNextStage: () => void
+  /** Abandon the active run mid-match and return to squad selection (the deck builder). */
+  surrenderRun: () => void
 }
 
 function buildSideReport(p: PlayerState, xg: number, scored: boolean): SideReport {
@@ -524,6 +526,21 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
     }
   }, [runState])
 
+  const surrenderRun = useCallback(() => {
+    matchRef.current = null
+    goalCounterRef.current = 0
+    setRunState(null)
+    setMatchSnapshot(null)
+    setPhase('building')
+    setError(null)
+    setGoalEvents([])
+    setOpponentIntent(null)
+    setRevealBoardsState(null)
+    setRoundReport(null)
+    setReward(null)
+    setNextOpponentState(null)
+  }, [])
+
   const canCommit =
     matchSnapshot !== null &&
     matchSnapshot.winner === null &&
@@ -555,6 +572,7 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
     setCaptain,
     removeDeckCard,
     proceedToNextStage,
+    surrenderRun,
   }
 }
 

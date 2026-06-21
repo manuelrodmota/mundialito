@@ -19,8 +19,10 @@ import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { crestSrc } from '../../data/nations'
 import { XGFloat } from '../Lanes'
-import { Overlay } from '../Modal'
+import { Modal, Overlay } from '../Modal'
 import { Goal } from '../Goal'
+import { CoachMarks } from '../CoachMarks'
+import { MATCH_ONBOARDING_STEPS } from '../CoachMarks/steps'
 
 const ROUND_TO_MINUTE = (round: number, extraTime: boolean): string => {
   if (extraTime) return `90+${(round - 10) * 9}'`
@@ -70,6 +72,40 @@ function sideNote(who: string, s: SideReport): string {
   if (s.synAtk > 0 || s.synDef > 0) parts.push(`chemistry +${s.synAtk}/${s.synDef}`)
   if (s.fatigue > 0) parts.push(`fatigue ${s.fatigue} → DEF ×${s.fatigueDefMult.toFixed(2)}`)
   return `${who} — ${parts.join(' · ')}`
+}
+
+// --- Friendly round-report language (numbers move to the collapsible "Show the numbers"). ---
+
+const STANCE_WORD: Record<Formation, string> = {
+  offensive: 'on the front foot',
+  balanced: 'balanced',
+  defensive: 'sitting deep',
+}
+
+/** Turns a round's xG gain into plain-language chance quality. */
+function chanceWord(xg: number): string {
+  if (xg >= 0.6) return 'a golden chance'
+  if (xg >= 0.35) return 'a big chance'
+  if (xg >= 0.2) return 'a clear chance'
+  if (xg >= 0.1) return 'a half-chance'
+  return 'barely a sniff'
+}
+
+/** A friendly one-line setup read for a side. */
+function friendlySide(who: string, s: SideReport, xg: number): string {
+  return `${who} — ${STANCE_WORD[s.formation]}, created ${chanceWord(xg)} (${xg.toFixed(2)} xG).`
+}
+
+/** Headline that says what actually happened this round, in football language. */
+function summaryLine(r: RoundReport, oppName: string): string {
+  const you = r.youGoalsThisRound > 0
+  const them = r.themGoalsThisRound > 0
+  if (you && them) return 'End to end — a goal apiece this round.'
+  if (you) return 'Clinical — you buried your chance.'
+  if (them) return `${oppName} punished you with a goal.`
+  if (r.youXg > r.themXg * 1.25) return 'You had the better of this round.'
+  if (r.themXg > r.youXg * 1.25) return `${oppName} pressed harder that round.`
+  return 'A cagey, even round — no goals.'
 }
 
 function DraggableCard({
@@ -179,7 +215,30 @@ interface MatchBoardProps {
    * balance levers without importing engine runtime. Omit to hide the lane-group indicators.
    */
   laneFx?: (cards: PlayerCard[], lane: 'attack' | 'defense') => LaneFx | null
+  /** Run the one-time first-match coach-mark tour (shown on round 1 of the planning phase). */
+  onboarding?: boolean
+  /** Called when the player finishes or skips the coach-mark tour. */
+  onOnboardingDone?: () => void
+  /** When provided, shows a control that bails out of the match (Surrender run / Quit match). */
+  onSurrender?: () => void
+  /** Tunes the bail-out copy: 'run' (Arcade — abandon the whole run) or 'match' (Quickplay). */
+  surrenderKind?: 'run' | 'match'
 }
+
+const SURRENDER_COPY = {
+  run: {
+    button: '🏳 Surrender run',
+    title: 'Give up the run?',
+    body: "Your run ends here and you'll head back to squad selection to build a new team. This can't be undone.",
+    confirm: 'Surrender run',
+  },
+  match: {
+    button: '🏳 Quit match',
+    title: 'Quit this match?',
+    body: "You'll leave the match and return to the main menu. No result is saved.",
+    confirm: 'Quit match',
+  },
+} as const
 
 /**
  * Presentational match board — full pitch layout mirroring Board9.jsx.
@@ -202,7 +261,12 @@ export function MatchBoard({
   roundReport,
   phase = 'playing',
   laneFx,
+  onboarding = false,
+  onOnboardingDone = () => {},
+  onSurrender,
+  surrenderKind = 'run',
 }: MatchBoardProps) {
+  const surrenderCopy = SURRENDER_COPY[surrenderKind]
   const p0 = match.players[0]!
   const p1 = match.players[1]!
 
@@ -212,6 +276,7 @@ export function MatchBoard({
   const [defenseCards, setDefenseCards] = useState<PlayerCard[]>([])
   const [formation, setFormation] = useState<Formation>(p0.formation)
   const [selectedHandId, setSelectedHandId] = useState<string | null>(null)
+  const [showSurrender, setShowSurrender] = useState(false)
 
   // Reveal cinematic, fully sequenced so each beat finishes before the next starts:
   //   1 your-attack clash → 2 YOUR goal (if scored, gated) → 3 their-attack clash
@@ -586,7 +651,7 @@ export function MatchBoard({
 
           <div style={{ marginLeft: 'auto' }}>
             {!isReveal && canCommit && (
-              <button className="btn btn-gold" onClick={handleCommit}>
+              <button className="btn btn-gold" data-coach="commit" onClick={handleCommit}>
                 {committed > 0 ? 'Lock in & reveal' : 'Pass round'}
               </button>
             )}
@@ -603,33 +668,45 @@ export function MatchBoard({
               — full report
             </h4>
             <div className="lines">
-              <div className="line l-note">{sideNote('You', roundReport.you)}</div>
-              <div className="line l-note">{sideNote('They', roundReport.them)}</div>
-              <div className="line l-xg">
-                You +{roundReport.youXg.toFixed(2)} xG — ATK {roundReport.you.atkEff} vs DEF {roundReport.them.defEff}
+              <div className="line l-summary">{summaryLine(roundReport, match.opponent.name)}</div>
+              <div className="line l-side">
+                {friendlySide('You', roundReport.you, roundReport.youXg)}
               </div>
-              <div className="line l-xg to-them">
-                They +{roundReport.themXg.toFixed(2)} xG — ATK {roundReport.them.atkEff} vs DEF {roundReport.you.defEff}
+              <div className="line l-side to-them">
+                {friendlySide(match.opponent.name, roundReport.them, roundReport.themXg)}
               </div>
+
               {roundReport.youGoalsThisRound > 0 && (
                 <div className="line l-goal">
-                  GOAL — you make it {roundReport.youGoalsTotal}–{roundReport.themGoalsTotal}
+                  ⚽ GOAL! You make it {roundReport.youGoalsTotal}–{roundReport.themGoalsTotal}
                 </div>
               )}
               {roundReport.themGoalsThisRound > 0 && (
                 <div className="line l-goal">
-                  GOAL — they make it {roundReport.youGoalsTotal}–{roundReport.themGoalsTotal}
+                  ⚽ GOAL! {match.opponent.name} makes it {roundReport.youGoalsTotal}–{roundReport.themGoalsTotal}
                 </div>
               )}
               {roundReport.you.scored && (
-                <div className="line l-onform">You are ON FORM — +0.10 xG next round</div>
+                <div className="line l-onform">🔥 You're on form — a scoring boost next round.</div>
               )}
               {roundReport.them.scored && (
-                <div className="line l-onform">They are ON FORM — +0.10 xG next round</div>
+                <div className="line l-onform">🔥 {match.opponent.name} are on form — watch out next round.</div>
               )}
               {roundReport.halftime && (
-                <div className="line l-halftime">HALFTIME — benched stars return, fatigue clears for both sides</div>
+                <div className="line l-halftime">🏃 Halftime — your stars are back and legs are fresh.</div>
               )}
+
+              <details className="readout-details">
+                <summary>Show the numbers</summary>
+                <div className="line l-note">{sideNote('You', roundReport.you)}</div>
+                <div className="line l-note">{sideNote('They', roundReport.them)}</div>
+                <div className="line l-xg">
+                  You +{roundReport.youXg.toFixed(2)} xG — ATK {roundReport.you.atkEff} vs DEF {roundReport.them.defEff}
+                </div>
+                <div className="line l-xg to-them">
+                  They +{roundReport.themXg.toFixed(2)} xG — ATK {roundReport.them.atkEff} vs DEF {roundReport.you.defEff}
+                </div>
+              </details>
             </div>
             <button className="btn btn-gold" style={{ width: '100%' }} onClick={onNextRound}>
               {roundReport.decided ? 'See result →' : roundReport.extraTime ? 'Next ET round →' : 'Next round →'}
@@ -668,8 +745,52 @@ export function MatchBoard({
           <span className="fchip" data-f={formation}>
             {FORMATION_LABELS[formation].label} {FORMATION_LABELS[formation].shape}
           </span>
+          {onSurrender && (
+            <button
+              type="button"
+              className="surrender-btn"
+              style={{ marginLeft: 'auto' }}
+              onClick={() => setShowSurrender(true)}
+            >
+              {surrenderCopy.button}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Surrender confirmation — abandons the run and returns to squad selection. */}
+      {onSurrender && (
+        <Modal open={showSurrender} onClose={() => setShowSurrender(false)}>
+          <div className="surrender-modal">
+            <h3>{surrenderCopy.title}</h3>
+            <p>{surrenderCopy.body}</p>
+            <div className="surrender-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowSurrender(false)}
+              >
+                Keep playing
+              </button>
+              <button
+                type="button"
+                className="btn btn-gold"
+                onClick={() => {
+                  setShowSurrender(false)
+                  onSurrender()
+                }}
+              >
+                {surrenderCopy.confirm}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* First-match coach-marks — only on round 1 of the planning phase, once ever. */}
+      {onboarding && !isReveal && !match.extraTime && match.round === 1 && (
+        <CoachMarks steps={MATCH_ONBOARDING_STEPS} onDone={onOnboardingDone} />
+      )}
     </DndContext>
   )
 }

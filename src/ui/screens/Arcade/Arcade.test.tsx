@@ -56,6 +56,7 @@ function makeReturn(overrides: Partial<ArcadeRunViewState> = {}): UseArcadeRunRe
     setCaptain: vi.fn(),
     removeDeckCard: vi.fn(),
     proceedToNextStage: vi.fn(),
+    surrenderRun: vi.fn(),
   }
 }
 

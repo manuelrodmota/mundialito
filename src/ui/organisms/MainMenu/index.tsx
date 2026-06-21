@@ -10,16 +10,8 @@ interface MainMenuProps {
 /** Main mode-select screen — entry point for Quickplay, Arcade Run, Collection, and How to Play. */
 export function MainMenu({ onQuickplay, onArcade, onCollection, onHowToPlay }: MainMenuProps) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 24,
-        padding: '48px 24px',
-      }}
-    >
-      <div style={{ textAlign: 'center', marginBottom: 8 }}>
+    <div className="menu-screen">
+      <div style={{ textAlign: 'center', marginBottom: 8, position: 'relative', zIndex: 1 }}>
         <h1 style={{ fontSize: 36, margin: 0 }}>World Cup Clash</h1>
         <p className="note" style={{ margin: '8px 0 0' }}>
           Build your squad. Score the goals.
@@ -34,6 +26,8 @@ export function MainMenu({ onQuickplay, onArcade, onCollection, onHowToPlay }: M
           gap: 12,
           width: '100%',
           maxWidth: 320,
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         <Button variant="gold" size="big" onClick={onQuickplay}>
