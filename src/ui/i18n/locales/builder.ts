@@ -28,6 +28,7 @@ export const en = {
   // Confirm-label fallback (when squad isn't ready)
   'builder.confirmFallback': '{picks} picks · {used}/{budget} slots',
   'builder.confirmNeedCaptain': ' · pick a captain',
+  'builder.confirmFillBench': 'Fill the bench to confirm',
 
   // Filters
   'builder.wcEdition': 'WC {year}',
@@ -114,6 +115,7 @@ export const es: typeof en = {
   // Confirm-label fallback (when squad isn't ready)
   'builder.confirmFallback': '{picks} selección · {used}/{budget} espacios',
   'builder.confirmNeedCaptain': ' · elige un capitán',
+  'builder.confirmFillBench': 'Llena la banca para confirmar',
 
   // Filters
   'builder.wcEdition': 'WC {year}',

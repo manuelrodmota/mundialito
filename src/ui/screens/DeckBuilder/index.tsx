@@ -194,6 +194,7 @@ export function DeckBuilder({
 
   function handleConfirm() {
     if (!captainId || isOverBudget || picks.length === 0) return
+    if (benchCommons.length < Math.max(0, rosterSize - picks.length)) return
 
     const rng = makeRng(fillSeed * 31337)
 
@@ -247,7 +248,15 @@ export function DeckBuilder({
     )
   }
 
-  const canConfirm = hasCaptain && !isOverBudget && picks.length > 0
+  const benchNeeded = Math.max(0, rosterSize - picks.length)
+  // The squad isn't ready until the bench is rolled (or premiums already fill the roster) — this
+  // forces the player to roll + see their full squad before confirming. Changing a pick clears
+  // benchCommons (see handleAddPlayer/handleRemovePlayer), so the bench must be re-rolled after edits.
+  const benchFilled = benchCommons.length >= benchNeeded
+  const canConfirm = hasCaptain && !isOverBudget && picks.length > 0 && benchFilled
+  // Once the slot budget is spent, rolling the bench is the only remaining step — glow the
+  // Fill button to point the player there.
+  const shouldGlowFill = !benchFilled && slotsUsed >= playerBudget
   const totalPicks = picks.length + benchCommons.length
 
   const gks = picks.filter((p) => p.position === 'GK').length
@@ -256,8 +265,10 @@ export function DeckBuilder({
 
   const confirmLabel = canConfirm
     ? t('builder.confirm')
-    : t('builder.confirmFallback', { picks: picks.length, used: slotsUsed, budget: playerBudget }) +
-      (hasCaptain ? '' : t('builder.confirmNeedCaptain'))
+    : hasCaptain && !isOverBudget && picks.length > 0 && !benchFilled
+      ? t('builder.confirmFillBench')
+      : t('builder.confirmFallback', { picks: picks.length, used: slotsUsed, budget: playerBudget }) +
+        (hasCaptain ? '' : t('builder.confirmNeedCaptain'))
 
   const groups: [string, (PlayerCard | TacticalCard)[]][] = [
     [t('builder.groupLegendaries'), picks.filter((p) => p.rarity === 'legendary')],
@@ -440,7 +451,7 @@ export function DeckBuilder({
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button
-              className="btn btn-ghost"
+              className={`btn btn-ghost${shouldGlowFill ? ' glow-cta' : ''}`}
               style={{ flex: 1, padding: '9px 10px', fontSize: 13 }}
               onClick={handleFillCommons}
               disabled={commonPool.length === 0}
