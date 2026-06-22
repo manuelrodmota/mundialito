@@ -2,6 +2,12 @@
 
 > A **Slay the Spire–style arcade roguelike** themed on World Cup football. You don't drain an HP bar — **you score goals**, driven by **expected goals (xG)**.
 
+<p align="center">
+  <a href="https://mundialito-rho.vercel.app/">
+    <img src="https://img.shields.io/badge/▶_PLAY_NOW-mundialito--rho.vercel.app-2ea44f?style=for-the-badge&logo=vercel&logoColor=white" alt="Play World Cup Clash now">
+  </a>
+</p>
+
 Build a squad from footballers across every World Cup in history and take it on a **7-match knockout run** to the Final against the **historic champions of the world** — or jump into a single **Quickplay** match at the difficulty you pick. Each round (a slice of the match clock) you choose a **formation**, secretly field a **capped lineup** across **attack/defense lanes**, and play single-use **Tactical Cards** your opponent can see coming. Your **star players are once-per-half trumps**, and **fatigue** means you can't park the bus forever.
 
 The complete design is the game design document, **[`APP_DEFINITION.md`](./APP_DEFINITION.md) (GDD v10)** — read it first for any gameplay work.
