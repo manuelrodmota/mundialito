@@ -120,7 +120,7 @@ describe('LockerRoom', () => {
     expect(onClaim).toHaveBeenCalledWith(rewardPlayer, 'tac1')
   })
 
-  it('fires onClaim with player only when no tactical is selected', async () => {
+  it('disables Accept Rewards until a tactical is selected when an offer is present', async () => {
     const onClaim = vi.fn()
     render(
       <LockerRoom
@@ -134,8 +134,14 @@ describe('LockerRoom', () => {
         onContinue={vi.fn()}
       />,
     )
+    // With a tactical on offer, claiming requires a deliberate pick (else "Accept Rewards"
+    // would silently take none); the skip path is the "Continue without rewards" link.
+    expect(screen.getByRole('button', { name: /accept rewards/i })).toBeDisabled()
     await userEvent.click(screen.getByRole('button', { name: /accept rewards/i }))
-    expect(onClaim).toHaveBeenCalledWith(rewardPlayer)
+    expect(onClaim).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByText('Tiki-Taka'))
+    expect(screen.getByRole('button', { name: /accept rewards/i })).toBeEnabled()
   })
 
   it('shows cap warning and requires exile when atCap is true', async () => {
@@ -205,7 +211,8 @@ describe('LockerRoom', () => {
     expect(onSetCaptain).toHaveBeenCalledWith('p2')
   })
 
-  it('fires onContinue when the Continue button is clicked', async () => {
+  it('claims the player only from "Continue with just the player"', async () => {
+    const onClaim = vi.fn()
     const onContinue = vi.fn()
     render(
       <LockerRoom
@@ -213,14 +220,35 @@ describe('LockerRoom', () => {
         deck={deck}
         captainId="cap1"
         nextOpponent={opponent}
-        onClaim={vi.fn()}
+        onClaim={onClaim}
         onSwap={vi.fn()}
         onSetCaptain={vi.fn()}
         onContinue={onContinue}
       />,
     )
-    await userEvent.click(screen.getByRole('button', { name: /continue/i }))
+    await userEvent.click(screen.getByRole('button', { name: /continue with just the player/i }))
+    expect(onClaim).toHaveBeenCalledWith(rewardPlayer)
+    expect(onContinue).not.toHaveBeenCalled()
+  })
+
+  it('fires onContinue from the next-opponent Continue button (skips all rewards)', async () => {
+    const onClaim = vi.fn()
+    const onContinue = vi.fn()
+    render(
+      <LockerRoom
+        reward={baseReward}
+        deck={deck}
+        captainId="cap1"
+        nextOpponent={opponent}
+        onClaim={onClaim}
+        onSwap={vi.fn()}
+        onSetCaptain={vi.fn()}
+        onContinue={onContinue}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(onContinue).toHaveBeenCalledOnce()
+    expect(onClaim).not.toHaveBeenCalled()
   })
 
   it('shows the next opponent preview in the right column', () => {

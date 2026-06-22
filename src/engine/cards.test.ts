@@ -121,6 +121,42 @@ describe("drawToHand", () => {
     drawToHand(s, rng);
     expect(s.hand).toHaveLength(0);
   });
+
+  it("counts only player cards toward HAND_SIZE — held tacticals are extras", () => {
+    const players = Array.from({ length: 6 }, (_, i) =>
+      makePlayerCard({ id: `p${i}`, rarity: "common" }),
+    );
+    const s = makeState({
+      hand: [makeTactical("t1"), makeTactical("t2")],
+      drawPile: players,
+    });
+    drawToHand(s, makeRng(42));
+    // Drew a full 5 PLAYERS despite the two held tacticals...
+    expect(s.hand.filter((c) => c.type === "player")).toHaveLength(5);
+    // ...and the tacticals stay in hand as extras (total can exceed HAND_SIZE).
+    expect(s.hand.filter((c) => c.type === "tactical")).toHaveLength(2);
+    expect(s.hand).toHaveLength(7);
+    expect(s.drawPile).toHaveLength(1);
+  });
+
+  it("a tactical drawn this round counts toward the 5 — never digs for a 6th card", () => {
+    const s = makeState({
+      drawPile: [
+        makePlayerCard({ id: "p0", rarity: "common" }),
+        makePlayerCard({ id: "p1", rarity: "common" }),
+        makePlayerCard({ id: "p2", rarity: "common" }),
+        makePlayerCard({ id: "p3", rarity: "common" }),
+        makeTactical("t1"),
+        makePlayerCard({ id: "p4", rarity: "common" }),
+      ],
+    });
+    drawToHand(s, makeRng(42));
+    // Drew exactly 5 (4 players + the tactical); the 6th card is left in the pile.
+    expect(s.hand).toHaveLength(5);
+    expect(s.hand.filter((c) => c.type === "player")).toHaveLength(4);
+    expect(s.hand.filter((c) => c.type === "tactical")).toHaveLength(1);
+    expect(s.drawPile).toHaveLength(1);
+  });
 });
 
 describe("refreshStamina", () => {

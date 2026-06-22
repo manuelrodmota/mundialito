@@ -2,8 +2,13 @@ import type { RunState, OpponentTeam } from '../../../engine/types'
 import type { RunNodeData } from '../../organisms/Ladder'
 import { Ladder } from '../../organisms/Ladder'
 import { NextPanel } from '../../organisms/NextPanel'
+import { opponents } from '../../../data'
+import { teamBadge } from '../../data/nations'
 import { useLang } from '../../i18n'
 import type { Translate } from '../../i18n'
+
+/** Opponent lookup by id — `runState.defeated` stores ids, so resolve them to nation + crest. */
+const OPPONENT_BY_ID = new Map(opponents.map((o) => [o.id, o]))
 
 interface RunMapProps {
   runState: RunState
@@ -34,10 +39,15 @@ const STAGE_DISPLAY_KEYS: string[] = [
 
 /** Maps the linear 7-match run into bracket ladder nodes.
  *
- * Each stage node carries done/now/final state derived from matchIndex + alive,
- * plus the beaten opponent name when the stage was won.
+ * Each stage node carries done/now/final state derived from matchIndex + alive. A finished
+ * stage shows the beaten opponent's crest + name in its circle; the active stage shows the
+ * next opponent's crest. Future stages stay a mystery (just the number).
  */
-function buildLadderNodes(runState: RunState, t: Translate): RunNodeData[] {
+function buildLadderNodes(
+  runState: RunState,
+  nextOpponent: OpponentTeam | null,
+  t: Translate,
+): RunNodeData[] {
   const { matchIndex, defeated, alive } = runState
 
   return STAGE_ORDER.map((stage, i) => {
@@ -45,13 +55,21 @@ function buildLadderNodes(runState: RunState, t: Translate): RunNodeData[] {
     const isNow = i === matchIndex && alive
     const isFinal = stage === 'final'
 
+    const beatenOpp = isDone ? OPPONENT_BY_ID.get(defeated[i] ?? '') : undefined
+    const crest = isDone
+      ? (beatenOpp ? teamBadge(beatenOpp.nation) : null)
+      : isNow && nextOpponent
+        ? teamBadge(nextOpponent.nation)
+        : null
+
     return {
       stage: t(STAGE_DISPLAY_KEYS[i] ?? STAGE_LABEL_KEYS[stage]),
       number: i + 1,
       done: isDone,
       now: isNow,
       final: isFinal,
-      beaten: isDone ? defeated[i] : undefined,
+      beaten: isDone ? (beatenOpp?.nation ?? defeated[i]) : undefined,
+      crest: crest ?? undefined,
     }
   })
 }
@@ -61,7 +79,7 @@ function buildLadderNodes(runState: RunState, t: Translate): RunNodeData[] {
  */
 export function RunMap({ runState, nextOpponent, onPlayNext, onBack }: RunMapProps) {
   const { t } = useLang()
-  const nodes = buildLadderNodes(runState, t)
+  const nodes = buildLadderNodes(runState, nextOpponent, t)
   const isFinalStage = runState.stage === 'final'
   const currentStageLabel = t(STAGE_DISPLAY_KEYS[runState.matchIndex] ?? STAGE_LABEL_KEYS[runState.stage])
 
