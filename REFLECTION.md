@@ -78,7 +78,9 @@ AI was the entire *toolchain* we built it with.
   and every match you win, you **keep the players you're rewarded** — with richer rewards for
   harder opponents. That turns each run into a build. Your deck grows out of your victories,
   tougher matches become worth the risk, and the XI you finish with is a record of how you got
-  there — exactly the "one more run" hook that makes roguelikes stick.
+  there — exactly the "one more run" hook that makes roguelikes stick. The **Collection** button
+  already sits on the menu as a "coming soon" placeholder — that's its home: a gallery of every
+  player you've earned, growing run over run.
 - **Online play & a shared leaderboard.** Right now you battle historic AI teams; the obvious next
   beat is asynchronous PvP — draft a squad, challenge a friend's deck, climb a ladder. The
   meta-progression and leaderboard layer was always planned as "V3," and a week would let us land
