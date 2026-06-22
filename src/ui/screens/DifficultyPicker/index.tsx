@@ -1,17 +1,20 @@
 import type { Difficulty } from '../../quickplay/useQuickplayMatch'
+import { useLang } from '../../i18n'
 
 interface DifficultyOption {
   difficulty: Difficulty
-  label: string
+  /** i18n key for the human-readable difficulty name. */
+  labelKey: string
   tier: string
-  description: string
+  /** i18n key for the descriptive blurb. */
+  descKey: string
 }
 
 const DIFFICULTY_OPTIONS: DifficultyOption[] = [
-  { difficulty: 'easy', label: 'Easy', tier: 'D', description: 'A friendly warm-up match against a developing side.' },
-  { difficulty: 'medium', label: 'Medium', tier: 'C', description: 'A balanced contest — expect a proper game.' },
-  { difficulty: 'hard', label: 'Hard', tier: 'B', description: 'A formidable opponent. You\'ll need your best XI.' },
-  { difficulty: 'legendary', label: 'Legendary', tier: 'S', description: 'A champion side. Prepare for a battle.' },
+  { difficulty: 'easy', labelKey: 'screens.diffEasyLabel', tier: 'D', descKey: 'screens.diffEasyDesc' },
+  { difficulty: 'medium', labelKey: 'screens.diffMediumLabel', tier: 'C', descKey: 'screens.diffMediumDesc' },
+  { difficulty: 'hard', labelKey: 'screens.diffHardLabel', tier: 'B', descKey: 'screens.diffHardDesc' },
+  { difficulty: 'legendary', labelKey: 'screens.diffLegendaryLabel', tier: 'S', descKey: 'screens.diffLegendaryDesc' },
 ]
 
 interface DifficultyPickerProps {
@@ -30,17 +33,18 @@ export function DifficultyPicker({
   onBack,
   loading = false,
 }: DifficultyPickerProps) {
+  const { t } = useLang()
   return (
     <div className="screen menu">
       <div className="stadium-bg"></div>
       <div className="logo-block">
-        <div className="kicker">Quickplay</div>
-        <h1>Choose difficulty</h1>
-        <div className="sub">Difficulty sets your opponent&apos;s tier — from developing sides (D) up to world champions (S).</div>
+        <div className="kicker">{t('screens.diffKicker')}</div>
+        <h1>{t('screens.diffTitle')}</h1>
+        <div className="sub">{t('screens.diffSubtitle')}</div>
       </div>
 
       <div className="actions">
-        {DIFFICULTY_OPTIONS.map(({ difficulty, label, tier, description }) => {
+        {DIFFICULTY_OPTIONS.map(({ difficulty, labelKey, tier, descKey }) => {
           const isSelected = selected === difficulty
           const btnCls = [
             'btn',
@@ -57,8 +61,8 @@ export function DifficultyPicker({
             >
               <span className="dp-tier">{tier}</span>
               {' '}
-              <span className="dp-label">{label}</span>
-              <span className="dp-desc"> — {description}</span>
+              <span className="dp-label">{t(labelKey)}</span>
+              <span className="dp-desc"> — {t(descKey)}</span>
             </button>
           )
         })}
@@ -71,10 +75,10 @@ export function DifficultyPicker({
           onClick={onConfirm}
           disabled={loading}
         >
-          {loading ? 'Finding opponent…' : 'Kick off'}
+          {loading ? t('screens.diffFinding') : t('screens.diffKickOff')}
         </button>
         <button type="button" className="btn btn-ghost btn-big" onClick={onBack}>
-          Back
+          {t('screens.diffBack')}
         </button>
       </div>
     </div>

@@ -1,3 +1,5 @@
+import { useLang } from '../../i18n'
+
 interface StaminaMeterProps {
   current: number
   max: number
@@ -33,10 +35,11 @@ interface XGMeterProps {
   mine?: boolean
 }
 
-const HEAT_LABELS = ['Fresh', 'Warm', 'Hot', 'Gassed'] as const
+const HEAT_KEYS = ['match.heat.fresh', 'match.heat.warm', 'match.heat.hot', 'match.heat.gassed'] as const
 
 /** xG progress meter with fatigue heat colouring (data-heat 0–3). */
 export function XGMeter({ goals, xg, heat, label, mine = false }: XGMeterProps) {
+  const { t } = useLang()
   const pct = Math.min(100, Math.round(xg * 100))
   return (
     <div className={`xgm4${mine ? ' mine' : ''}`} data-heat={heat}>
@@ -49,7 +52,7 @@ export function XGMeter({ goals, xg, heat, label, mine = false }: XGMeterProps) 
       </div>
       <div className="xgm-sub">
         <span>{label}</span>
-        <span className="heat-tag">{HEAT_LABELS[heat]}</span>
+        <span className="heat-tag">{t(HEAT_KEYS[heat])}</span>
       </div>
     </div>
   )

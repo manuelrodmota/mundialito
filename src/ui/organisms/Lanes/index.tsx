@@ -10,6 +10,7 @@ import {
 import type { ReactElement, ReactNode, CSSProperties } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import type { LaneFx } from '../../../engine/effectiveStats'
+import { useLang } from '../../i18n'
 
 interface LaneProps {
   id: string
@@ -37,6 +38,7 @@ interface LaneProps {
  * resolution; this component only renders them.
  */
 export function Lane({ id, kind, label, children, lw = 92, fx = null, count = 0, onZoneClick, cls }: LaneProps) {
+  const { t } = useLang()
   const { setNodeRef, isOver } = useDroppable({ id })
   const laneRef = useRef<HTMLDivElement | null>(null)
   const [pack, setPack] = useState<{ ovl: number | null; dx: number }>({ ovl: null, dx: 0 })
@@ -111,12 +113,10 @@ export function Lane({ id, kind, label, children, lw = 92, fx = null, count = 0,
                 <rect x="3" y="8.5" width="12" height="12.5" rx="2.2" />
                 <rect x="9" y="3" width="12" height="12.5" rx="2.2" fill="rgba(40,18,8,0.92)" />
               </svg>
-              −{fx.lossPct}% stacked
+              {t('match.fx.stacked', { n: fx.lossPct })}
               <span className="fx-tip" role="tooltip">
-                <b>Crowded lane</b>
-                Piling cards into one lane gives diminishing returns. These {count} cards play at{' '}
-                <b className="inl">{100 - fx.lossPct}%</b> of their combined stats — a few strong
-                cards beat a big crowd.
+                <b>{t('match.fx.crowdedTitle')}</b>
+                {t('match.fx.crowdedBody', { count, pct: 100 - fx.lossPct })}
               </span>
             </span>
           )}
@@ -126,11 +126,10 @@ export function Lane({ id, kind, label, children, lw = 92, fx = null, count = 0,
               tabIndex={0}
               onClick={(e) => e.stopPropagation()}
             >
-              ★ −{fx.saved}⚡ star core
+              {t('match.fx.starCore', { n: fx.saved })}
               <span className="fx-tip" role="tooltip">
-                <b>Star core</b>
-                A star anchors this lane, so every other card here costs half stamina (min 1). You
-                save <b className="inl">{fx.saved}⚡</b> this round.
+                <b>{t('match.fx.starCoreTitle')}</b>
+                {t('match.fx.starCoreBody', { n: fx.saved })}
               </span>
             </span>
           )}
@@ -155,15 +154,16 @@ interface ClashBadgeProps {
 
 /** Clash badge showing ATK vs DEF totals and surplus. */
 export function ClashBadge({ atk, def, diff }: ClashBadgeProps) {
+  const { t } = useLang()
   return (
     <div className="clash4" style={{ position: 'static', transform: 'none' }}>
       <div className="row4">
         <span className="num atk">{atk}</span>
-        <span className="x">VS</span>
+        <span className="x">{t('match.clash.vs')}</span>
         <span className="num def">{def}</span>
       </div>
       {diff !== undefined && (
-        <span className="res dmg">+{diff} on goal</span>
+        <span className="res dmg">{t('match.clash.onGoal', { n: diff })}</span>
       )}
     </div>
   )
@@ -175,10 +175,11 @@ interface DmgFloatProps {
 
 /** Floating damage/xG feedback number. */
 export function DmgFloat({ value }: DmgFloatProps) {
+  const { t } = useLang()
   const isHeld = value === 'HELD'
   return (
     <span className={`dmg-float${isHeld ? ' zero' : ''}`} style={{ position: 'static' }}>
-      {isHeld ? 'HELD' : value}
+      {isHeld ? t('match.float.held') : value}
     </span>
   )
 }
@@ -189,11 +190,12 @@ interface XGFloatProps {
 }
 
 /** Floating xG gain annotation. */
-export function XGFloat({ amount, label = 'xG · clear chance' }: XGFloatProps) {
+export function XGFloat({ amount, label }: XGFloatProps) {
+  const { t } = useLang()
   return (
     <div className="xg-float4" style={{ position: 'static' }}>
       <span className="amt">+{amount.toFixed(2)}</span>
-      <span className="pt">{label}</span>
+      <span className="pt">{label ?? t('match.xg.clearChance')}</span>
     </div>
   )
 }

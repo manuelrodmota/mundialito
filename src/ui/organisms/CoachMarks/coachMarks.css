@@ -42,13 +42,13 @@
   animation: coach-pop-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.coach-pop.place-above { transform: translateY(-100%); }
+/* Placement is computed as a numeric top/left in JS (clamped to the viewport), so
+   above/below need no transform — only the centered no-target case offsets itself. */
 .coach-pop.centered { left: 50% !important; top: 50% !important; transform: translate(-50%, -50%); }
 
 @keyframes coach-pop-in {
   from { opacity: 0; transform: translateY(6px) scale(0.97); }
 }
-.coach-pop.place-above { animation: none; }
 
 .coach-step {
   font-size: 11px;

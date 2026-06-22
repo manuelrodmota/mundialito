@@ -1,5 +1,29 @@
 import type { Card } from '../../../engine/types'
 import { CardModal } from '../CardModal'
+import { useLang } from '../../i18n'
+
+/** Maps a tactical effect kind to its translation key (resolved via `t()` in the component). */
+const TACTICAL_DESCRIPTION_KEYS: Record<string, string> = {
+  var: 'builder.tacVar',
+  offsideTrap: 'builder.tacOffsideTrap',
+  referee: 'builder.tacReferee',
+  injury: 'builder.tacInjury',
+  waterBreak: 'builder.tacWaterBreak',
+  substitution: 'builder.tacSubstitution',
+  tikiTaka: 'builder.tacTikiTaka',
+  catenaccio: 'builder.tacCatenaccio',
+  counterAttack: 'builder.tacCounterAttack',
+  highPress: 'builder.tacHighPress',
+  longBall: 'builder.tacLongBall',
+  nutmeg: 'builder.tacNutmeg',
+  penalty: 'builder.tacPenalty',
+  teamTalk: 'builder.tacTeamTalk',
+  timeWasting: 'builder.tacTimeWasting',
+  handOfGod: 'builder.tacHandOfGod',
+  fortress: 'builder.tacFortress',
+  talisman: 'builder.tacTalisman',
+  totalFootball: 'builder.tacTotalFootball',
+}
 
 const TACTICAL_DESCRIPTIONS: Record<string, string> = {
   var: 'VAR Review — overturns one opponent card, nullifying its ATK or DEF contribution this round.',
@@ -46,11 +70,14 @@ export function CardDetailModal({
   fieldCost,
   teamBlurb,
 }: CardDetailModalProps) {
+  const { t } = useLang()
   if (!card) return null
 
   const tacticDescription =
     card.type === 'tactical'
-      ? (TACTICAL_DESCRIPTIONS[card.effect.kind] ?? `${card.name} — no description available.`)
+      ? (TACTICAL_DESCRIPTION_KEYS[card.effect.kind]
+          ? t(TACTICAL_DESCRIPTION_KEYS[card.effect.kind])
+          : t('builder.tacNoDescription', { name: card.name }))
       : undefined
 
   return (

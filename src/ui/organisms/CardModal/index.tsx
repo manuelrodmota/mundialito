@@ -3,12 +3,20 @@ import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { Button } from '../../atoms/Button'
 import { Modal } from '../Modal'
+import { useLang } from '../../i18n'
 
-const ROLE_TEXT: Record<string, string> = {
-  FWD: 'Forward — full ATK going forward, soft at the back (DEF = 55% of overall).',
-  MID: 'Midfielder — balanced (85% ATK / 78% DEF). 2+ MIDs played = +1 stamina next round.',
-  DEF: 'Defender — a wall (full DEF), limited going forward (55% ATK).',
-  GK: 'Goalkeeper — defense lane only. DEF = overall +5, ATK 0.',
+const ROLE_KEY: Record<string, string> = {
+  FWD: 'card.roleFwd',
+  MID: 'card.roleMid',
+  DEF: 'card.roleDef',
+  GK: 'card.roleGk',
+}
+
+const RARITY_KEY: Record<string, string> = {
+  common: 'card.rarityCommon',
+  rare: 'card.rarityRare',
+  epic: 'card.rarityEpic',
+  legendary: 'card.rarityLegendary',
 }
 
 const RARITY_MULT: Record<string, string> = {
@@ -38,12 +46,14 @@ export function CardModal({
   tacticDescription,
   fieldCost,
 }: CardModalProps) {
+  const { t } = useLang()
   if (!card) return null
 
   const isPlayer = card.type === 'player'
   const pc = isPlayer ? (card as PlayerCard) : null
   const tc = !isPlayer ? (card as TacticalCard) : null
   const mult = pc ? RARITY_MULT[pc.rarity] : undefined
+  const slotWord = (n: number) => t(n === 1 ? 'card.slot' : 'card.slots')
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -70,41 +80,53 @@ export function CardModal({
         {isPlayer && pc ? (
           <>
             <div className="tag">
-              {pc.nation} · World Cup {pc.worldCup} · {pc.rarity.toUpperCase()} · {pc.slots} slot
-              {pc.slots === 1 ? '' : 's'}
+              {t('card.tagPlayer', {
+                nation: pc.nation,
+                wc: pc.worldCup,
+                rarity: t(RARITY_KEY[pc.rarity] ?? 'card.rarityCommon').toUpperCase(),
+                slots: pc.slots,
+                slotWord: slotWord(pc.slots),
+              })}
             </div>
             <div className="ab">
               <b>
                 ATK {pc.atk} / DEF {pc.def}.
               </b>{' '}
-              {ROLE_TEXT[pc.position]}
+              {t(ROLE_KEY[pc.position])}
             </div>
             {showMult && mult && (
               <div className="ab">
-                <b>Star quality.</b>{' '}
-                {pc.rarity.charAt(0).toUpperCase() + pc.rarity.slice(1)} cards contribute ×{mult}{' '}
-                their stats each round — an effective ATK {Math.round(pc.atk * parseFloat(mult))} /
-                DEF {Math.round(pc.def * parseFloat(mult))}.
+                <b>{t('card.starQuality')}</b>{' '}
+                {t('card.starQualityBody', {
+                  rarity: t(RARITY_KEY[pc.rarity] ?? 'card.rarityCommon'),
+                  mult,
+                  atk: Math.round(pc.atk * parseFloat(mult)),
+                  def: Math.round(pc.def * parseFloat(mult)),
+                })}
               </div>
             )}
             <div className="ab">
-              <b>Cost.</b> {fieldCost ?? pc.cost} stamina to field, into attack or defense. Beside a
-              star (premium in the lane) support cards pay half.
+              <b>{t('card.cost')}</b>{' '}
+              {t('card.costPlayerBody', { n: fieldCost ?? pc.cost })}
             </div>
           </>
         ) : tc ? (
           <>
             <div className="tag">
-              {tc.category.toUpperCase()} tactical card · {tc.slots} slot{tc.slots === 1 ? '' : 's'}
+              {t('card.tagTactical', {
+                category: tc.category.toUpperCase(),
+                slots: tc.slots,
+                slotWord: slotWord(tc.slots),
+              })}
             </div>
             {tacticDescription && <div className="ab">{tacticDescription}</div>}
             <div className="ab">
-              <b>Cost.</b> {fieldCost ?? tc.cost} stamina.
+              <b>{t('card.cost')}</b> {t('card.costTacticalBody', { n: fieldCost ?? tc.cost })}
             </div>
           </>
         ) : null}
         <Button variant="ghost" onClick={onClose}>
-          Close
+          {t('card.close')}
         </Button>
       </div>
     </Modal>

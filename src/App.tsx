@@ -6,6 +6,7 @@ import { PlaceholderScreen } from './ui/organisms/PlaceholderScreen'
 import { Quickplay } from './ui/screens/Quickplay'
 import { Arcade } from './ui/screens/Arcade'
 import { HowToPlay } from './ui/screens/HowToPlay'
+import { useLang } from './ui/i18n'
 
 const DesignSystemGallery = lazy(() =>
   import('./ui/gallery/DesignSystemGallery').then((m) => ({
@@ -24,6 +25,7 @@ type Screen = 'menu' | 'quickplay' | 'arcade' | 'collection' | 'howToPlay'
 
 function App() {
   const [screen, setScreen] = useState<Screen>('menu')
+  const { t } = useLang()
 
   if (isGalleryRoute()) {
     return (
@@ -59,8 +61,8 @@ function App() {
   if (screen === 'collection') {
     return (
       <PlaceholderScreen
-        title="Collection"
-        note="Card collection coming soon"
+        title={t('menu.collection')}
+        note={t('menu.collectionSoon')}
         onBack={() => setScreen('menu')}
       />
     )

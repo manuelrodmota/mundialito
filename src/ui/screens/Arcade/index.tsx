@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { laneFx } from '../../../engine'
+import { useLang } from '../../i18n'
 import { useArcadeRun } from '../../run/useArcadeRun'
 import { useFirstMatchOnboarding } from '../../onboarding/useFirstMatchOnboarding'
 import { DeckBuilder } from '../DeckBuilder'
@@ -18,6 +19,7 @@ interface ArcadeProps {
  *  GoalCelebration queue, commitTurn staging, reveal separation.
  */
 export function Arcade({ onHome }: ArcadeProps) {
+  const { t } = useLang()
   const {
     viewState,
     startRun,
@@ -143,14 +145,14 @@ export function Arcade({ onHome }: ArcadeProps) {
     return (
       <div className="qp-error" role="alert">
         <p>{viewState.error}</p>
-        <button type="button" onClick={onHome}>Back to Menu</button>
+        <button type="button" onClick={onHome}>{t('screens.arcadeBackToMenu')}</button>
       </div>
     )
   }
 
   return (
     <div className="qp-loading">
-      <p>Starting run…</p>
+      <p>{t('screens.arcadeStartingRun')}</p>
     </div>
   )
 }

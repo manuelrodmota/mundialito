@@ -1,9 +1,11 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { fadeIn } from '../../motion'
+import { useLang } from '../../i18n'
 
 /** Extra-time banner and board treatment — v10 sudden-death golden goal indicator. */
 export function ExtraTimeBanner() {
   const shouldReduceMotion = useReducedMotion()
+  const { t } = useLang()
 
   const variants = shouldReduceMotion ? undefined : fadeIn
 
@@ -16,11 +18,11 @@ export function ExtraTimeBanner() {
       animate="visible"
     >
       <span className="et-dot" />
-      <b>EXTRA TIME</b>
+      <b>{t('et.extraTime')}</b>
       <span className="et-sep">·</span>
-      SUDDEN DEATH
+      {t('et.suddenDeath')}
       <span className="et-sep">·</span>
-      only the bigger chance counts
+      {t('et.biggerChance')}
       <span className="et-sep">·</span>
       xG ×2
     </motion.div>

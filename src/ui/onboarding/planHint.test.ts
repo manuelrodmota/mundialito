@@ -16,13 +16,13 @@ describe('planHint', () => {
   })
 
   it('warns when no one is up front', () => {
-    expect(planHint({ ...base, attackCount: 0 })).toMatch(/ATTACK/)
+    expect(planHint({ ...base, attackCount: 0 })?.key).toBe('match.hint.noAttack')
   })
 
   it('warns about a lone striker vs a stacked defense', () => {
     const hint = planHint({ ...base, attackCount: 1, opponentDefenseCount: 3 })
-    expect(hint).toMatch(/lone star ≈ two defenders/)
-    expect(hint).toMatch(/their 3 at the back/)
+    expect(hint?.key).toBe('match.hint.loneStriker')
+    expect(hint?.vars).toEqual({ n: 3 })
   })
 
   it('does not warn about one striker when the opponent fields a thin defense', () => {
@@ -30,9 +30,9 @@ describe('planHint', () => {
   })
 
   it('warns when offensive is wasted on one attacker', () => {
-    expect(planHint({ ...base, attackCount: 1, opponentDefenseCount: 1, formation: 'offensive' })).toMatch(
-      /Offensive/,
-    )
+    expect(
+      planHint({ ...base, attackCount: 1, opponentDefenseCount: 1, formation: 'offensive' })?.key,
+    ).toBe('match.hint.offensiveWaste')
   })
 
   it('stays silent while the player is leading (few attackers may be deliberate)', () => {
