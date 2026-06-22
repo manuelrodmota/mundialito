@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useReducedMotion } from 'framer-motion'
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { useDraggable } from '@dnd-kit/core'
@@ -160,6 +161,16 @@ function DraggableCard({
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: card.id })
   const dragging = transform != null
   const offset = index - (count - 1) / 2
+
+  // Deal-in: a freshly-mounted card (newly drawn) slides out of the draw pile, staggered
+  // by its position so the hand fans out as a cascade. Cleared once the animation ends.
+  const [dealing, setDealing] = useState(true)
+  const dealDelay = Math.min(index, 8) * 45
+  useEffect(() => {
+    const t = setTimeout(() => setDealing(false), dealDelay + 480)
+    return () => clearTimeout(t)
+  }, [dealDelay])
+
   const style = {
     '--rot': `${offset * FAN_SPREAD_DEG}deg`,
     '--ty': `${offset * offset * FAN_CURVE_PX}px`,
@@ -182,14 +193,18 @@ function DraggableCard({
       style={style}
       {...listeners}
       {...attributes}
-      className={`hcard${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}`}
+      className={`hcard${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}${dealing ? ' dealing' : ''}`}
       onClick={handleClick}
     >
-      <div className="hcard-arc">
+      <div className="hcard-arc" style={dealing ? { animationDelay: `${dealDelay}ms` } : undefined}>
         {card.type === 'player' ? (
           <PlayerCardComponent card={card as PlayerCard} size={HAND_CARD_SIZE} isCaptain={isCaptain} />
         ) : (
-          <TacticCard card={card as TacticalCard} size={HAND_CARD_SIZE} />
+          <TacticCard
+            card={card as TacticalCard}
+            size={HAND_CARD_SIZE}
+            description={TACTICAL_DESCRIPTIONS[(card as TacticalCard).effect.kind]}
+          />
         )}
       </div>
     </div>
@@ -314,6 +329,19 @@ export function MatchBoard({
   const [selectedHandId, setSelectedHandId] = useState<string | null>(null)
   const [showSurrender, setShowSurrender] = useState(false)
 
+  // Discard fly-off is sequenced on the Next-round click (see handleNextRoundClick):
+  // the current hand's cards sweep to the discard pile (and the real fan is hidden so
+  // they're not double-drawn) BEFORE the round advances and the new hand deals in.
+  const reduceMotion = useReducedMotion()
+  const fanRef = useRef<HTMLDivElement>(null)
+  const discardRef = useRef<HTMLDivElement>(null)
+  const ghostSeqRef = useRef(0)
+  const [discardGhosts, setDiscardGhosts] = useState<
+    { id: string; x: number; y: number; dx: number; dy: number; delay: number }[]
+  >([])
+  const [discardPulse, setDiscardPulse] = useState(false)
+  const [exiting, setExiting] = useState(false)
+
   // Reveal cinematic, fully sequenced so each beat finishes before the next starts:
   //   1 your-attack clash → 2 YOUR goal (if scored, gated) → 3 their-attack clash
   //   → 4 THEIR goal (if scored, gated) → 5 round report.
@@ -358,11 +386,18 @@ export function MatchBoard({
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
-    if (!over) return
 
     const cardId = active.id as string
     const card = p0.hand.find((c) => c.id === cardId)
-    if (!card || card.type !== 'player') return
+    if (!card) return
+
+    // Dragging a tactical does the same as clicking it — open its detail modal.
+    if (card.type === 'tactical') {
+      setDetailTac(card as TacticalCard)
+      return
+    }
+
+    if (!over || card.type !== 'player') return
 
     const playerCard = card as PlayerCard
     const alreadyPlaced =
@@ -429,6 +464,37 @@ export function MatchBoard({
     setTacticalCards([])
     setSelectedHandId(null)
   }, [onCommit, onReveal, formation, attackCards, defenseCards, tacticalCards])
+
+  // Next round: first sweep the current hand's cards to the discard pile (hiding the real
+  // fan so they're not shown twice), THEN advance — the new hand deals in afterwards.
+  const handleNextRoundClick = useCallback(() => {
+    const fanEl = fanRef.current
+    const discRect = discardRef.current?.getBoundingClientRect()
+    const cardEls = fanEl ? (Array.from(fanEl.querySelectorAll('.hcard')) as HTMLElement[]) : []
+    if (reduceMotion || !discRect || cardEls.length === 0) {
+      onNextRound()
+      return
+    }
+    const endX = discRect.left + discRect.width / 2 - 36
+    const endY = discRect.top + discRect.height / 2 - 51
+    const seq = ghostSeqRef.current++
+    const ghosts = cardEls.slice(0, 8).map((el, i) => {
+      const r = el.getBoundingClientRect()
+      const x = r.left + r.width / 2 - 36
+      const y = r.top + r.height / 2 - 51
+      return { id: `nr${seq}-${i}`, x, y, dx: endX - x, dy: endY - y, delay: i * 45 }
+    })
+    const maxDelay = (ghosts.length - 1) * 45
+    setDiscardGhosts(ghosts)
+    setExiting(true)
+    setDiscardPulse(true)
+    setTimeout(() => {
+      onNextRound()
+      setExiting(false)
+      setDiscardGhosts([])
+      setDiscardPulse(false)
+    }, 460 + maxDelay)
+  }, [reduceMotion, onNextRound])
 
   // Tactical staging — a selected tactical plays on commit (mirrors attack/defense staging).
   const canStageMoreTacticals = p0.tacticalsThisHalf + tacticalCards.length < TACTICALS_PER_HALF
@@ -830,7 +896,7 @@ export function MatchBoard({
                 </div>
               </details>
             </div>
-            <button className="btn btn-gold" style={{ width: '100%' }} onClick={onNextRound}>
+            <button className="btn btn-gold" style={{ width: '100%' }} onClick={handleNextRoundClick}>
               {roundReport.decided
                 ? t('match.report.next.result')
                 : roundReport.extraTime
@@ -865,8 +931,8 @@ export function MatchBoard({
             </div>
           )}
 
-          <div className="fan2">
-            {fanCards.map((card, i) => (
+          <div className="fan2" ref={fanRef}>
+            {!exiting && fanCards.map((card, i) => (
               <DraggableCard
                 key={card.id}
                 card={card}
@@ -880,7 +946,9 @@ export function MatchBoard({
           </div>
 
           <div className="pile-col7 right">
-            <DeckPile kind="discard" count={p0.discard.length} label={t('match.pile.discard')} dw={34} />
+            <div ref={discardRef}>
+              <DeckPile kind="discard" count={p0.discard.length} label={t('match.pile.discard')} dw={34} pulse={discardPulse} />
+            </div>
             <DeckPile kind="exiled" count={p0.exiled.length} label={t('match.pile.exiled')} dw={34} />
           </div>
         </div>
@@ -895,6 +963,21 @@ export function MatchBoard({
         primaryLabel={detailShowPrimary ? t(detailStaged ? 'match.tactic.stop' : 'match.tactic.play') : undefined}
         onPrimary={detailShowPrimary ? handleTacticalPrimary : undefined}
       />
+
+      {/* Discard fly-off ghosts — card backs sweeping from the hand to the discard pile. */}
+      {discardGhosts.map((g) => (
+        <div
+          key={g.id}
+          className="discard-fly"
+          style={{
+            left: g.x,
+            top: g.y,
+            animationDelay: `${g.delay}ms`,
+            '--dx': `${g.dx}px`,
+            '--dy': `${g.dy}px`,
+          } as React.CSSProperties}
+        />
+      ))}
 
       {/* Surrender confirmation — abandons the run and returns to squad selection. */}
       {onSurrender && (

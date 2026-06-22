@@ -1107,10 +1107,12 @@
   100% { transform: scale(1); }
 }
 
-/* ============ deal-in: cards slide out of the draw pile into the hand ============ */
-.fan2 .hcard.dealing { animation: dealFromDeck 480ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* ============ deal-in: cards slide out of the draw pile into the hand ============
+   Runs on the inner .hcard-arc (whose resting transform is none) so it doesn't fight
+   the per-card arc rotation/drop that lives on the outer .hcard. */
+.fan2 .hcard.dealing .hcard-arc { animation: dealFromDeck 460ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 @keyframes dealFromDeck {
-  0% { opacity: 0; transform: translate(-46vw, 8px) rotate(-22deg) scale(0.72); }
+  0% { opacity: 0; transform: translate(-42vw, 10px) rotate(-20deg) scale(0.72); }
   60% { opacity: 1; }
   100% { opacity: 1; transform: none; }
 }
@@ -1143,7 +1145,7 @@
 @media (prefers-reduced-motion: reduce) {
   .centerboard5.cb-shake { animation: none; }
   .cbxg-ball.close { animation: none; }
-  .fan2 .hcard.dealing, .discard-fly, .deckpile5.pulse .dp-stack { animation: none !important; }
+  .fan2 .hcard.dealing .hcard-arc, .discard-fly, .deckpile5.pulse .dp-stack { animation: none !important; }
   .cbxg-track i { transition: none; }
 }
 
