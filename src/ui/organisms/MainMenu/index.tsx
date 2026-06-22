@@ -1,4 +1,6 @@
 import { Button } from '../../atoms/Button'
+import { LanguageSelector } from '../../molecules/LanguageSelector'
+import { useLang } from '../../i18n'
 
 interface MainMenuProps {
   onQuickplay: () => void
@@ -9,12 +11,18 @@ interface MainMenuProps {
 
 /** Main mode-select screen — entry point for Quickplay, Arcade Run, Collection, and How to Play. */
 export function MainMenu({ onQuickplay, onArcade, onCollection, onHowToPlay }: MainMenuProps) {
+  const { t } = useLang()
+
   return (
     <div className="menu-screen">
+      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 5 }}>
+        <LanguageSelector />
+      </div>
+
       <div style={{ textAlign: 'center', marginBottom: 8, position: 'relative', zIndex: 1 }}>
         <h1 style={{ fontSize: 36, margin: 0 }}>World Cup Clash</h1>
         <p className="note" style={{ margin: '8px 0 0' }}>
-          Build your squad. Score the goals.
+          {t('menu.tagline')}
         </p>
       </div>
 
@@ -31,19 +39,19 @@ export function MainMenu({ onQuickplay, onArcade, onCollection, onHowToPlay }: M
         }}
       >
         <Button variant="gold" size="big" onClick={onQuickplay}>
-          Quickplay
+          {t('menu.quickplay')}
         </Button>
 
         <Button variant="primary" size="big" onClick={onArcade}>
-          Arcade Run
+          {t('menu.arcade')}
         </Button>
 
         <Button variant="ghost" onClick={onCollection}>
-          Collection
+          {t('menu.collection')}
         </Button>
 
         <Button variant="ghost" onClick={onHowToPlay}>
-          How to Play
+          {t('menu.howToPlay')}
         </Button>
       </div>
     </div>

@@ -1,0 +1,36 @@
+.lang-selector {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.lang-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 26px;
+  padding: 3px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: 7px;
+  opacity: 0.5;
+  transition: opacity 140ms, border-color 140ms, box-shadow 140ms;
+}
+
+.lang-flag:hover {
+  opacity: 0.85;
+}
+
+.lang-flag.on {
+  opacity: 1;
+  border-color: var(--gold, #e8c873);
+  box-shadow: 0 0 0 1px var(--gold, #e8c873);
+}
+
+.lang-flag svg {
+  display: block;
+  width: 24px;
+  height: 16px;
+  border-radius: 3px;
+}
