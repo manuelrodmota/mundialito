@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components -- context module: the provider
+   component and the useLang hook are intentionally colocated so consumers import both
+   from `../i18n`. (Rule only affects Fast Refresh granularity, not correctness.) */
 /**
  * Lightweight, dependency-free i18n. A LanguageProvider holds the active language
  * (persisted to localStorage, defaulting from the browser locale) and exposes a
@@ -37,7 +40,23 @@ interface LanguageContextValue {
   t: Translate
 }
 
-const LanguageContext = createContext<LanguageContextValue | null>(null)
+function translate(lang: Lang, key: string, vars?: TranslateVars): string {
+  const raw = messages[lang][key] ?? messages.en[key] ?? key
+  if (!vars) return raw
+  return raw.replace(/\{(\w+)\}/g, (_, name: string) =>
+    vars[name] != null ? String(vars[name]) : `{${name}}`,
+  )
+}
+
+// Default to English with a no-op setter so components rendered outside a provider
+// (e.g. in isolated unit tests) degrade to English instead of throwing.
+const DEFAULT_VALUE: LanguageContextValue = {
+  lang: 'en',
+  setLang: () => {},
+  t: (key, vars) => translate('en', key, vars),
+}
+
+const LanguageContext = createContext<LanguageContextValue>(DEFAULT_VALUE)
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(detectInitial)
@@ -59,27 +78,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
   }, [lang])
 
-  const t = useCallback<Translate>(
-    (key, vars) => {
-      const raw = messages[lang][key] ?? messages.en[key] ?? key
-      if (!vars) return raw
-      return raw.replace(/\{(\w+)\}/g, (_, name: string) =>
-        vars[name] != null ? String(vars[name]) : `{${name}}`,
-      )
-    },
-    [lang],
-  )
+  const t = useCallback<Translate>((key, vars) => translate(lang, key, vars), [lang])
 
   const value = useMemo<LanguageContextValue>(() => ({ lang, setLang, t }), [lang, setLang, t])
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
 }
 
-/** Access the active language + translator. Must be used within <LanguageProvider>. */
+/** Access the active language + translator. Outside a provider it degrades to English. */
 export function useLang(): LanguageContextValue {
-  const ctx = useContext(LanguageContext)
-  if (!ctx) throw new Error('useLang must be used within a LanguageProvider')
-  return ctx
+  return useContext(LanguageContext)
 }
 
 export type { Lang }

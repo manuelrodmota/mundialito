@@ -2,12 +2,20 @@ import { useState } from 'react'
 import type { PlayerCard, Position } from '../../../engine/types'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { curateByPosition, POSITION_ORDER } from '../../quickplay/curatePool'
+import { useLang } from '../../i18n'
 
-const POSITION_LABELS: Record<Position, string> = {
-  GK: 'Goalkeeper',
-  DEF: 'Defense',
-  MID: 'Midfield',
-  FWD: 'Attack',
+const POSITION_LABEL_KEYS: Record<Position, string> = {
+  GK: 'builder.posGoalkeeper',
+  DEF: 'builder.posDefense',
+  MID: 'builder.posMidfield',
+  FWD: 'builder.posAttack',
+}
+
+const POSITION_LABEL_LOWER_KEYS: Record<Position, string> = {
+  GK: 'builder.posGoalkeeperLower',
+  DEF: 'builder.posDefenseLower',
+  MID: 'builder.posMidfieldLower',
+  FWD: 'builder.posAttackLower',
 }
 
 interface AssistedPoolProps {
@@ -47,6 +55,7 @@ export function AssistedPool({
   onInfo,
   curatedLimit = 10,
 }: AssistedPoolProps) {
+  const { t } = useLang()
   const [expanded, setExpanded] = useState<Record<Position, boolean>>({
     GK: false,
     DEF: false,
@@ -71,7 +80,7 @@ export function AssistedPool({
         return (
           <section key={position} className="assist-section" data-position={position}>
             <div className="assist-head">
-              <span className="assist-pos">{POSITION_LABELS[position]}</span>
+              <span className="assist-pos">{t(POSITION_LABEL_KEYS[position])}</span>
               <span className={`assist-need ${met ? 'met' : 'unmet'}`}>
                 {met ? '✓' : '⚠'} {have}/{need}
               </span>
@@ -81,13 +90,13 @@ export function AssistedPool({
                   className="assist-showall"
                   onClick={() => toggleExpanded(position)}
                 >
-                  {isExpanded ? 'Show top' : `Show all ${inPosition.length}`}
+                  {isExpanded ? t('builder.showTop') : t('builder.showAll', { n: inPosition.length })}
                 </button>
               )}
             </div>
 
             {shown.length === 0 ? (
-              <div className="assist-empty hint">No {POSITION_LABELS[position].toLowerCase()} match your filters.</div>
+              <div className="assist-empty hint">{t('builder.noMatch', { position: t(POSITION_LABEL_LOWER_KEYS[position]) })}</div>
             ) : (
               <div className="pool-grid2">
                 {shown.map((player) => {

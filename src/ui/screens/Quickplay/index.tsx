@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import type { Card } from '../../../engine/types'
 import { laneFx } from '../../../engine'
+import { useLang } from '../../i18n'
 import { useQuickplayMatch } from '../../quickplay/useQuickplayMatch'
 import { useFirstMatchOnboarding } from '../../onboarding/useFirstMatchOnboarding'
 import { DeckBuilder } from '../DeckBuilder'
@@ -19,6 +20,7 @@ interface QuickplayProps {
  *  Owns the useQuickplayMatch hook and routes sub-screens.
  */
 export function Quickplay({ onBack }: QuickplayProps) {
+  const { t } = useLang()
   const [subScreen, setSubScreen] = useState<QuickplaySubScreen>('deckbuilder')
   const [builtDeck, setBuiltDeck] = useState<Card[] | null>(null)
   const [captainId, setCaptainId] = useState<string | null>(null)
@@ -142,14 +144,14 @@ export function Quickplay({ onBack }: QuickplayProps) {
     return (
       <div className="qp-error" role="alert">
         <p>{viewState.error}</p>
-        <button type="button" onClick={onBack}>Back to Menu</button>
+        <button type="button" onClick={onBack}>{t('screens.qpBackToMenu')}</button>
       </div>
     )
   }
 
   return (
     <div className="qp-loading">
-      <p>Starting match…</p>
+      <p>{t('screens.qpStartingMatch')}</p>
     </div>
   )
 }

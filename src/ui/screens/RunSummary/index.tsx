@@ -1,16 +1,26 @@
 import type { RunState } from '../../../engine/types'
 import { Trophy } from '../../organisms/Trophy'
+import { useLang } from '../../i18n'
+import type { Translate } from '../../i18n'
 
-const STAGE_LABELS: Record<RunState['stage'], string> = {
-  group: 'Group',
-  r16: 'Round of 16',
-  qf: 'Quarter-final',
-  sf: 'Semi-final',
-  final: 'Final',
+const STAGE_LABEL_KEYS: Record<RunState['stage'], string> = {
+  group: 'run.stageGroupLong',
+  r16: 'run.stageR16Long',
+  qf: 'run.stageQFLong',
+  sf: 'run.stageSFLong',
+  final: 'run.stageFinal',
 }
 
 const STAGE_ORDER: RunState['stage'][] = ['group', 'group', 'group', 'r16', 'qf', 'sf', 'final']
-const MATCH_LABELS = ['Group 1', 'Group 2', 'Group 3', 'R16', 'QF', 'SF', 'Final']
+const MATCH_LABEL_KEYS = [
+  'run.stageGroup1',
+  'run.stageGroup2',
+  'run.stageGroup3',
+  'run.stageR16',
+  'run.stageQF',
+  'run.stageSF',
+  'run.stageFinal',
+]
 
 interface RunSummaryProps {
   runState: RunState
@@ -19,14 +29,14 @@ interface RunSummaryProps {
 }
 
 /** Derives a human-readable label for how far the player reached. */
-function reachedLabel(runState: RunState): string {
+function reachedLabel(runState: RunState, t: Translate): string {
   const { matchIndex, alive, stage } = runState
 
-  if (alive && stage === 'final') return 'World Champions'
+  if (alive && stage === 'final') return t('run.worldChampions')
 
   const labelIndex = alive ? matchIndex : matchIndex
-  const stageLabel = MATCH_LABELS[labelIndex] ?? STAGE_LABELS[stage]
-  return alive ? `Reached the ${stageLabel}` : `Fell in the ${stageLabel}`
+  const stageLabel = t(MATCH_LABEL_KEYS[labelIndex] ?? STAGE_LABEL_KEYS[stage])
+  return alive ? t('run.reachedThe', { stage: stageLabel }) : t('run.fellInThe', { stage: stageLabel })
 }
 
 /** End-of-run screen.
@@ -35,9 +45,14 @@ function reachedLabel(runState: RunState): string {
  * Prop-driven container; import type only from engine.
  */
 export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
+  const { t } = useLang()
   const isRunWon = runState.alive && runState.stage === 'final' && runState.matchIndex >= 6
   const stagesCleared = runState.defeated.length
-  const reachedText = reachedLabel(runState)
+  const reachedText = reachedLabel(runState, t)
+  const matchesWonText =
+    stagesCleared === 1
+      ? t('run.matchesWonOne', { n: stagesCleared })
+      : t('run.matchesWonMany', { n: stagesCleared })
 
   if (isRunWon) {
     return (
@@ -46,10 +61,10 @@ export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
 
         <div className="logo-block" style={{ alignItems: 'center' }}>
           <div className="kicker">World Cup Clash</div>
-          <Trophy label="WORLD CHAMPIONS" />
-          <h1 style={{ marginTop: 8 }}>Champions!</h1>
+          <Trophy label={t('run.worldChampionsLabel')} />
+          <h1 style={{ marginTop: 8 }}>{t('run.championsTitle')}</h1>
           <div className="sub">
-            You conquered all 7 stages and lifted the trophy.
+            {t('run.championsSub')}
           </div>
         </div>
 
@@ -59,24 +74,24 @@ export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
             if (!beaten) return null
             return (
               <div key={i} className="rrow">
-                <span className="st">{MATCH_LABELS[i] ?? STAGE_LABELS[stage]}</span>
+                <span className="st">{t(MATCH_LABEL_KEYS[i] ?? STAGE_LABEL_KEYS[stage])}</span>
                 <span className="nm">{beaten}</span>
-                <span className="res w">WIN</span>
+                <span className="res w">{t('run.resultWin')}</span>
               </div>
             )
           })}
         </div>
 
         <div className="sub" style={{ fontSize: 13, color: 'var(--txt-dim)' }}>
-          {stagesCleared} match{stagesCleared !== 1 ? 'es' : ''} won
+          {matchesWonText}
         </div>
 
         <div className="actions" style={{ flexDirection: 'row', width: 'auto' }}>
           <button type="button" className="btn btn-gold btn-big" onClick={onRestart}>
-            Play Again
+            {t('run.playAgain')}
           </button>
           <button type="button" className="btn btn-ghost btn-big" onClick={onHome}>
-            Main Menu
+            {t('run.mainMenu')}
           </button>
         </div>
       </div>
@@ -88,8 +103,8 @@ export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
       <div className="stadium-bg" />
 
       <div className="logo-block">
-        <div className="kicker">Run Over</div>
-        <h1>Defeated</h1>
+        <div className="kicker">{t('run.runOver')}</div>
+        <h1>{t('run.defeated')}</h1>
         <div className="sub">{reachedText}</div>
       </div>
 
@@ -97,14 +112,14 @@ export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
         {STAGE_ORDER.map((stage, i) => {
           const beaten = runState.defeated[i]
           const isElimination = !runState.alive && i === runState.matchIndex && !beaten
-          const label = MATCH_LABELS[i] ?? STAGE_LABELS[stage]
+          const label = t(MATCH_LABEL_KEYS[i] ?? STAGE_LABEL_KEYS[stage])
 
           if (beaten) {
             return (
               <div key={i} className="rrow">
                 <span className="st">{label}</span>
                 <span className="nm">{beaten}</span>
-                <span className="res w">WIN</span>
+                <span className="res w">{t('run.resultWin')}</span>
               </div>
             )
           }
@@ -114,7 +129,7 @@ export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
               <div key={i} className="rrow">
                 <span className="st">{label}</span>
                 <span className="nm">—</span>
-                <span className="res l">OUT</span>
+                <span className="res l">{t('run.resultOut')}</span>
               </div>
             )
           }
@@ -124,15 +139,15 @@ export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
       </div>
 
       <div className="sub" style={{ fontSize: 13, color: 'var(--txt-dim)' }}>
-        {stagesCleared} match{stagesCleared !== 1 ? 'es' : ''} won
+        {matchesWonText}
       </div>
 
       <div className="actions" style={{ flexDirection: 'row', width: 'auto' }}>
         <button type="button" className="btn btn-primary btn-big" onClick={onRestart}>
-          Try Again
+          {t('run.tryAgain')}
         </button>
         <button type="button" className="btn btn-ghost btn-big" onClick={onHome}>
-          Main Menu
+          {t('run.mainMenu')}
         </button>
       </div>
     </div>

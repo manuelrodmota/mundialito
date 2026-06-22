@@ -12,6 +12,7 @@ import { PickRow, SlotMeter } from '../../molecules/PickRow'
 import { CardDetailModal } from '../../organisms/CardDetailModal'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
+import { useLang } from '../../i18n'
 
 interface DeckBuilderProps {
   onDeckReady: (deck: Card[], captainId: string) => void
@@ -43,6 +44,7 @@ export function DeckBuilder({
   tacticalCap = 3,
   rosterSize = 16,
 }: DeckBuilderProps) {
+  const { t } = useLang()
   const [premiums, setPremiums] = useState<PlayerCard[]>([])
   const [commonPool, setCommonPool] = useState<PlayerCard[]>([])
   const [loadState, setLoadState] = useState<LoadState>('loading')
@@ -207,7 +209,7 @@ export function DeckBuilder({
         <div className="stadium-bg" />
         <div className="builder-loading">
           <div className="loader-ring" aria-hidden="true" />
-          <p>Loading players…</p>
+          <p>{t('builder.loading')}</p>
         </div>
       </div>
     )
@@ -218,8 +220,8 @@ export function DeckBuilder({
       <div className="screen builder">
         <div className="stadium-bg" />
         <div style={{ padding: 40, textAlign: 'center' }}>
-          <p>Failed to load players. Please check your connection.</p>
-          <button className="btn btn-ghost" onClick={onBack}>Menu</button>
+          <p>{t('builder.errorLoad')}</p>
+          <button className="btn btn-ghost" onClick={onBack}>{t('builder.menu')}</button>
         </div>
       </div>
     )
@@ -230,8 +232,8 @@ export function DeckBuilder({
       <div className="screen builder">
         <div className="stadium-bg" />
         <div style={{ padding: 40, textAlign: 'center' }}>
-          <p>No players available for the 2026 season.</p>
-          <button className="btn btn-ghost" onClick={onBack}>Menu</button>
+          <p>{t('builder.empty')}</p>
+          <button className="btn btn-ghost" onClick={onBack}>{t('builder.menu')}</button>
         </div>
       </div>
     )
@@ -245,14 +247,15 @@ export function DeckBuilder({
     picks.length ? Math.round(picks.reduce((s, p) => s + p[k], 0) / picks.length) : 0
 
   const confirmLabel = canConfirm
-    ? 'Confirm squad'
-    : `${picks.length} picks · ${slotsUsed}/${playerBudget} slots${hasCaptain ? '' : ' · pick a captain'}`
+    ? t('builder.confirm')
+    : t('builder.confirmFallback', { picks: picks.length, used: slotsUsed, budget: playerBudget }) +
+      (hasCaptain ? '' : t('builder.confirmNeedCaptain'))
 
   const groups: [string, (PlayerCard | TacticalCard)[]][] = [
-    ['Legendaries', picks.filter((p) => p.rarity === 'legendary')],
-    ['Epics', picks.filter((p) => p.rarity === 'epic')],
-    ['Rares', picks.filter((p) => p.rarity === 'rare')],
-    ['Tactical cards', tacPicks],
+    [t('builder.groupLegendaries'), picks.filter((p) => p.rarity === 'legendary')],
+    [t('builder.groupEpics'), picks.filter((p) => p.rarity === 'epic')],
+    [t('builder.groupRares'), picks.filter((p) => p.rarity === 'rare')],
+    [t('builder.groupTactical'), tacPicks],
   ]
 
   return (
@@ -260,26 +263,24 @@ export function DeckBuilder({
       <div className="stadium-bg" />
       <div className="builder-head">
         <div>
-          <h2>Build Your Squad</h2>
+          <h2>{t('builder.title')}</h2>
           <div className="hint">
-            Spend a {playerBudget}-slot budget on a premium core (rares, epics, legendaries) + up
-            to {tacticalCap} tactical card{tacticalCap !== 1 ? 's' : ''}. The bench auto-fills with
-            random commons — you can&apos;t hand-pick them. Crown a captain.
+            {t('builder.hint', { budget: playerBudget, tac: tacticalCap, tacPlural: tacticalCap !== 1 ? 's' : '' })}
           </div>
         </div>
-        <button className="btn btn-ghost" onClick={onBack}>Menu</button>
+        <button className="btn btn-ghost" onClick={onBack}>{t('builder.menu')}</button>
       </div>
 
       <div className="builder-body">
         <div className="pool-pane">
-          <div className="builder-tabs builder-mode-tabs" role="tablist" aria-label="Selection mode">
+          <div className="builder-tabs builder-mode-tabs" role="tablist" aria-label={t('builder.selectionModeLabel')}>
             <button
               role="tab"
               aria-selected={mode === 'assisted'}
               className={mode === 'assisted' ? 'on' : ''}
               onClick={() => setMode('assisted')}
             >
-              ⚖ Recommended
+              {t('builder.modeRecommended')}
             </button>
             <button
               role="tab"
@@ -287,7 +288,7 @@ export function DeckBuilder({
               className={mode === 'free' ? 'on' : ''}
               onClick={() => setMode('free')}
             >
-              ⊞ All Players
+              {t('builder.modeAllPlayers')}
             </button>
           </div>
           <Filters
@@ -303,7 +304,7 @@ export function DeckBuilder({
             onPositionChange={setPositionValue}
             rarityValue={rarityValue}
             onRarityChange={setRarityValue}
-            rarityAllLabel="All premiums"
+            rarityAllLabel={t('builder.allPremiums')}
             rarityOptions={['Legendary', 'Epic', 'Rare']}
             ratingMin={ratingMin}
             onRatingMinChange={setRatingMin}
@@ -354,7 +355,7 @@ export function DeckBuilder({
             )}
 
             <div className="pool-divider" ref={tacticsRef}>
-              <span>Tactical cards · up to {tacticalCap}</span>
+              <span>{t('builder.tacticalDivider', { tac: tacticalCap })}</span>
             </div>
 
             <div className="pool-grid2">
@@ -391,7 +392,7 @@ export function DeckBuilder({
           <SlotMeter used={slotsUsed} cap={playerBudget} />
           <div className="slot-meter">
             <div className="row">
-              <span>Picks</span>
+              <span>{t('builder.picks')}</span>
               <b>{totalPicks}</b>
             </div>
             <div className="track">
@@ -400,11 +401,17 @@ export function DeckBuilder({
           </div>
 
           <div className="hint">
-            ⚔ avg {avg('atk')} · ⛨ avg {avg('def')} · {tacPicks.length} tactical card{tacPicks.length !== 1 ? 's' : ''} · {gks} GK
+            {t('builder.summary', {
+              atk: avg('atk'),
+              def: avg('def'),
+              tac: tacPicks.length,
+              tacPlural: tacPicks.length !== 1 ? 's' : '',
+              gk: gks,
+            })}
           </div>
 
           {mode === 'assisted' && (
-            <div className="squad-needs" aria-label="Recommended balance">
+            <div className="squad-needs" aria-label={t('builder.recommendedBalance')}>
               {POSITION_ORDER.map((pos) => {
                 const have = picks.filter((p) => p.position === pos).length
                 const need = recommended[pos]
@@ -425,14 +432,14 @@ export function DeckBuilder({
               onClick={handleFillCommons}
               disabled={commonPool.length === 0}
             >
-              Fill bench (random)
+              {t('builder.fillBench')}
             </button>
             <button
               className="btn btn-ghost"
               style={{ padding: '9px 12px', fontSize: 13 }}
               onClick={() => { setPicks([]); setTacPicks([]); setCaptainId(null); setBenchCommons([]) }}
             >
-              Clear
+              {t('builder.clear')}
             </button>
           </div>
 
@@ -440,7 +447,7 @@ export function DeckBuilder({
             {groups.map(([label, cards]) =>
               cards.length ? (
                 <div key={label}>
-                  <div className="group-h">{label} · {cards.length}</div>
+                  <div className="group-h">{t('builder.groupHeader', { label, n: cards.length })}</div>
                   {cards.map((c) => {
                     if (c.type === 'tactical') {
                       return (
@@ -473,7 +480,7 @@ export function DeckBuilder({
 
             {benchCommons.length > 0 && (
               <div>
-                <div className="group-h">Bench · random commons · {benchCommons.length}</div>
+                <div className="group-h">{t('builder.benchHeader', { n: benchCommons.length })}</div>
                 {benchCommons.map((player) => (
                   <PickRow
                     key={player.id}

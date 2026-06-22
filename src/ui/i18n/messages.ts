@@ -8,12 +8,17 @@
 
 import * as menu from './locales/menu'
 import * as common from './locales/common'
+import * as match from './locales/match'
+import * as builder from './locales/builder'
+import * as screens from './locales/screens'
+import * as run from './locales/run'
+import * as card from './locales/card'
 
 export type Lang = 'en' | 'es'
 export type Dict = Record<string, string>
 
 // Add a new area module here to register its strings.
-const parts: { en: Dict; es: Dict }[] = [menu, common]
+const parts: { en: Dict; es: Dict }[] = [menu, common, match, builder, screens, run, card]
 
 export const messages: Record<Lang, Dict> = {
   en: Object.assign({}, ...parts.map((p) => p.en)),

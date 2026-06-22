@@ -24,16 +24,18 @@ import { Goal } from '../Goal'
 import { CoachMarks } from '../CoachMarks'
 import { MATCH_ONBOARDING_STEPS } from '../CoachMarks/steps'
 import { planHint } from '../../onboarding/planHint'
+import { useLang } from '../../i18n'
+import type { Translate } from '../../i18n'
 
 const ROUND_TO_MINUTE = (round: number, extraTime: boolean): string => {
   if (extraTime) return `90+${(round - 10) * 9}'`
   return `${round * 9}'`
 }
 
-const ROUND_TO_PHASE = (round: number, extraTime: boolean): string => {
-  if (extraTime) return 'EXTRA TIME'
-  if (round <= 5) return '1ST HALF'
-  return '2ND HALF'
+const ROUND_TO_PHASE = (round: number, extraTime: boolean, t: Translate): string => {
+  if (extraTime) return t('match.phase.extraTime')
+  if (round <= 5) return t('match.phase.firstHalf')
+  return t('match.phase.secondHalf')
 }
 
 function fatigueHeat(fatigue: number): 0 | 1 | 2 | 3 {
@@ -59,54 +61,67 @@ function TierStars({ tier }: { tier: string }) {
   )
 }
 
-const FORMATION_LABELS: Record<Formation, { label: string; shape: string }> = {
-  balanced: { label: '4-4-2', shape: 'BALANCED' },
-  offensive: { label: '3-4-3', shape: 'OFFENSIVE' },
-  defensive: { label: '5-4-1', shape: 'DEFENSIVE' },
+/** `label` is a formation code (stays literal); `shapeKey` resolves to a translated shape word. */
+const FORMATION_LABELS: Record<Formation, { label: string; shapeKey: string }> = {
+  balanced: { label: '4-4-2', shapeKey: 'match.shape.balanced' },
+  offensive: { label: '3-4-3', shapeKey: 'match.shape.offensive' },
+  defensive: { label: '5-4-1', shapeKey: 'match.shape.defensive' },
 }
 
 /** One-line setup summary for a side in the round report (formation, star quality, chemistry, fatigue). */
-function sideNote(who: string, s: SideReport): string {
+function sideNote(who: string, s: SideReport, t: Translate): string {
   const fm = FORMATION_LABELS[s.formation]
-  const parts: string[] = [`${fm.label} ${fm.shape} · ATK ×${s.atkMult} DEF ×${s.defMult}`]
-  if (s.rarityBonus > 0) parts.push(`star quality +${s.rarityBonus}`)
-  if (s.synAtk > 0 || s.synDef > 0) parts.push(`chemistry +${s.synAtk}/${s.synDef}`)
-  if (s.fatigue > 0) parts.push(`fatigue ${s.fatigue} → DEF ×${s.fatigueDefMult.toFixed(2)}`)
-  return `${who} — ${parts.join(' · ')}`
+  const parts: string[] = [
+    t('match.note.line', {
+      shapeLabel: fm.label,
+      shape: t(fm.shapeKey),
+      atkMult: s.atkMult,
+      defMult: s.defMult,
+    }),
+  ]
+  if (s.rarityBonus > 0) parts.push(t('match.note.starQuality', { n: s.rarityBonus }))
+  if (s.synAtk > 0 || s.synDef > 0) parts.push(t('match.note.chemistry', { atk: s.synAtk, def: s.synDef }))
+  if (s.fatigue > 0) parts.push(t('match.note.fatigue', { n: s.fatigue, mult: s.fatigueDefMult.toFixed(2) }))
+  return t('match.note.row', { who, parts: parts.join(' · ') })
 }
 
 // --- Friendly round-report language (numbers move to the collapsible "Show the numbers"). ---
 
-const STANCE_WORD: Record<Formation, string> = {
-  offensive: 'on the front foot',
-  balanced: 'balanced',
-  defensive: 'sitting deep',
+const STANCE_KEY: Record<Formation, string> = {
+  offensive: 'match.stance.offensive',
+  balanced: 'match.stance.balanced',
+  defensive: 'match.stance.defensive',
 }
 
-/** Turns a round's xG gain into plain-language chance quality. */
-function chanceWord(xg: number): string {
-  if (xg >= 0.6) return 'a golden chance'
-  if (xg >= 0.35) return 'a big chance'
-  if (xg >= 0.2) return 'a clear chance'
-  if (xg >= 0.1) return 'a half-chance'
-  return 'barely a sniff'
+/** Turns a round's xG gain into a plain-language chance-quality i18n key. */
+function chanceKey(xg: number): string {
+  if (xg >= 0.6) return 'match.chance.golden'
+  if (xg >= 0.35) return 'match.chance.big'
+  if (xg >= 0.2) return 'match.chance.clear'
+  if (xg >= 0.1) return 'match.chance.half'
+  return 'match.chance.none'
 }
 
 /** A friendly one-line setup read for a side. */
-function friendlySide(who: string, s: SideReport, xg: number): string {
-  return `${who} — ${STANCE_WORD[s.formation]}, created ${chanceWord(xg)} (${xg.toFixed(2)} xG).`
+function friendlySide(who: string, s: SideReport, xg: number, t: Translate): string {
+  return t('match.side.read', {
+    who,
+    stance: t(STANCE_KEY[s.formation]),
+    chance: t(chanceKey(xg)),
+    xg: xg.toFixed(2),
+  })
 }
 
 /** Headline that says what actually happened this round, in football language. */
-function summaryLine(r: RoundReport, oppName: string): string {
+function summaryLine(r: RoundReport, oppName: string, t: Translate): string {
   const you = r.youGoalsThisRound > 0
   const them = r.themGoalsThisRound > 0
-  if (you && them) return 'End to end — a goal apiece this round.'
-  if (you) return 'Clinical — you buried your chance.'
-  if (them) return `${oppName} punished you with a goal.`
-  if (r.youXg > r.themXg * 1.25) return 'You had the better of this round.'
-  if (r.themXg > r.youXg * 1.25) return `${oppName} pressed harder that round.`
-  return 'A cagey, even round — no goals.'
+  if (you && them) return t('match.summary.endToEnd')
+  if (you) return t('match.summary.clinical')
+  if (them) return t('match.summary.punished', { opp: oppName })
+  if (r.youXg > r.themXg * 1.25) return t('match.summary.youBetter')
+  if (r.themXg > r.youXg * 1.25) return t('match.summary.theyPressed', { opp: oppName })
+  return t('match.summary.cagey')
 }
 
 function DraggableCard({
@@ -228,16 +243,16 @@ interface MatchBoardProps {
 
 const SURRENDER_COPY = {
   run: {
-    button: '🏳 Surrender run',
-    title: 'Give up the run?',
-    body: "Your run ends here and you'll head back to squad selection to build a new team. This can't be undone.",
-    confirm: 'Surrender run',
+    button: 'match.surrender.run.button',
+    title: 'match.surrender.run.title',
+    body: 'match.surrender.run.body',
+    confirm: 'match.surrender.run.confirm',
   },
   match: {
-    button: '🏳 Quit match',
-    title: 'Quit this match?',
-    body: "You'll leave the match and return to the main menu. No result is saved.",
-    confirm: 'Quit match',
+    button: 'match.surrender.match.button',
+    title: 'match.surrender.match.title',
+    body: 'match.surrender.match.body',
+    confirm: 'match.surrender.match.confirm',
   },
 } as const
 
@@ -267,6 +282,7 @@ export function MatchBoard({
   onSurrender,
   surrenderKind = 'run',
 }: MatchBoardProps) {
+  const { t } = useLang()
   const surrenderCopy = SURRENDER_COPY[surrenderKind]
   const p0 = match.players[0]!
   const p1 = match.players[1]!
@@ -398,10 +414,10 @@ export function MatchBoard({
   const showStarCore = hasPremiumInAttack || hasPremiumInDefense
 
   const minute = ROUND_TO_MINUTE(match.round, match.extraTime)
-  const phaseLabel = ROUND_TO_PHASE(match.round, match.extraTime)
+  const phaseLabel = ROUND_TO_PHASE(match.round, match.extraTime, t)
 
   const mercyDiff = Math.abs(p0.goals - p1.goals)
-  const mercyLabel = mercyDiff > 0 ? `–${3 - mercyDiff} to mercy` : undefined
+  const mercyLabel = mercyDiff > 0 ? t('match.mercy', { n: 3 - mercyDiff }) : undefined
   const mercyHot = mercyDiff >= 2
 
   // Staged cards live in the lane state until commit (the engine only splices the
@@ -513,7 +529,7 @@ export function MatchBoard({
                 goals={p0.goals}
                 xg={p0.xg % 1}
                 heat={fatigueHeat(p0.fatigue)}
-                label="YOU"
+                label={t('match.meter.you')}
                 mine
               />
             </div>
@@ -532,33 +548,33 @@ export function MatchBoard({
             <PitchMarkings />
 
             <div className="dirhint4 l">
-              <span className="who4">You attack</span>
+              <span className="who4">{t('match.dir.youAttack')}</span>
             </div>
             <div className="dirhint4 r">
-              <span className="who4">They attack</span>
+              <span className="who4">{t('match.dir.theyAttack')}</span>
             </div>
 
             {!isReveal && opponentIntent && intentMeta && (
               <div className="intent">
-                Opponent: <b>{intentMeta.label} {intentMeta.shape}</b> · <b>{opponentIntent.cardCount}</b> card{opponentIntent.cardCount === 1 ? '' : 's'} · <b>{opponentIntent.staminaSpent}</b> stamina
+                {t('match.intent.label')} <b>{intentMeta.label} {t(intentMeta.shapeKey)}</b> · <b>{opponentIntent.cardCount}</b> {opponentIntent.cardCount === 1 ? t('match.intent.cardOne') : t('match.intent.cardMany')} · <b>{opponentIntent.staminaSpent}</b> {t('match.intent.stamina')}
               </div>
             )}
 
             <div className="p4-grid">
               {isReveal && revealBoards ? (
                 <>
-                  {renderRevealLane(revealBoards.you.defense, 'def', 'defense-lane', 'l-ydef', 'Your defense')}
-                  {renderRevealLane(revealBoards.you.attack, 'atk', 'attack-lane', 'l-yatk', 'Your attack')}
+                  {renderRevealLane(revealBoards.you.defense, 'def', 'defense-lane', 'l-ydef', t('match.lane.yourDefense'))}
+                  {renderRevealLane(revealBoards.you.attack, 'atk', 'attack-lane', 'l-yatk', t('match.lane.yourAttack'))}
                   <div className="p4-mid" />
-                  {renderRevealLane(revealBoards.them.attack, 'atk', 'them-attack-lane', 'l-tatk', 'Their attack')}
-                  {renderRevealLane(revealBoards.them.defense, 'def', 'them-defense-lane', 'l-tdef', 'Their defense')}
+                  {renderRevealLane(revealBoards.them.attack, 'atk', 'them-attack-lane', 'l-tatk', t('match.lane.theirAttack'))}
+                  {renderRevealLane(revealBoards.them.defense, 'def', 'them-defense-lane', 'l-tdef', t('match.lane.theirDefense'))}
                 </>
               ) : (
                 <>
                   <Lane
                     id="defense-lane"
                     kind="def"
-                    label="Your defense"
+                    label={t('match.lane.yourDefense')}
                     lw={128}
                     fx={defenseFx}
                     count={defenseCards.length}
@@ -580,7 +596,7 @@ export function MatchBoard({
                   <Lane
                     id="attack-lane"
                     kind="atk"
-                    label="Your attack"
+                    label={t('match.lane.yourAttack')}
                     lw={128}
                     fx={attackFx}
                     count={attackCards.length}
@@ -606,14 +622,14 @@ export function MatchBoard({
                     'atk',
                     'them-attack-lane',
                     'l-tatk',
-                    'Their attack',
+                    t('match.lane.theirAttack'),
                   )}
                   {renderFaceDownLane(
                     opponentIntent?.defenseCount ?? 0,
                     'def',
                     'them-defense-lane',
                     'l-tdef',
-                    'Their defense',
+                    t('match.lane.theirDefense'),
                   )}
                 </>
               )}
@@ -622,12 +638,12 @@ export function MatchBoard({
             {/* xG floats during duel animation */}
             {showYouXg && roundReport && roundReport.youXg > 0 && (
               <div style={{ position: 'absolute', right: '6%', top: '30%', zIndex: 10 }}>
-                <XGFloat amount={roundReport.youXg} label="xG · your attack" />
+                <XGFloat amount={roundReport.youXg} label={t('match.xg.yourAttack')} />
               </div>
             )}
             {showThemXg && roundReport && roundReport.themXg > 0 && (
               <div style={{ position: 'absolute', left: '6%', top: '30%', zIndex: 10 }}>
-                <XGFloat amount={roundReport.themXg} label="xG · their attack" />
+                <XGFloat amount={roundReport.themXg} label={t('match.xg.theirAttack')} />
               </div>
             )}
           </div>
@@ -668,7 +684,7 @@ export function MatchBoard({
             )}
             {!isReveal && canCommit && (
               <button className="btn btn-gold" data-coach="commit" onClick={handleCommit}>
-                {committed > 0 ? 'Lock in & reveal' : 'Pass round'}
+                {committed > 0 ? t('match.commit.lockReveal') : t('match.commit.passRound')}
               </button>
             )}
           </div>
@@ -678,54 +694,71 @@ export function MatchBoard({
         {isReveal && showReport && roundReport && (
           <div className="readout">
             <h4>
-              {roundReport.extraTime
-                ? `Extra time +${(roundReport.round - 10) * 9}'`
-                : `Round ${roundReport.round}`}{' '}
-              — full report
+              {t('match.report.heading', {
+                phase: roundReport.extraTime
+                  ? t('match.report.extraTime', { n: (roundReport.round - 10) * 9 })
+                  : t('match.report.round', { n: roundReport.round }),
+              })}
             </h4>
             <div className="lines">
-              <div className="line l-summary">{summaryLine(roundReport, match.opponent.name)}</div>
+              <div className="line l-summary">{summaryLine(roundReport, match.opponent.name, t)}</div>
               <div className="line l-side">
-                {friendlySide('You', roundReport.you, roundReport.youXg)}
+                {friendlySide(t('match.report.who.you'), roundReport.you, roundReport.youXg, t)}
               </div>
               <div className="line l-side to-them">
-                {friendlySide(match.opponent.name, roundReport.them, roundReport.themXg)}
+                {friendlySide(match.opponent.name, roundReport.them, roundReport.themXg, t)}
               </div>
 
               {roundReport.youGoalsThisRound > 0 && (
                 <div className="line l-goal">
-                  ⚽ GOAL! You make it {roundReport.youGoalsTotal}–{roundReport.themGoalsTotal}
+                  {t('match.report.goalYou', { you: roundReport.youGoalsTotal, them: roundReport.themGoalsTotal })}
                 </div>
               )}
               {roundReport.themGoalsThisRound > 0 && (
                 <div className="line l-goal">
-                  ⚽ GOAL! {match.opponent.name} makes it {roundReport.youGoalsTotal}–{roundReport.themGoalsTotal}
+                  {t('match.report.goalThem', {
+                    opp: match.opponent.name,
+                    you: roundReport.youGoalsTotal,
+                    them: roundReport.themGoalsTotal,
+                  })}
                 </div>
               )}
               {roundReport.you.scored && (
-                <div className="line l-onform">🔥 You're on form — a scoring boost next round.</div>
+                <div className="line l-onform">{t('match.report.onFormYou')}</div>
               )}
               {roundReport.them.scored && (
-                <div className="line l-onform">🔥 {match.opponent.name} are on form — watch out next round.</div>
+                <div className="line l-onform">{t('match.report.onFormThem', { opp: match.opponent.name })}</div>
               )}
               {roundReport.halftime && (
-                <div className="line l-halftime">🏃 Halftime — your stars are back and legs are fresh.</div>
+                <div className="line l-halftime">{t('match.report.halftime')}</div>
               )}
 
               <details className="readout-details">
-                <summary>Show the numbers</summary>
-                <div className="line l-note">{sideNote('You', roundReport.you)}</div>
-                <div className="line l-note">{sideNote('They', roundReport.them)}</div>
+                <summary>{t('match.report.showNumbers')}</summary>
+                <div className="line l-note">{sideNote(t('match.report.who.you'), roundReport.you, t)}</div>
+                <div className="line l-note">{sideNote(t('match.report.who.they'), roundReport.them, t)}</div>
                 <div className="line l-xg">
-                  You +{roundReport.youXg.toFixed(2)} xG — ATK {roundReport.you.atkEff} vs DEF {roundReport.them.defEff}
+                  {t('match.report.xgYou', {
+                    xg: roundReport.youXg.toFixed(2),
+                    atk: roundReport.you.atkEff,
+                    def: roundReport.them.defEff,
+                  })}
                 </div>
                 <div className="line l-xg to-them">
-                  They +{roundReport.themXg.toFixed(2)} xG — ATK {roundReport.them.atkEff} vs DEF {roundReport.you.defEff}
+                  {t('match.report.xgThem', {
+                    xg: roundReport.themXg.toFixed(2),
+                    atk: roundReport.them.atkEff,
+                    def: roundReport.you.defEff,
+                  })}
                 </div>
               </details>
             </div>
             <button className="btn btn-gold" style={{ width: '100%' }} onClick={onNextRound}>
-              {roundReport.decided ? 'See result →' : roundReport.extraTime ? 'Next ET round →' : 'Next round →'}
+              {roundReport.decided
+                ? t('match.report.next.result')
+                : roundReport.extraTime
+                  ? t('match.report.next.et')
+                  : t('match.report.next.round')}
             </button>
           </div>
         )}
@@ -733,8 +766,8 @@ export function MatchBoard({
         {/* hand dock — fan of draggable+clickable player cards */}
         <div className="hand-dock" style={{ '--hw': '118px' } as React.CSSProperties}>
           <div className="pile-col7 left">
-            <DeckPile kind="draw" count={p0.drawPile.length} label="Draw" />
-            <DeckPile kind="locked" count={p0.locked.length} label="Bench" cue="returns at HT" />
+            <DeckPile kind="draw" count={p0.drawPile.length} label={t('match.pile.draw')} />
+            <DeckPile kind="locked" count={p0.locked.length} label={t('match.pile.bench')} cue={t('match.pile.benchCue')} />
           </div>
 
           <div className="fan2">
@@ -750,16 +783,16 @@ export function MatchBoard({
           </div>
 
           <div className="pile-col7 right">
-            <DeckPile kind="discard" count={p0.discard.length} label="Discard" />
-            <DeckPile kind="exiled" count={p0.exiled.length} label="Exiled" />
+            <DeckPile kind="discard" count={p0.discard.length} label={t('match.pile.discard')} />
+            <DeckPile kind="exiled" count={p0.exiled.length} label={t('match.pile.exiled')} />
           </div>
         </div>
 
         {/* player bottom strip */}
         <div className="side-strip bottom">
-          <div className="crest">YOU</div>
+          <div className="crest">{t('match.you')}</div>
           <span className="fchip" data-f={formation}>
-            {FORMATION_LABELS[formation].label} {FORMATION_LABELS[formation].shape}
+            {FORMATION_LABELS[formation].label} {t(FORMATION_LABELS[formation].shapeKey)}
           </span>
           {onSurrender && (
             <button
@@ -768,7 +801,7 @@ export function MatchBoard({
               style={{ marginLeft: 'auto' }}
               onClick={() => setShowSurrender(true)}
             >
-              {surrenderCopy.button}
+              {t(surrenderCopy.button)}
             </button>
           )}
         </div>
@@ -778,15 +811,15 @@ export function MatchBoard({
       {onSurrender && (
         <Modal open={showSurrender} onClose={() => setShowSurrender(false)}>
           <div className="surrender-modal">
-            <h3>{surrenderCopy.title}</h3>
-            <p>{surrenderCopy.body}</p>
+            <h3>{t(surrenderCopy.title)}</h3>
+            <p>{t(surrenderCopy.body)}</p>
             <div className="surrender-actions">
               <button
                 type="button"
                 className="btn btn-ghost"
                 onClick={() => setShowSurrender(false)}
               >
-                Keep playing
+                {t('match.surrender.keepPlaying')}
               </button>
               <button
                 type="button"
@@ -796,7 +829,7 @@ export function MatchBoard({
                   onSurrender()
                 }}
               >
-                {surrenderCopy.confirm}
+                {t(surrenderCopy.confirm)}
               </button>
             </div>
           </div>

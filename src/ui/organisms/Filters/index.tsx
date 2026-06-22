@@ -1,3 +1,5 @@
+import { useLang } from '../../i18n'
+
 interface FiltersProps {
   searchValue?: string
   onSearchChange?: (value: string) => void
@@ -35,11 +37,18 @@ export function Filters({
   onPositionChange,
   rarityValue = 'all',
   onRarityChange,
-  rarityAllLabel = 'All rarities',
+  rarityAllLabel,
   rarityOptions = ['Legendary', 'Epic', 'Rare', 'Common'],
   ratingMin = 60,
   onRatingMinChange,
 }: FiltersProps) {
+  const { t } = useLang()
+  const RARITY_LABELS: Record<string, string> = {
+    Legendary: t('builder.rarityLegendary'),
+    Epic: t('builder.rarityEpic'),
+    Rare: t('builder.rarityRare'),
+    Common: t('builder.rarityCommon'),
+  }
   return (
     <div className="filters" style={{ border: 'none', padding: '0 28px', width: '100%' }}>
       {seasonOptions && onSeasonChange && (
@@ -47,42 +56,42 @@ export function Filters({
           className="edition-select"
           value={String(seasonValue ?? '')}
           onChange={(e) => onSeasonChange(Number(e.target.value))}
-          title="World Cup edition"
+          title={t('builder.wcEditionTitle')}
         >
           {seasonOptions.map((s) => (
-            <option key={s} value={s}>WC {s}</option>
+            <option key={s} value={s}>{t('builder.wcEdition', { year: s })}</option>
           ))}
         </select>
       )}
       <input
         type="text"
-        placeholder="Search players…"
+        placeholder={t('builder.searchPlaceholder')}
         value={searchValue}
         onChange={(e) => onSearchChange?.(e.target.value)}
       />
       {onCountryChange && (
-        <select value={countryValue} onChange={(e) => onCountryChange(e.target.value)} title="Country">
-          <option value="all">All countries</option>
+        <select value={countryValue} onChange={(e) => onCountryChange(e.target.value)} title={t('builder.countryTitle')}>
+          <option value="all">{t('builder.allCountries')}</option>
           {(countryOptions ?? []).map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
       )}
       <select value={positionValue} onChange={(e) => onPositionChange?.(e.target.value)}>
-        <option value="all">All positions</option>
+        <option value="all">{t('builder.allPositions')}</option>
         <option>FWD</option>
         <option>MID</option>
         <option>DEF</option>
         <option>GK</option>
       </select>
       <select value={rarityValue} onChange={(e) => onRarityChange?.(e.target.value)}>
-        <option value="all">{rarityAllLabel}</option>
+        <option value="all">{rarityAllLabel ?? t('builder.allRarities')}</option>
         {rarityOptions.map((r) => (
-          <option key={r}>{r}</option>
+          <option key={r} value={r}>{RARITY_LABELS[r] ?? r}</option>
         ))}
       </select>
       <div className="range-wrap">
-        <span>Rating {ratingMin}+</span>
+        <span>{t('builder.ratingMin', { n: ratingMin })}</span>
         <input
           type="range"
           min="60"

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { CoachStep } from './steps'
+import { useLang } from '../../i18n'
 import './coachMarks.css'
 
 interface CoachMarksProps {
@@ -25,6 +26,7 @@ const MARGIN = 12 // viewport edge margin
  * centers the tooltip rather than breaking the flow.
  */
 export function CoachMarks({ steps, onDone }: CoachMarksProps) {
+  const { t } = useLang()
   const [i, setI] = useState(0)
   const [rect, setRect] = useState<DOMRect | null>(null)
   const popRef = useRef<HTMLDivElement>(null)
@@ -133,7 +135,7 @@ export function CoachMarks({ steps, onDone }: CoachMarksProps) {
       onClick={advance}
       role="dialog"
       aria-modal="true"
-      aria-label="Tutorial"
+      aria-label={t('match.coach.ariaTutorial')}
     >
       {hasTarget && <div className="coach-spotlight" style={spotlightStyle} />}
 
@@ -144,10 +146,10 @@ export function CoachMarks({ steps, onDone }: CoachMarksProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="coach-step">
-          Step {i + 1} of {steps.length}
+          {t('match.coach.stepOf', { i: i + 1, n: steps.length })}
         </div>
-        <h3>{step.title}</h3>
-        <p>{step.body}</p>
+        <h3>{t(step.title)}</h3>
+        <p>{t(step.body)}</p>
 
         <div className="coach-dots" aria-hidden>
           {steps.map((s, idx) => (
@@ -157,10 +159,10 @@ export function CoachMarks({ steps, onDone }: CoachMarksProps) {
 
         <div className="coach-actions">
           <button type="button" className="coach-skip" onClick={onDone}>
-            Skip tour
+            {t('match.coach.skip')}
           </button>
           <button type="button" className="coach-next" onClick={advance}>
-            {last ? 'Got it' : 'Next →'}
+            {last ? t('match.coach.gotIt') : t('match.coach.next')}
           </button>
         </div>
       </div>

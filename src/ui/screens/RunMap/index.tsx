@@ -2,6 +2,8 @@ import type { RunState, OpponentTeam } from '../../../engine/types'
 import type { RunNodeData } from '../../organisms/Ladder'
 import { Ladder } from '../../organisms/Ladder'
 import { NextPanel } from '../../organisms/NextPanel'
+import { useLang } from '../../i18n'
+import type { Translate } from '../../i18n'
 
 interface RunMapProps {
   runState: RunState
@@ -10,24 +12,32 @@ interface RunMapProps {
   onBack: () => void
 }
 
-const STAGE_LABELS: Record<RunState['stage'], string> = {
-  group: 'Group',
-  r16: 'R16',
-  qf: 'QF',
-  sf: 'SF',
-  final: 'Final',
+const STAGE_LABEL_KEYS: Record<RunState['stage'], string> = {
+  group: 'run.stageGroupLong',
+  r16: 'run.stageR16',
+  qf: 'run.stageQF',
+  sf: 'run.stageSF',
+  final: 'run.stageFinal',
 }
 
 const STAGE_ORDER: RunState['stage'][] = ['group', 'group', 'group', 'r16', 'qf', 'sf', 'final']
 
-const STAGE_DISPLAY: string[] = ['Group 1', 'Group 2', 'Group 3', 'R16', 'QF', 'SF', 'Final']
+const STAGE_DISPLAY_KEYS: string[] = [
+  'run.stageGroup1',
+  'run.stageGroup2',
+  'run.stageGroup3',
+  'run.stageR16',
+  'run.stageQF',
+  'run.stageSF',
+  'run.stageFinal',
+]
 
 /** Maps the linear 7-match run into bracket ladder nodes.
  *
  * Each stage node carries done/now/final state derived from matchIndex + alive,
  * plus the beaten opponent name when the stage was won.
  */
-function buildLadderNodes(runState: RunState): RunNodeData[] {
+function buildLadderNodes(runState: RunState, t: Translate): RunNodeData[] {
   const { matchIndex, defeated, alive } = runState
 
   return STAGE_ORDER.map((stage, i) => {
@@ -36,7 +46,7 @@ function buildLadderNodes(runState: RunState): RunNodeData[] {
     const isFinal = stage === 'final'
 
     return {
-      stage: STAGE_DISPLAY[i] ?? STAGE_LABELS[stage],
+      stage: t(STAGE_DISPLAY_KEYS[i] ?? STAGE_LABEL_KEYS[stage]),
       number: i + 1,
       done: isDone,
       now: isNow,
@@ -50,19 +60,21 @@ function buildLadderNodes(runState: RunState): RunNodeData[] {
  *  Prop-driven container: receives slices from useArcadeRun and fires callbacks up.
  */
 export function RunMap({ runState, nextOpponent, onPlayNext, onBack }: RunMapProps) {
-  const nodes = buildLadderNodes(runState)
+  const { t } = useLang()
+  const nodes = buildLadderNodes(runState, t)
   const isFinalStage = runState.stage === 'final'
+  const currentStageLabel = t(STAGE_DISPLAY_KEYS[runState.matchIndex] ?? STAGE_LABEL_KEYS[runState.stage])
 
   return (
     <div className="screen bracket-screen">
       <div className="stadium-bg" />
 
       <div className="bracket-head">
-        <div className="kicker">Arcade Run</div>
-        <h2>Next Match</h2>
+        <div className="kicker">{t('run.arcadeRun')}</div>
+        <h2>{t('run.nextMatch')}</h2>
         {nextOpponent && (
           <div className="sub">
-            {STAGE_DISPLAY[runState.matchIndex] ?? STAGE_LABELS[runState.stage]}
+            {currentStageLabel}
           </div>
         )}
       </div>
@@ -74,11 +86,11 @@ export function RunMap({ runState, nextOpponent, onPlayNext, onBack }: RunMapPro
           name={nextOpponent.name}
           nation={nextOpponent.nation}
           year={`'${String(nextOpponent.year).slice(-2)}`}
-          round={STAGE_DISPLAY[runState.matchIndex] ?? STAGE_LABELS[runState.stage]}
+          round={currentStageLabel}
           tier={nextOpponent.tier}
           formation={nextOpponent.preferredFormation}
           blurb={nextOpponent.blurb}
-          extra={nextOpponent.isChampion ? 'Champion' : undefined}
+          extra={nextOpponent.isChampion ? t('run.champion') : undefined}
           cols={undefined}
           actions={
             <button
@@ -86,7 +98,7 @@ export function RunMap({ runState, nextOpponent, onPlayNext, onBack }: RunMapPro
               className={`btn btn-big ${isFinalStage ? 'btn-gold' : 'btn-primary'}`}
               onClick={onPlayNext}
             >
-              {isFinalStage ? 'Play the Final' : 'Play next match'}
+              {isFinalStage ? t('run.playTheFinal') : t('run.playNextMatch')}
             </button>
           }
         />
@@ -97,7 +109,7 @@ export function RunMap({ runState, nextOpponent, onPlayNext, onBack }: RunMapPro
         className="btn btn-ghost"
         onClick={onBack}
       >
-        Abandon Run
+        {t('run.abandonRun')}
       </button>
     </div>
   )

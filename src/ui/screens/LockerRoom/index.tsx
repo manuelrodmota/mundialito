@@ -3,6 +3,7 @@ import type { PlayerCard, TacticalCard, Card, OpponentTeam } from '../../../engi
 import type { RewardState } from '../../run/useArcadeRun'
 import { NextPanel } from '../../organisms/NextPanel'
 import { LockerSwapRow } from '../../organisms/LockerSwapRow'
+import { useLang } from '../../i18n'
 
 interface LockerRoomProps {
   reward: RewardState
@@ -39,15 +40,16 @@ function TacticalOfferSection({
   onChooseTac: (id: string) => void
   onChooseExile: (id: string) => void
 }) {
+  const { t: tr } = useLang()
   if (offer.length === 0) {
-    return <p className="note3">No tactical offer this stage.</p>
+    return <p className="note3">{tr('run.noTacticalOffer')}</p>
   }
 
   return (
     <>
       {atCap && (
         <p className="note3">
-          Tactical deck is at capacity. Choose a card to take and one to exile.
+          {tr('run.tacticalAtCap')}
         </p>
       )}
       <div className="offer-row">
@@ -61,7 +63,7 @@ function TacticalOfferSection({
             onKeyDown={(e) => e.key === 'Enter' && onChooseTac(t.id)}
             aria-pressed={chosenTacId === t.id}
           >
-            {chosenTacId === t.id && <span className="pick-tag">Selected</span>}
+            {chosenTacId === t.id && <span className="pick-tag">{tr('run.selected')}</span>}
             <div
               className="tcard"
               data-cat={t.category}
@@ -79,7 +81,7 @@ function TacticalOfferSection({
 
       {atCap && chosenTacId && (
         <div>
-          <h4>Exile from your deck</h4>
+          <h4>{tr('run.exileFromDeck')}</h4>
           <div className="pick-rows">
             {heldTacticals.map((t) => (
               <div
@@ -121,6 +123,7 @@ export function LockerRoom({
   onContinue,
   onRemoveCard,
 }: LockerRoomProps) {
+  const { t } = useLang()
   const [chosenTacId, setChosenTacId] = useState<string | null>(null)
   const [exileId, setExileId] = useState<string | null>(null)
 
@@ -161,8 +164,8 @@ export function LockerRoom({
     <div className="screen locker">
       <div className="locker-head">
         <div>
-          <h2>Locker Room</h2>
-          <div className="hint">Take your rewards and prepare for the next match.</div>
+          <h2>{t('run.lockerRoom')}</h2>
+          <div className="hint">{t('run.lockerHint')}</div>
         </div>
         {nextOpponent && (
           <span className="stage-tag">{nextOpponent.name}</span>
@@ -171,7 +174,7 @@ export function LockerRoom({
 
       <div className="locker-body">
         <div className="locker-col">
-          <h4>Reward</h4>
+          <h4>{t('run.reward')}</h4>
 
           {rewardPlayer ? (
             <div className="reward-stage">
@@ -192,10 +195,10 @@ export function LockerRoom({
               </div>
             </div>
           ) : (
-            <p className="note3">No player reward this stage.</p>
+            <p className="note3">{t('run.noPlayerReward')}</p>
           )}
 
-          <h4>Tactical offer</h4>
+          <h4>{t('run.tacticalOfferHeading')}</h4>
           <TacticalOfferSection
             offer={tacticalOffer}
             atCap={atCap}
@@ -212,13 +215,13 @@ export function LockerRoom({
             onClick={handleConfirm}
             disabled={!canConfirm}
           >
-            Accept Rewards
+            {t('run.acceptRewards')}
           </button>
         </div>
 
         <div className="locker-col">
-          <h4>Your Squad</h4>
-          <p className="note3">{playerCards.length} players · captain marked ★</p>
+          <h4>{t('run.yourSquad')}</h4>
+          <p className="note3">{t('run.playersCaptainMarked', { n: playerCards.length })}</p>
           <div className="pick-rows">
             {playerCards.map((p) => (
               <div
@@ -230,7 +233,7 @@ export function LockerRoom({
                 <button
                   type="button"
                   className={`pick-row cap2${p.id === captainId ? ' on' : ''}`}
-                  aria-label={`Set ${p.name} as captain`}
+                  aria-label={t('run.setAsCaptain', { name: p.name })}
                   onClick={() => onSetCaptain(p.id)}
                   aria-pressed={p.id === captainId}
                 >
@@ -240,9 +243,9 @@ export function LockerRoom({
                   <button
                     type="button"
                     className="pick-row rm"
-                    title="Remove from deck"
+                    title={t('run.removeFromDeck')}
                     onClick={() => onRemoveCard(p.id)}
-                    aria-label={`Remove ${p.name}`}
+                    aria-label={t('run.removePlayer', { name: p.name })}
                   >
                     ✕
                   </button>
@@ -253,7 +256,7 @@ export function LockerRoom({
 
           {heldTacticals.length > 0 && (
             <>
-              <h4>Tacticals in deck</h4>
+              <h4>{t('run.tacticalsInDeck')}</h4>
               <div className="pick-rows">
                 {heldTacticals.map((t) => (
                   <LockerSwapRow key={t.id} name={t.name} />
@@ -266,22 +269,22 @@ export function LockerRoom({
         <div className="locker-col">
           {nextOpponent && (
             <>
-              <h4>Next opponent</h4>
+              <h4>{t('run.nextOpponent')}</h4>
               <NextPanel
                 name={nextOpponent.name}
                 year={`'${String(nextOpponent.year).slice(-2)}`}
-                round={nextOpponent.isChampion ? 'Final' : 'Next Match'}
+                round={nextOpponent.isChampion ? t('run.roundFinal') : t('run.roundNextMatch')}
                 tier={nextOpponent.tier}
                 formation={nextOpponent.preferredFormation}
                 blurb={nextOpponent.blurb}
-                extra={nextOpponent.isChampion ? 'Champion' : undefined}
+                extra={nextOpponent.isChampion ? t('run.champion') : undefined}
                 actions={
                   <button
                     type="button"
                     className="btn btn-primary btn-big"
                     onClick={onContinue}
                   >
-                    Continue
+                    {t('run.continue')}
                   </button>
                 }
               />
@@ -294,7 +297,7 @@ export function LockerRoom({
               className="btn btn-primary btn-big"
               onClick={onContinue}
             >
-              Continue
+              {t('run.continue')}
             </button>
           )}
         </div>
