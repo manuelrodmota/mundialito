@@ -35,3 +35,4 @@ qubika-agentic-framework/
 .env.local
 supabase/.temp/
 supabase/out/
+.vercel

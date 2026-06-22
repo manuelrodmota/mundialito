@@ -91,10 +91,18 @@ export function mapPositionCode(code: string): Position {
 /**
  * Derives a Position heuristic from attack/defense ratings when no squad
  * position_code is available for a ratings-only player.
- * GK is only inferred when attack is explicitly 0.
+ *
+ * Keepers in the card pool carry a very low attack (~10–35) against a defense ≈
+ * their overall, while the lowest outfield attack is ~40+, so an attack floor
+ * cleanly separates GKs from defenders. (The earlier `attack === 0` check never
+ * matched real data — no rating has attack 0 — so every keeper fell through to
+ * DEF.) Authoritative positions come from position_code when a rating matches a
+ * squad row; this heuristic only covers the ~18% of ratings with no squad match.
  */
+const GK_ATTACK_CEILING = 35;
+
 export function derivePositionFromRatings(attack: number, defense: number): Position {
-  if (attack === 0) return "GK";
+  if (attack <= GK_ATTACK_CEILING && defense > attack) return "GK";
   if (attack >= defense + 5) return "FWD";
   if (defense >= attack + 5) return "DEF";
   return "MID";

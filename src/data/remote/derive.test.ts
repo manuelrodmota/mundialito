@@ -124,6 +124,18 @@ describe("derivePositionFromRatings", () => {
     expect(derivePositionFromRatings(0, 85)).toBe("GK");
   });
 
+  it("low non-zero atk (real keeper) → GK", () => {
+    // Real card-pool keepers have attack ~10–32, never 0 (the prior bug).
+    expect(derivePositionFromRatings(11, 85)).toBe("GK"); // E. Martínez 2026
+    expect(derivePositionFromRatings(20, 74)).toBe("GK"); // older-era keeper
+    expect(derivePositionFromRatings(32, 54)).toBe("GK"); // low-rated keeper
+  });
+
+  it("low-attack defender (atk ≥ ceiling) → DEF, not GK", () => {
+    // A defensive CB sits above the keeper attack floor (~40+), e.g. Bednarek.
+    expect(derivePositionFromRatings(42, 78)).toBe("DEF");
+  });
+
   it("atk much > def → FWD", () => {
     expect(derivePositionFromRatings(88, 50)).toBe("FWD");
   });
