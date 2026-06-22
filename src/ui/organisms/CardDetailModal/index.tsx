@@ -115,4 +115,4 @@ export function CardDetailModal({
   )
 }
 
-export { TACTICAL_DESCRIPTIONS }
+export { TACTICAL_DESCRIPTIONS, TACTICAL_DESCRIPTION_KEYS }

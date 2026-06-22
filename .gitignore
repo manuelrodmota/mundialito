@@ -36,3 +36,7 @@ qubika-agentic-framework/
 supabase/.temp/
 supabase/out/
 .vercel
+
+# Raw source CSVs — byte-identical duplicate of supabase/seed/ (the canonical copy
+# the seed script reads). Kept locally as an archive; not tracked.
+datasets/

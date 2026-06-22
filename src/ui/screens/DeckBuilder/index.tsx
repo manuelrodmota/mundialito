@@ -9,7 +9,7 @@ import { recommendedSpread, POSITION_ORDER } from '../../quickplay/curatePool'
 import { Filters } from '../../organisms/Filters'
 import { AssistedPool } from '../../organisms/AssistedPool'
 import { PickRow, SlotMeter } from '../../molecules/PickRow'
-import { CardDetailModal } from '../../organisms/CardDetailModal'
+import { CardDetailModal, TACTICAL_DESCRIPTION_KEYS } from '../../organisms/CardDetailModal'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { useLang } from '../../i18n'
@@ -46,6 +46,10 @@ export function DeckBuilder({
 }: DeckBuilderProps) {
   const { t } = useLang()
   const [premiums, setPremiums] = useState<PlayerCard[]>([])
+  // Commons for the browsed edition. Hidden by default (the grid shows premiums only,
+  // to avoid loading thousands of low-tier cards), but surfaced when a country filter is
+  // set so small nations with no premiums (e.g. Curaçao) still show their full squad.
+  const [editionCommons, setEditionCommons] = useState<PlayerCard[]>([])
   const [commonPool, setCommonPool] = useState<PlayerCard[]>([])
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [picks, setPicks] = useState<PlayerCard[]>([])
@@ -101,6 +105,7 @@ export function DeckBuilder({
         if (cancelled) return
         const premiumList = players.filter((p) => p.rarity !== 'common')
         setCountries(teamList)
+        setEditionCommons(players.filter((p) => p.rarity === 'common'))
         if (premiumList.length === 0) {
           setLoadState('empty')
         } else {
@@ -115,7 +120,10 @@ export function DeckBuilder({
   }, [seasonValue])
 
   const filteredPlayers = useMemo(() => {
-    return premiums.filter((p) => {
+    // A country filter surfaces that nation's commons too, so small squads aren't empty;
+    // the default (no country) view stays premium-only.
+    const base = countryValue !== 'all' ? [...premiums, ...editionCommons] : premiums
+    return base.filter((p) => {
       if (searchValue && !p.name.toLowerCase().includes(searchValue.toLowerCase())) return false
       if (countryValue !== 'all' && p.nation !== countryValue) return false
       if (positionValue !== 'all' && p.position !== positionValue) return false
@@ -123,7 +131,7 @@ export function DeckBuilder({
       if (p.overall < ratingMin) return false
       return true
     })
-  }, [premiums, searchValue, countryValue, positionValue, rarityValue, ratingMin])
+  }, [premiums, editionCommons, searchValue, countryValue, positionValue, rarityValue, ratingMin])
 
   const slotsUsed = picks.reduce((sum, p) => sum + p.slots, 0)
   const isOverBudget = slotsUsed > playerBudget
@@ -368,6 +376,11 @@ export function DeckBuilder({
                       card={tac}
                       size={150}
                       showSlots
+                      description={
+                        TACTICAL_DESCRIPTION_KEYS[tac.effect.kind]
+                          ? t(TACTICAL_DESCRIPTION_KEYS[tac.effect.kind])
+                          : t('builder.tacNoDescription', { name: tac.name })
+                      }
                       className={isPicked ? 'selected' : wouldExceed ? 'unaffordable' : ''}
                       onClick={() => {
                         if (isPicked) handleRemoveTactical(tac)

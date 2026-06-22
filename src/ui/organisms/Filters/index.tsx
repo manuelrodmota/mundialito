@@ -1,4 +1,4 @@
-import { useLang } from '../../i18n'
+import { useLang, localizeCountry } from '../../i18n'
 
 interface FiltersProps {
   searchValue?: string
@@ -42,7 +42,7 @@ export function Filters({
   ratingMin = 60,
   onRatingMinChange,
 }: FiltersProps) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const RARITY_LABELS: Record<string, string> = {
     Legendary: t('builder.rarityLegendary'),
     Epic: t('builder.rarityEpic'),
@@ -73,7 +73,7 @@ export function Filters({
         <select value={countryValue} onChange={(e) => onCountryChange(e.target.value)} title={t('builder.countryTitle')}>
           <option value="all">{t('builder.allCountries')}</option>
           {(countryOptions ?? []).map((c) => (
-            <option key={c} value={c}>{c}</option>
+            <option key={c} value={c}>{localizeCountry(c, lang)}</option>
           ))}
         </select>
       )}
