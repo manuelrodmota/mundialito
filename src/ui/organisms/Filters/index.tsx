@@ -41,7 +41,7 @@ export function Filters({
   onRatingMinChange,
 }: FiltersProps) {
   return (
-    <div className="filters" style={{ border: 'none', padding: 0, width: '100%' }}>
+    <div className="filters" style={{ border: 'none', padding: '0 28px', width: '100%' }}>
       {seasonOptions && onSeasonChange && (
         <select
           className="edition-select"

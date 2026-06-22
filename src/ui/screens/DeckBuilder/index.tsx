@@ -279,7 +279,7 @@ export function DeckBuilder({
               className={mode === 'assisted' ? 'on' : ''}
               onClick={() => setMode('assisted')}
             >
-              ⚖ Assisted
+              ⚖ Recommended
             </button>
             <button
               role="tab"
@@ -287,7 +287,7 @@ export function DeckBuilder({
               className={mode === 'free' ? 'on' : ''}
               onClick={() => setMode('free')}
             >
-              ⊞ Free
+              ⊞ All Players
             </button>
           </div>
           <Filters
