@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { CoachStep } from './steps'
 import './coachMarks.css'
@@ -27,6 +27,8 @@ const MARGIN = 12 // viewport edge margin
 export function CoachMarks({ steps, onDone }: CoachMarksProps) {
   const [i, setI] = useState(0)
   const [rect, setRect] = useState<DOMRect | null>(null)
+  const popRef = useRef<HTMLDivElement>(null)
+  const [popH, setPopH] = useState(0)
   const step = steps[i]
 
   const advance = useCallback(() => {
@@ -57,6 +59,13 @@ export function CoachMarks({ steps, onDone }: CoachMarksProps) {
     }
   }, [step])
 
+  // Measure the tooltip's real height so placement can keep it (and its action
+  // buttons) fully on screen. Runs before paint, so the corrected position is
+  // what's painted — no flicker from the first-pass estimate.
+  useLayoutEffect(() => {
+    if (popRef.current) setPopH(popRef.current.offsetHeight)
+  }, [i, rect])
+
   // Keyboard: Enter/→ advance, Esc skips.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -72,31 +81,50 @@ export function CoachMarks({ steps, onDone }: CoachMarksProps) {
   const last = i === steps.length - 1
   const hasTarget = rect !== null && rect.width > 0 && rect.height > 0
 
-  const spotlightStyle: React.CSSProperties | undefined = hasTarget
-    ? {
-        top: rect!.top - PAD,
-        left: rect!.left - PAD,
-        width: rect!.width + PAD * 2,
-        height: rect!.height + PAD * 2,
-      }
-    : undefined
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 0
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 0
 
-  // Place the tooltip below the target if there's room, otherwise above.
+  // Clamp the spotlight box inside the viewport so its border is never cut off by
+  // an edge (e.g. a target flush against the top, like the score meters in step 1).
+  let spotlightStyle: React.CSSProperties | undefined
+  if (hasTarget) {
+    const sTop = Math.max(MARGIN, rect!.top - PAD)
+    const sLeft = Math.max(MARGIN, rect!.left - PAD)
+    const sBottom = Math.min(vh - MARGIN, rect!.bottom + PAD)
+    const sRight = Math.min(vw - MARGIN, rect!.right + PAD)
+    spotlightStyle = {
+      top: sTop,
+      left: sLeft,
+      width: Math.max(0, sRight - sLeft),
+      height: Math.max(0, sBottom - sTop),
+    }
+  }
+
+  // Place the tooltip below the target if it fully fits, else above, else clamp it
+  // into the viewport. Uses the measured height so the action buttons are never cut
+  // off the bottom (the prior fixed 220px estimate overflowed for tall tooltips).
   let popStyle: React.CSSProperties = {}
   let placeClass = 'centered'
   if (hasTarget) {
-    const vw = window.innerWidth
-    const vh = window.innerHeight
+    const h = popH || 260 // first-pass estimate; corrected before paint by the measure effect
     const centerX = rect!.left + rect!.width / 2
     const left = Math.min(Math.max(centerX - POP_W / 2, MARGIN), vw - POP_W - MARGIN)
-    const roomBelow = vh - rect!.bottom
-    if (roomBelow > 220 || rect!.top < 220) {
-      popStyle = { top: rect!.bottom + GAP, left }
+    const belowTop = rect!.bottom + GAP
+    const aboveTop = rect!.top - GAP - h
+    let top: number
+    if (belowTop + h <= vh - MARGIN) {
+      top = belowTop
       placeClass = 'place-below'
-    } else {
-      popStyle = { top: rect!.top - GAP, left }
+    } else if (aboveTop >= MARGIN) {
+      top = aboveTop
       placeClass = 'place-above'
+    } else {
+      // Neither side fully fits — favour the roomier side, then clamp below.
+      top = vh - rect!.bottom >= rect!.top ? belowTop : aboveTop
+      placeClass = 'place-below'
     }
+    top = Math.min(Math.max(top, MARGIN), Math.max(MARGIN, vh - h - MARGIN))
+    popStyle = { top, left }
   }
 
   return createPortal(
@@ -110,6 +138,7 @@ export function CoachMarks({ steps, onDone }: CoachMarksProps) {
       {hasTarget && <div className="coach-spotlight" style={spotlightStyle} />}
 
       <div
+        ref={popRef}
         className={`coach-pop ${placeClass}`}
         style={popStyle}
         onClick={(e) => e.stopPropagation()}
