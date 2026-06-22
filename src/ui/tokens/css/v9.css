@@ -1539,15 +1539,28 @@
    the pitch its height); keep it tucked at the far right, visually quiet. */
 .screen.board > .match-dock .match-dock-surrender { flex: none; align-self: center; }
 
-/* The tactical card is taller than the formation chips beside it; anchor the slot to
-   the dock floor so it sits low and compact instead of riding up over the pitch. */
-.screen.board > .match-dock .tactical-slot {
-  align-self: flex-end;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+/* In-use tactical zone — staged tacticals sit on the left of the hand dock, clear of the
+   draw/bench piles (which end ~100px in) and the centred player fan. */
+.hand-dock .tac-used {
+  position: absolute; left: 168px; bottom: 6px; z-index: 7;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
 }
+.hand-dock .tac-used-label {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--gold);
+}
+.hand-dock .tac-used-cards { display: flex; align-items: flex-end; gap: 7px; }
+
+/* The staged tactical reads as active — gold ring; clickable to reopen / stop using. */
+.tac-used-card {
+  position: relative;
+  background: none; border: none; padding: 0; cursor: pointer;
+  display: inline-flex; line-height: 0;
+  transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), filter 140ms;
+}
+.tac-used-card:hover { transform: translateY(-3px); filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5)); }
+.tac-used-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 10px; }
+.tac-used-card .tcard { box-shadow: 0 0 0 2.5px var(--gold), 0 8px 18px rgba(0, 0, 0, 0.5); border-radius: 10px; }
 
 /* Compact (field) cards: drop the figure's bottom gap so the small jersey fills the body. */
 .wcard.compact .strip { padding: 2% 6% 6%; }

@@ -82,6 +82,9 @@ export const en = {
   // Coach plan hint
   'match.commit.lockReveal': 'Lock in & reveal',
   'match.commit.passRound': 'Pass round',
+  'match.tactic.play': 'Play this card',
+  'match.tactic.stop': 'Stop using this card',
+  'match.tactic.inUse': 'In use',
 
   // Round report panel
   'match.report.extraTime': "Extra time +{n}'",
@@ -238,6 +241,9 @@ export const es: typeof en = {
   // Coach plan hint
   'match.commit.lockReveal': 'Confirmar jugada y revelar',
   'match.commit.passRound': 'Pasar ronda',
+  'match.tactic.play': 'Jugar esta carta',
+  'match.tactic.stop': 'Dejar de usar esta carta',
+  'match.tactic.inUse': 'En uso',
 
   // Round report panel
   'match.report.extraTime': "Tiempo extra +{n}'",

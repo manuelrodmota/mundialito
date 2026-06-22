@@ -7,6 +7,7 @@ import type { MatchState, PlayerCard, TacticalCard, Formation, Card, CardInPlay 
 import type { Intent } from '../../../engine/board'
 import type { LaneFx } from '../../../engine/effectiveStats'
 import type { RevealBoards, RoundReport, SideReport } from '../../quickplay/useQuickplayMatch'
+import { TACTICALS_PER_HALF } from '../../quickplay/useQuickplayMatch'
 import { Scoreboard } from '../Scoreboard'
 import { ExtraTimeBanner } from '../ExtraTime'
 import { Lane } from '../Lanes'
@@ -15,7 +16,7 @@ import { DeckPile } from '../../molecules/DeckPile'
 import { XGMeter } from '../../molecules/Meters'
 import { FormationPicker } from '../FormationPicker'
 import { CapChip } from '../../atoms/CapChip'
-import { TacticalSlot } from '../TacticalSlot'
+import { CardDetailModal, TACTICAL_DESCRIPTIONS } from '../CardDetailModal'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { crestSrc } from '../../data/nations'
@@ -234,7 +235,6 @@ interface MatchBoardProps {
   onReveal?: () => void
   /** Called to advance to the next round after the report is dismissed. */
   onNextRound?: () => void
-  onPlayTactical?: (tac: TacticalCard) => void
   onCardClick?: (card: Card) => void
   canCommit?: boolean
   opponentIntent?: Intent | null
@@ -287,7 +287,6 @@ export function MatchBoard({
   onCommit,
   onReveal = () => {},
   onNextRound = () => {},
-  onPlayTactical,
   onCardClick,
   canCommit = false,
   opponentIntent,
@@ -309,6 +308,8 @@ export function MatchBoard({
 
   const [attackCards, setAttackCards] = useState<PlayerCard[]>([])
   const [defenseCards, setDefenseCards] = useState<PlayerCard[]>([])
+  const [tacticalCards, setTacticalCards] = useState<TacticalCard[]>([])
+  const [detailTac, setDetailTac] = useState<TacticalCard | null>(null)
   const [formation, setFormation] = useState<Formation>(p0.formation)
   const [selectedHandId, setSelectedHandId] = useState<string | null>(null)
   const [showSurrender, setShowSurrender] = useState(false)
@@ -378,8 +379,14 @@ export function MatchBoard({
   }, [p0.hand, attackCards, defenseCards])
 
   const handleSelectHandCard = useCallback((id: string) => {
+    // Tacticals open their detail modal (read effect → play); players toggle for placement.
+    const card = p0.hand.find((c) => c.id === id)
+    if (card?.type === 'tactical') {
+      setDetailTac(card as TacticalCard)
+      return
+    }
     setSelectedHandId((prev) => (prev === id ? null : id))
-  }, [])
+  }, [p0.hand])
 
   const handleAttackZoneClick = useCallback(() => {
     if (!selectedHandId) return
@@ -414,18 +421,32 @@ export function MatchBoard({
   }, [])
 
   const handleCommit = useCallback(() => {
-    onCommit({ formation, attackCards, defenseCards })
+    onCommit({ formation, attackCards, defenseCards, tacticals: tacticalCards })
     onReveal()
     // Clear the local staging — the reveal renders the snapshot, and the next round draws fresh.
     setAttackCards([])
     setDefenseCards([])
+    setTacticalCards([])
     setSelectedHandId(null)
-  }, [onCommit, onReveal, formation, attackCards, defenseCards])
+  }, [onCommit, onReveal, formation, attackCards, defenseCards, tacticalCards])
 
-  const availableTacticals = p0.hand.filter((c) => c.type === 'tactical') as TacticalCard[]
-  const canPlayTactical = p0.tacticalsThisHalf < 2
-  const activeTactical = p0.board.attack
-    .find((cip) => !cip.faceDown && cip.card.type === 'tactical')?.card as TacticalCard | undefined
+  // Tactical staging — a selected tactical plays on commit (mirrors attack/defense staging).
+  const canStageMoreTacticals = p0.tacticalsThisHalf + tacticalCards.length < TACTICALS_PER_HALF
+  const detailStaged = detailTac ? tacticalCards.some((c) => c.id === detailTac.id) : false
+  const detailShowPrimary = detailTac !== null && (detailStaged || canStageMoreTacticals)
+
+  const handleStageTactical = useCallback((tac: TacticalCard) => {
+    setTacticalCards((prev) => (prev.some((c) => c.id === tac.id) ? prev : [...prev, tac]))
+  }, [])
+  const handleUnstageTactical = useCallback((tac: TacticalCard) => {
+    setTacticalCards((prev) => prev.filter((c) => c.id !== tac.id))
+  }, [])
+  const handleTacticalPrimary = useCallback(() => {
+    if (!detailTac) return
+    if (detailStaged) handleUnstageTactical(detailTac)
+    else handleStageTactical(detailTac)
+    setDetailTac(null)
+  }, [detailTac, detailStaged, handleStageTactical, handleUnstageTactical])
 
   const hasPremiumInAttack = attackCards.some((c) => c.rarity !== 'common')
   const hasPremiumInDefense = defenseCards.some((c) => c.rarity !== 'common')
@@ -440,11 +461,14 @@ export function MatchBoard({
 
   // Staged cards live in the lane state until commit (the engine only splices the
   // hand on commit), so exclude them from the hand fan — otherwise a placed card
-  // shows in both the lane and the hand.
-  const stagedIds = new Set<string>([...attackCards, ...defenseCards].map((c) => c.id))
-  const handCards = (p0.hand.filter((c) => c.type === 'player') as PlayerCard[]).filter(
-    (c) => !stagedIds.has(c.id),
+  // shows in both the lane and the hand. Tacticals share the fan (same card UI) and
+  // leave it once selected, surfacing in the "in use" zone on the left instead.
+  const stagedPlayerIds = new Set<string>([...attackCards, ...defenseCards].map((c) => c.id))
+  const stagedTacticalIds = new Set<string>(tacticalCards.map((c) => c.id))
+  const fanCards = p0.hand.filter((c) =>
+    c.type === 'player' ? !stagedPlayerIds.has(c.id) : !stagedTacticalIds.has(c.id),
   )
+  const unstagedPlayerCount = fanCards.filter((c) => c.type === 'player').length
 
   const attackFx = laneFx ? laneFx(attackCards, 'attack') : null
   const defenseFx = laneFx ? laneFx(defenseCards, 'defense') : null
@@ -460,7 +484,7 @@ export function MatchBoard({
         formation,
         opponentDefenseCount: opponentIntent?.defenseCount ?? 0,
         notLeading: p0.goals <= p1.goals,
-        canAddPlayer: handCards.length > 0,
+        canAddPlayer: unstagedPlayerCount > 0,
       })
 
   const oppCrest = crestSrc(match.opponent.nation)
@@ -680,21 +704,14 @@ export function MatchBoard({
           </Overlay>
         )}
 
-        {/* action dock — cap chips + formation + tactical slot + lock-in button */}
+        {/* action dock — cap chips + formation + lock-in button (tacticals live in the hand dock) */}
         <div className="match-dock">
 
           <CapChip kind="players" current={attackCards.length + defenseCards.length} max={5} />
+          <CapChip kind="tactics" current={p0.tacticalsThisHalf + tacticalCards.length} max={TACTICALS_PER_HALF} />
           {showStarCore && <CapChip kind="star" />}
 
           <FormationPicker selected={formation} onSelect={setFormation} />
-
-          <TacticalSlot
-            activeTactical={activeTactical ?? null}
-            tacticalsThisHalf={p0.tacticalsThisHalf}
-            canPlayTactical={canPlayTactical}
-            availableTacticals={availableTacticals}
-            onPlayTactical={(tac) => onPlayTactical?.(tac)}
-          />
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
             {coachHint && (
@@ -823,15 +840,33 @@ export function MatchBoard({
           </div>
         )}
 
-        {/* hand dock — fan of draggable+clickable player cards */}
+        {/* hand dock — fan of player + tactical cards; staged tacticals move to the left "in use" zone */}
         <div className="hand-dock">
           <div className="pile-col7 left">
             <DeckPile kind="draw" count={p0.drawPile.length} label={t('match.pile.draw')} dw={34} />
             <DeckPile kind="locked" count={p0.locked.length} label={t('match.pile.bench')} cue={t('match.pile.benchCue')} dw={34} />
           </div>
 
+          {!isReveal && tacticalCards.length > 0 && (
+            <div className="tac-used">
+              <span className="tac-used-label">{t('match.tactic.inUse')}</span>
+              <div className="tac-used-cards">
+                {tacticalCards.map((tac) => (
+                  <button
+                    key={tac.id}
+                    type="button"
+                    className="tac-used-card"
+                    onClick={() => setDetailTac(tac)}
+                  >
+                    <TacticCard card={tac} size={72} description={TACTICAL_DESCRIPTIONS[tac.effect.kind]} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="fan2">
-            {handCards.map((card, i) => (
+            {fanCards.map((card, i) => (
               <DraggableCard
                 key={card.id}
                 card={card}
@@ -839,7 +874,7 @@ export function MatchBoard({
                 selected={selectedHandId === card.id}
                 onSelect={handleSelectHandCard}
                 index={i}
-                count={handCards.length}
+                count={fanCards.length}
               />
             ))}
           </div>
@@ -851,6 +886,15 @@ export function MatchBoard({
         </div>
 
       </div>
+
+      {/* Tactical detail — opened from the fan or the in-use zone. Play it (stage) or stop using it. */}
+      <CardDetailModal
+        card={detailTac}
+        open={detailTac !== null}
+        onClose={() => setDetailTac(null)}
+        primaryLabel={detailShowPrimary ? t(detailStaged ? 'match.tactic.stop' : 'match.tactic.play') : undefined}
+        onPrimary={detailShowPrimary ? handleTacticalPrimary : undefined}
+      />
 
       {/* Surrender confirmation — abandons the run and returns to squad selection. */}
       {onSurrender && (

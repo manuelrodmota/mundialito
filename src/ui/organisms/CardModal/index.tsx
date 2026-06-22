@@ -34,6 +34,9 @@ interface CardModalProps {
   /** Human-readable description for tactical cards. */
   tacticDescription?: string
   fieldCost?: number
+  /** Optional primary action (e.g. "Play this card" in-match); renders a gold CTA above Close. */
+  primaryLabel?: string
+  onPrimary?: () => void
 }
 
 /** Full-anatomy card detail modal — reusable by the builder and board screens. */
@@ -45,6 +48,8 @@ export function CardModal({
   showMult,
   tacticDescription,
   fieldCost,
+  primaryLabel,
+  onPrimary,
 }: CardModalProps) {
   const { t } = useLang()
   if (!card) return null
@@ -125,6 +130,11 @@ export function CardModal({
             </div>
           </>
         ) : null}
+        {primaryLabel && onPrimary && (
+          <Button variant="gold" onClick={onPrimary}>
+            {primaryLabel}
+          </Button>
+        )}
         <Button variant="ghost" onClick={onClose}>
           {t('card.close')}
         </Button>
