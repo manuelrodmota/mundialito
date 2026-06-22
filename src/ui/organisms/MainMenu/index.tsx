@@ -20,7 +20,7 @@ export function MainMenu({ onQuickplay, onArcade, onCollection, onHowToPlay }: M
       </div>
 
       <div style={{ textAlign: 'center', marginBottom: 8, position: 'relative', zIndex: 1 }}>
-        <h1 style={{ fontSize: 36, margin: 0 }}>World Cup Clash</h1>
+        <h1 style={{ fontSize: 36, margin: 0 }}>{t('common.appName')}</h1>
         <p className="note" style={{ margin: '8px 0 0' }}>
           {t('menu.tagline')}
         </p>
