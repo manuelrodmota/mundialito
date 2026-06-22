@@ -60,7 +60,7 @@ export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
         <div className="stadium-bg" />
 
         <div className="logo-block" style={{ alignItems: 'center' }}>
-          <div className="kicker">World Cup Clash</div>
+          <div className="kicker">{t('common.appName')}</div>
           <Trophy label={t('run.worldChampionsLabel')} />
           <h1 style={{ marginTop: 8 }}>{t('run.championsTitle')}</h1>
           <div className="sub">

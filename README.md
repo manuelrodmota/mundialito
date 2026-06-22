@@ -95,12 +95,14 @@ The app reads its game data (players, teams, ratings) from a **local Supabase Po
 without it the client throws on boot and the UI renders empty. First-time setup is the full
 chain below, not just `install` + `dev`.
 
-**About Docker:** you never start the database by hand. The **Supabase CLI owns the Docker
-stack** — `pnpm supabase:start` launches Postgres, the REST API (PostgREST), Studio, and Auth
-as containers for you. There are no `docker` commands to run and no project `docker-compose.yml`
-to manage; you just need **Docker Desktop running** so the CLI has somewhere to bring the
-containers up. (See [Docker & one-command run](#docker--one-command-run) for why there's no
-single `docker compose up`.)
+**No Supabase account needed.** Everything runs locally — `supabase start` spins up the whole
+stack on your machine, and the player/team data ships as committed CSVs in `supabase/seed/`.
+The keys you'll see are Supabase's universal local demo keys (the same on every machine, not
+tied to anyone's account), so a fresh clone runs end-to-end with zero cloud setup.
+
+**About Docker:** the database runs in Docker, but the Supabase CLI manages the containers for
+you — `pnpm supabase:start` brings up Postgres, the REST API (PostgREST), and Studio. You just
+need **Docker Desktop running**.
 
 ### Prerequisites
 
@@ -123,19 +125,20 @@ pnpm supabase:start
 # 4. Apply migrations to the local DB (schema + RLS + grants)
 pnpm db:reset
 
-# 5. Seed the game data from the CSVs. The import runs server-side, so it needs the
-#    SERVICE_ROLE / SECRET key + API URL from `supabase status` (NOT the VITE_* anon key):
+# 5. Seed the game data from the committed CSVs. The import runs server-side and writes
+#    through the local service-role key below — the standard local default, NOT tied to
+#    any account (if `supabase status` prints a different service_role key, use that):
 SUPABASE_URL="http://127.0.0.1:54421" \
-SUPABASE_SERVICE_ROLE_KEY="<SECRET_KEY or SERVICE_ROLE_KEY from `supabase status`>" \
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU" \
   pnpm seed
 
 # 6. Run the app
 pnpm dev
 ```
 
-> Grab the keys/URLs any time with `supabase status`. The browser only ever uses the
-> **anon** key (in `.env.local`); the service-role/secret key is seed/server-only and must
-> never be a `VITE_*` var or committed.
+> Grab the local keys/URLs any time with `supabase status`. These are non-secret local demo
+> keys, so they're fine to commit. A **real hosted** service-role key is the opposite — keep it
+> out of the repo and out of any `VITE_*` var (the browser only ever uses the anon key).
 
 ### Day-to-day
 
@@ -146,25 +149,11 @@ pnpm lint
 pnpm supabase:stop  # stop the local stack when you're done
 ```
 
-### Docker & one-command run
+### Docker
 
-A single `docker compose up` is **not** how this project boots — by design, not omission.
-The data backend is a Supabase stack, and the **Supabase CLI already generates and
-orchestrates its own Docker Compose project under the hood** (`pnpm supabase:start`).
-Hand-authoring a top-level `docker-compose.yml` on top of that would duplicate and fight the
-CLI's container management, and the one-time seed step needs the service-role key that
-`supabase start` only mints at runtime.
-
-So the closest thing to a one-liner — and the canonical local-run command — is:
-
-```bash
-pnpm supabase:start          # Docker stack (Postgres + API + Studio) — CLI-managed
-pnpm db:reset && pnpm seed   # schema + game data (first run only)
-pnpm dev                     # Vite client on the host
-```
-
-The Vite client is a static client-side SPA that runs on the host and needs no container of
-its own.
+The data layer is Dockerized and managed by the Supabase CLI, so `pnpm supabase:start` is the
+one command that brings the stack up — the CLI generates and runs the Compose project itself.
+Full steps are in [First-time setup](#first-time-setup) above.
 
 ## Testing
 

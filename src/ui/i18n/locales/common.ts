@@ -1,5 +1,6 @@
 /** Shared strings used across multiple screens. */
 export const en = {
+  'common.appName': 'World Cup Clash',
   'common.back': 'Back',
   'common.menu': 'Menu',
   'common.next': 'Next',
@@ -11,6 +12,7 @@ export const en = {
 }
 
 export const es: typeof en = {
+  'common.appName': 'Mundialito',
   'common.back': 'Atrás',
   'common.menu': 'Menú',
   'common.next': 'Siguiente',

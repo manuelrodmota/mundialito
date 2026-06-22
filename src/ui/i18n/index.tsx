@@ -73,6 +73,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       document.documentElement.lang = lang
+      document.title = translate(lang, 'common.appName')
     } catch {
       /* no document (test env) */
     }

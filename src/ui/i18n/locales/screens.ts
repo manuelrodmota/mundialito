@@ -65,7 +65,7 @@ export const en = {
 
 export const es: typeof en = {
   // How to Play
-  'screens.howToPlayKicker': 'World Cup Clash',
+  'screens.howToPlayKicker': 'Mundialito',
   'screens.howToPlayTitle': 'Cómo jugar',
   'screens.htpBack': 'Atrás',
   'screens.htpGoalTitle': 'El objetivo',
