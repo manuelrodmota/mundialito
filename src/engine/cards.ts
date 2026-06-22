@@ -30,15 +30,23 @@ export function isTactical(card: Card): boolean {
   return card.type === "tactical";
 }
 
+/** Player cards in a hand — only these count toward HAND_SIZE; held tacticals are extras. */
+function handPlayerCount(hand: readonly Card[]): number {
+  return hand.reduce((n, c) => (c.type === "player" ? n + 1 : n), 0);
+}
+
 /**
- * Draws cards until the hand reaches HAND_SIZE.
- * If the draw pile is empty but the discard pile is non-empty,
- * the discard pile is reshuffled into the draw pile (gray reshuffle).
- * Only common players live in the discard pile and participate in reshuffles.
- * GDD §6 line 134, §17 `drawToHand` lines 474-480.
+ * Refills the hand. The number of cards drawn is HAND_SIZE minus the *player* cards already
+ * held — tactical cards held over from a previous round do NOT reduce the draw, so you always
+ * top up to a full lineup and can bank tacticals across rounds. A tactical drawn *this* round
+ * still counts as one of the cards drawn, so you never draw more than HAND_SIZE (drawing
+ * 4 players + 1 tactical stops at 5 — no 6th card). You can therefore end a round with more
+ * than 5 cards only if you were already holding tacticals. If the draw pile empties mid-draw,
+ * the common-only discard reshuffles back in. GDD §6 / §17.
  */
 export function drawToHand(state: PlayerState, rng: Rng): void {
-  while (state.hand.length < HAND_SIZE) {
+  let toDraw = HAND_SIZE - handPlayerCount(state.hand);
+  while (toDraw > 0) {
     if (state.drawPile.length === 0) {
       if (state.discard.length === 0) break;
       state.drawPile = rng.shuffle(state.discard);
@@ -47,6 +55,7 @@ export function drawToHand(state: PlayerState, rng: Rng): void {
     const card = state.drawPile.shift();
     if (card !== undefined) {
       state.hand.push(card);
+      toDraw--;
     }
   }
 }

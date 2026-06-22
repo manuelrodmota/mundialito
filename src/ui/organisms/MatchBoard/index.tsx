@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { useDraggable } from '@dnd-kit/core'
@@ -26,6 +27,14 @@ import { MATCH_ONBOARDING_STEPS } from '../CoachMarks/steps'
 import { planHint } from '../../onboarding/planHint'
 import { useLang } from '../../i18n'
 import type { Translate } from '../../i18n'
+
+/** Deterministic confetti pieces for the match-win celebration (no RNG, so it doesn't re-roll each render). */
+const WIN_CONFETTI = Array.from({ length: 60 }, (_, i) => ({
+  left: (i * 36.7) % 100,
+  background: ['#e8c873', '#7f56d9', '#3fbf6f', '#5aa7e8', '#ef8a7c'][i % 5] as string,
+  animationDuration: `${2.4 + (i % 6) * 0.4}s`,
+  animationDelay: `${(i % 10) * 0.18}s`,
+}))
 
 const ROUND_TO_MINUTE = (round: number, extraTime: boolean): string => {
   if (extraTime) return `90+${(round - 10) * 9}'`
@@ -693,6 +702,30 @@ export function MatchBoard({
         {/* round report panel — shown after duel animation completes */}
         {isReveal && showReport && roundReport && (
           <div className="readout">
+            {roundReport.decided &&
+              match.winner === 0 &&
+              createPortal(
+                <div className="confetti-layer" aria-hidden="true">
+                  {WIN_CONFETTI.map((c, i) => (
+                    <div
+                      key={i}
+                      className="confetti"
+                      style={{
+                        left: `${c.left}%`,
+                        background: c.background,
+                        animationDuration: c.animationDuration,
+                        animationDelay: c.animationDelay,
+                      }}
+                    />
+                  ))}
+                </div>,
+                document.body,
+              )}
+            {roundReport.decided && (
+              <div className={`result-banner ${match.winner === 0 ? 'win' : 'loss'}`}>
+                {match.winner === 0 ? t('run.victory') : t('run.defeat')}
+              </div>
+            )}
             <h4>
               {t('match.report.heading', {
                 phase: roundReport.extraTime

@@ -1684,6 +1684,11 @@
    clips the top row behind the filters. Use a small lift + scale so the card still pops up
    a bit without being clipped (top-row clearance is ~58px). */
 .pool-grid2 .fan-card.selected { transform: translateY(-14px) scale(1.05) !important; z-index: 5; }
+/* Tactical cards render as a bare .tcard (no .fan-card wrapper), so mirror the selected lift +
+   gold ring and the over-cap dim here, matching the player cards in the same pool. */
+.pool-grid2 .tcard.selected { transform: translateY(-14px) scale(1.05) !important; z-index: 5; }
+.pool-grid2 .tcard.selected .inner { box-shadow: 0 0 0 3px var(--gold), 0 16px 34px rgba(0, 0, 0, 0.6) !important; }
+.pool-grid2 .tcard.unaffordable { filter: grayscale(0.7) brightness(0.6); }
 
 /* Compact, sleek formation picker — the biggest pitch-space win is min-width:0 on buttons. */
 .screen.board > .match-dock .formation-picker { gap: 5px; }

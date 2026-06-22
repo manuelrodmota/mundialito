@@ -76,6 +76,8 @@ body {
   box-shadow: 0 3px 12px rgba(232, 200, 115, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 .btn-gold:hover { filter: brightness(1.07); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+.btn-gold:disabled:hover { filter: none; }
 .btn-ghost { background: rgba(255, 255, 255, 0.07); border: 1px solid var(--line); }
 .btn-ghost:hover { background: rgba(255, 255, 255, 0.13); }
 .btn-big { padding: 16px 44px; font-size: 17px; border-radius: 12px; }

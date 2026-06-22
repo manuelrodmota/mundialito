@@ -3,6 +3,9 @@ import type { PlayerCard, TacticalCard, Card, OpponentTeam } from '../../../engi
 import type { RewardState } from '../../run/useArcadeRun'
 import { NextPanel } from '../../organisms/NextPanel'
 import { LockerSwapRow } from '../../organisms/LockerSwapRow'
+import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
+import { TacticCard } from '../../molecules/TacticCard'
+import { TACTICAL_DESCRIPTION_KEYS } from '../../organisms/CardDetailModal'
 import { useLang } from '../../i18n'
 
 interface LockerRoomProps {
@@ -64,17 +67,16 @@ function TacticalOfferSection({
             aria-pressed={chosenTacId === t.id}
           >
             {chosenTacId === t.id && <span className="pick-tag">{tr('run.selected')}</span>}
-            <div
-              className="tcard"
-              data-cat={t.category}
-              style={{ '--cw': '120px' } as React.CSSProperties}
-            >
-              <div className="inner">
-                <div className="cat">{t.category}</div>
-                <div className="tname">{t.name}</div>
-                <div className="ttext">{t.effect.kind}</div>
-              </div>
-            </div>
+            <TacticCard
+              card={t}
+              size={120}
+              showSlots
+              description={
+                TACTICAL_DESCRIPTION_KEYS[t.effect.kind]
+                  ? tr(TACTICAL_DESCRIPTION_KEYS[t.effect.kind])
+                  : tr('builder.tacNoDescription', { name: t.name })
+              }
+            />
           </div>
         ))}
       </div>
@@ -157,8 +159,12 @@ export function LockerRoom({
     }
   }
 
+  const hasTacticalOffer = tacticalOffer.length > 0
+  // With a tactical on offer, force a deliberate pick (and an exile target at cap) before
+  // claiming — otherwise "Accept Rewards" silently takes none. Skipping is the explicit
+  // "Continue without rewards" link below. When there's no offer, the player reward alone is fine.
   const canConfirm =
-    !!rewardPlayer && (chosenTacId === null || !atCap || (atCap && !!exileId))
+    !!rewardPlayer && (!hasTacticalOffer || (chosenTacId !== null && (!atCap || !!exileId)))
 
   return (
     <div className="screen locker">
@@ -178,18 +184,7 @@ export function LockerRoom({
 
           {rewardPlayer ? (
             <div className="reward-stage">
-              <div
-                className="wcard"
-                data-rarity={rewardPlayer.rarity}
-                style={{ '--cw': '140px' } as React.CSSProperties}
-              >
-                <div className="name">{rewardPlayer.name}</div>
-                <div className="statrow">
-                  <span className="atk">{rewardPlayer.atk}</span>
-                  <span className="def">{rewardPlayer.def}</span>
-                </div>
-                <div className="nation">{rewardPlayer.nation}</div>
-              </div>
+              <PlayerCardComponent card={rewardPlayer} size={150} />
               <div className="note3">
                 {rewardPlayer.rarity.toUpperCase()} · {rewardPlayer.position}
               </div>
@@ -209,6 +204,9 @@ export function LockerRoom({
             onChooseExile={handleChooseExile}
           />
 
+          {hasTacticalOffer && chosenTacId === null && (
+            <p className="note3">{t('run.tacticalSelectOne')}</p>
+          )}
           <button
             type="button"
             className="btn btn-gold btn-big"
@@ -217,6 +215,24 @@ export function LockerRoom({
           >
             {t('run.acceptRewards')}
           </button>
+          {hasTacticalOffer && rewardPlayer && (
+            <button
+              type="button"
+              onClick={() => onClaim(rewardPlayer)}
+              style={{
+                display: 'block',
+                margin: '10px auto 0',
+                background: 'none',
+                border: 'none',
+                color: '#8b93a7',
+                textDecoration: 'underline',
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              {t('run.continueWithJustPlayer')}
+            </button>
+          )}
         </div>
 
         <div className="locker-col">

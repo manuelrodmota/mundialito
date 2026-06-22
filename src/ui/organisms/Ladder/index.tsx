@@ -5,13 +5,15 @@ interface RunNodeData {
   now?: boolean
   final?: boolean
   beaten?: string
+  /** Crest of the opponent shown inside the circle — the beaten side (done) or next foe (now). */
+  crest?: string
 }
 
 interface RunNodeProps extends RunNodeData {
   isLast: boolean
 }
 
-function RunNode({ stage, number, done, now, final: isFinal, beaten, isLast }: RunNodeProps) {
+function RunNode({ stage, number, done, now, final: isFinal, beaten, crest, isLast }: RunNodeProps) {
   const cls = [
     'lnode',
     done ? 'done' : '',
@@ -24,7 +26,19 @@ function RunNode({ stage, number, done, now, final: isFinal, beaten, isLast }: R
   return (
     <div className="seg" style={{ display: 'flex', alignItems: 'flex-start' }}>
       <div className={cls}>
-        <div className="dot">{done ? '' : number}</div>
+        <div className="dot">
+          {crest ? (
+            <img
+              src={crest}
+              alt=""
+              style={{ width: '78%', height: '78%', objectFit: 'contain' }}
+            />
+          ) : done ? (
+            ''
+          ) : (
+            number
+          )}
+        </div>
         <div className="stage">{stage}</div>
         <div className="beaten">{beaten ?? ''}</div>
       </div>

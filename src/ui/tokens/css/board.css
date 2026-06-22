@@ -253,6 +253,19 @@
   100% { transform: translateY(108vh) rotate(720deg); opacity: 0.6; }
 }
 .confetti { position: absolute; top: 0; width: 10px; height: 16px; z-index: 31; animation: confettiFall linear both; pointer-events: none; }
+/* Full-screen confetti overlay for the match-win celebration (portaled to <body>). */
+.confetti-layer { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 1200; }
+
+/* Win/Loss banner atop the match-end round report. */
+.result-banner {
+  font-size: 26px; font-weight: 900; letter-spacing: 0.04em; text-align: center;
+  margin-bottom: 10px; text-transform: uppercase;
+}
+.result-banner.win {
+  color: #ffe9a8;
+  text-shadow: 0 0 18px rgba(232, 200, 115, 0.6);
+}
+.result-banner.loss { color: #c9d0de; }
 
 /* reduced motion */
 @media (prefers-reduced-motion: reduce) {
