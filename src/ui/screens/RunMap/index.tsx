@@ -2,7 +2,7 @@ import type { RunState, OpponentTeam } from '../../../engine/types'
 import type { RunNodeData } from '../../organisms/Ladder'
 import { Ladder } from '../../organisms/Ladder'
 import { NextPanel } from '../../organisms/NextPanel'
-import { opponents } from '../../../data'
+import { opponents, opponentBlurb } from '../../../data'
 import { teamBadge } from '../../data/nations'
 import { useLang } from '../../i18n'
 import type { Translate } from '../../i18n'
@@ -78,7 +78,7 @@ function buildLadderNodes(
  *  Prop-driven container: receives slices from useArcadeRun and fires callbacks up.
  */
 export function RunMap({ runState, nextOpponent, onPlayNext, onBack }: RunMapProps) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const nodes = buildLadderNodes(runState, nextOpponent, t)
   const isFinalStage = runState.stage === 'final'
   const currentStageLabel = t(STAGE_DISPLAY_KEYS[runState.matchIndex] ?? STAGE_LABEL_KEYS[runState.stage])
@@ -107,7 +107,7 @@ export function RunMap({ runState, nextOpponent, onPlayNext, onBack }: RunMapPro
           round={currentStageLabel}
           tier={nextOpponent.tier}
           formation={nextOpponent.preferredFormation}
-          blurb={nextOpponent.blurb}
+          blurb={opponentBlurb(nextOpponent.year, nextOpponent.nation, lang, nextOpponent.blurb)}
           extra={nextOpponent.isChampion ? t('run.champion') : undefined}
           cols={undefined}
           actions={

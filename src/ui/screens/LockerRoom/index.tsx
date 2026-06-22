@@ -6,6 +6,7 @@ import { LockerSwapRow } from '../../organisms/LockerSwapRow'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { TACTICAL_DESCRIPTION_KEYS } from '../../organisms/CardDetailModal'
+import { opponentBlurb } from '../../../data'
 import { useLang } from '../../i18n'
 
 interface LockerRoomProps {
@@ -125,7 +126,7 @@ export function LockerRoom({
   onContinue,
   onRemoveCard,
 }: LockerRoomProps) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [chosenTacId, setChosenTacId] = useState<string | null>(null)
   const [exileId, setExileId] = useState<string | null>(null)
 
@@ -292,7 +293,7 @@ export function LockerRoom({
                 round={nextOpponent.isChampion ? t('run.roundFinal') : t('run.roundNextMatch')}
                 tier={nextOpponent.tier}
                 formation={nextOpponent.preferredFormation}
-                blurb={nextOpponent.blurb}
+                blurb={opponentBlurb(nextOpponent.year, nextOpponent.nation, lang, nextOpponent.blurb)}
                 extra={nextOpponent.isChampion ? t('run.champion') : undefined}
                 actions={
                   <button

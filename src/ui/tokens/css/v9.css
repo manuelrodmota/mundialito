@@ -165,7 +165,10 @@
   font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
   border: 1px solid var(--tc-edge, var(--line)); color: var(--txt);
   background: rgba(255, 255, 255, 0.06); cursor: pointer; white-space: nowrap;
+  font-family: inherit; line-height: 1.2;
 }
+/* active-powers shelf sits inline in the action dock alongside the cap chips */
+.shelf.board-powers { flex: none; gap: 5px; }
 .shelf .tchip[data-cat="instant"] { --tc-edge: rgba(232, 85, 74, 0.55); }
 .shelf .tchip[data-cat="skill"] { --tc-edge: rgba(62, 148, 222, 0.55); }
 .shelf .tchip[data-cat="power"] { --tc-edge: rgba(232, 200, 115, 0.6); }
@@ -885,6 +888,56 @@
   background: rgba(232, 200, 115, 0.13);
 }
 
+/* ---- per-round stamina readout (pips + remaining/max), shown in the action dock ---- */
+.stamina-pips {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.07);
+  flex: none;
+}
+.stamina-pips .pip {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.stamina-pips .pip.full {
+  background: radial-gradient(circle at 35% 30%, #7ee0a0, #14843e);
+  border-color: transparent;
+  box-shadow: 0 0 6px rgba(63, 191, 111, 0.6);
+}
+.stamina-pips .lbl {
+  font-size: 11.5px;
+  color: var(--txt-dim);
+  margin-left: 4px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.stamina-pips.over {
+  border-color: rgba(232, 85, 74, 0.6);
+  background: rgba(232, 85, 74, 0.14);
+}
+.stamina-pips.over .lbl { color: #ff9d94; }
+
+/* ---- card-detail modal: status note explaining why a tactical can't be played ---- */
+.card-modal-note {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  color: #ffcf99;
+  background: rgba(232, 200, 115, 0.12);
+  border: 1px solid rgba(232, 200, 115, 0.32);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
 /* ---- stamina-ramp hint next to the pips (GDD v5 §6) ---- */
 .ramp-hint5 {
   font-size: 10.5px;
@@ -1116,6 +1169,11 @@
   60% { opacity: 1; }
   100% { opacity: 1; transform: none; }
 }
+
+/* ============ round-end sweep: the revealed board cards leave the pitch ============
+   On "Next round" the cards that were PLAYED on the pitch fade as ghost copies fly to
+   the discard pile (the resting hand is untouched — those cards stay for next round). */
+.screen.board.sweeping .pitch4 .lane4-cards { opacity: 0; transition: opacity 220ms ease; }
 
 /* ============ discard sweep: played cards fly off the pitch to the discard pile ============ */
 .discard-fly {
