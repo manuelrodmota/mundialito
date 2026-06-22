@@ -67,6 +67,7 @@ import brazil from '../assets/crests/brazil.svg'
 import canada from '../assets/crests/canada.svg'
 import capeVerde from '../assets/crests/cape-verde.svg'
 import colombia from '../assets/crests/colombia.svg'
+import costaRica from '../assets/crests/costa-rica.svg'
 import croatia from '../assets/crests/croatia.svg'
 import curacao from '../assets/crests/curacao.svg'
 import czechia from '../assets/crests/czechia.svg'
@@ -137,6 +138,7 @@ const CRESTS: Record<string, string> = {
   "Cape Verde": capeVerde,
   "Cabo Verde": capeVerde,
   Colombia: colombia,
+  "Costa Rica": costaRica,
   Croatia: croatia,
   Curacao: curacao,
   "Curaçao": curacao,

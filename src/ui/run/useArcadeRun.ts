@@ -32,7 +32,10 @@ import {
   HALFTIME_ROUND,
   ROUND_CAP,
   RUN_TACTICAL_DECK_CAP,
+  tacticalGatePassed,
+  GOAL_THRESHOLD,
 } from '../../engine'
+import { buildQuickplayDeck } from '../quickplay/buildQuickplayDeck'
 import type { MatchState, Card, Formation, CardInPlay, PlayerCard, PlayerState, TacticalCard, OpponentTeam } from '../../engine/types'
 import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
@@ -251,10 +254,27 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
 
       const stageSeed = Math.floor(rng.next() * 2 ** 32)
 
+      // Build the opponent a real deck (like Quickplay): premiums + a bench of cycling commons +
+      // its signature tacticals. The raw squad alone is mostly premiums that lock once-per-half —
+      // that starved the AI to ~1 fieldable card a round — and it carried no tacticals at all,
+      // so the opponent never played any. The common bench keeps a full lineup every round.
+      const squadCommons = opponent.squad.filter((c) => c.rarity === 'common')
+      const commonPool = [...staticPlayerPool.filter((c) => c.rarity === 'common'), ...squadCommons]
+      const opponentDeck = buildQuickplayDeck({
+        premiumPicks: oppPremiums,
+        tacticalPicks: (opponent.signatureTactical ?? []).slice(0, 3),
+        captainId: oppCaptain?.id ?? '',
+        commonPool,
+        rosterSize: 16,
+        playerBudget: 20,
+        tacticalCap: 3,
+        rng,
+      })
+
       const match = newMatch(
         stageSeed,
         { deck: run.deck, captainId: run.captainId },
-        { deck: opponent.squad, captainId: oppCaptain?.id ?? '' },
+        { deck: opponentDeck.deck, captainId: opponentDeck.captainId },
         opponent,
         'run',
       )
@@ -305,12 +325,20 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
       }
 
       for (const tac of opts.tacticals ?? []) {
+        // Enforce the positional gate against the committed lineup (e.g. Long Ball needs ≥1 FWD).
+        if (!tacticalGatePassed(p0, tac.effect)) continue
         const handIdx = p0.hand.findIndex((c) => c.id === tac.id)
         if (handIdx === -1) continue
         const [removed] = p0.hand.splice(handIdx, 1)
         if (removed) {
-          const cip: CardInPlay = { card: removed, lane: 'attack', statuses: [], faceDown: false }
-          p0.board.attack.push(cip)
+          const tcard = removed as TacticalCard
+          if (tcard.category === 'power') {
+            // Powers stay active all match — route to the persistent powers shelf, not the pitch.
+            p0.powers.push(tcard)
+          } else {
+            const cip: CardInPlay = { card: removed, lane: 'attack', statuses: [], faceDown: false }
+            p0.board.attack.push(cip)
+          }
           p0.tacticalsThisHalf += 1
         }
       }
@@ -344,10 +372,13 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
 
     resolveRound(match, rng)
 
-    const youXgGained = p0.xg - beforeYouXg
-    const themXgGained = p1.xg - beforeThemXg
     const youGoalsThisRound = p0.goals - beforeYouGoals
     const themGoalsThisRound = p1.goals - beforeThemGoals
+    // xG GENERATED this round = raw meter delta + the threshold each banked goal subtracted from
+    // the meter (a scoring round drives the raw delta negative). Without this, a round that scored
+    // read as e.g. "-0.50 xG · generated almost nothing".
+    const youXgGained = p0.xg - beforeYouXg + youGoalsThisRound * GOAL_THRESHOLD
+    const themXgGained = p1.xg - beforeThemXg + themGoalsThisRound * GOAL_THRESHOLD
 
     let you = beforeYouGoals
     let them = beforeThemGoals

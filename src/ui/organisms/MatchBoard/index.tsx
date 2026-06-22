@@ -4,11 +4,11 @@ import { useReducedMotion } from 'framer-motion'
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { useDraggable } from '@dnd-kit/core'
-import type { MatchState, PlayerCard, TacticalCard, Formation, Card, CardInPlay } from '../../../engine/types'
+import type { MatchState, PlayerCard, TacticalCard, Formation, Card, CardInPlay, PlayerState, TacticalEffect } from '../../../engine/types'
 import type { Intent } from '../../../engine/board'
 import type { LaneFx } from '../../../engine/effectiveStats'
 import type { RevealBoards, RoundReport, SideReport } from '../../quickplay/useQuickplayMatch'
-import { TACTICALS_PER_HALF } from '../../quickplay/useQuickplayMatch'
+import { TACTICALS_PER_HALF, CARD_CAP, laneStamina, tacticalGatePassed } from '../../quickplay/useQuickplayMatch'
 import { Scoreboard } from '../Scoreboard'
 import { ExtraTimeBanner } from '../ExtraTime'
 import { Lane } from '../Lanes'
@@ -17,6 +17,7 @@ import { DeckPile } from '../../molecules/DeckPile'
 import { XGMeter } from '../../molecules/Meters'
 import { FormationPicker } from '../FormationPicker'
 import { CapChip } from '../../atoms/CapChip'
+import { StaminaPips } from '../../atoms/StaminaPips'
 import { CardDetailModal, TACTICAL_DESCRIPTIONS } from '../CardDetailModal'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
@@ -113,6 +114,14 @@ function chanceKey(xg: number): string {
   return 'match.chance.none'
 }
 
+/** Human-readable positional requirement for a tactical's gate, or null if it has none. */
+function gateLabel(effect: TacticalEffect, t: Translate): string | null {
+  if (effect.requiresCount === undefined) return null
+  if (effect.kind === 'highPress') return t('match.tactic.reqFwdMid', { n: effect.requiresCount })
+  if (effect.requiresPosition === undefined) return null
+  return t('match.tactic.reqPos', { n: effect.requiresCount, pos: effect.requiresPosition })
+}
+
 /** A friendly one-line setup read for a side. */
 function friendlySide(who: string, s: SideReport, xg: number, t: Translate): string {
   return t('match.side.read', {
@@ -150,6 +159,7 @@ function DraggableCard({
   onSelect,
   index,
   count,
+  affordable = true,
 }: {
   card: Card
   isCaptain: boolean
@@ -157,6 +167,8 @@ function DraggableCard({
   onSelect: (id: string) => void
   index: number
   count: number
+  /** Player cards that can't fit any lane within the cap/stamina budget are dimmed + not selectable. */
+  affordable?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: card.id })
   const dragging = transform != null
@@ -182,9 +194,12 @@ function DraggableCard({
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      // A dimmed (unaffordable) player card can't be fielded — ignore the click so it can't be
+      // armed for placement. Tacticals stay clickable so their detail modal can explain the block.
+      if (!affordable && card.type === 'player') return
       onSelect(card.id)
     },
-    [card.id, onSelect],
+    [card.id, card.type, onSelect, affordable],
   )
 
   return (
@@ -193,7 +208,7 @@ function DraggableCard({
       style={style}
       {...listeners}
       {...attributes}
-      className={`hcard${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}${dealing ? ' dealing' : ''}`}
+      className={`hcard${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}${dealing ? ' dealing' : ''}${affordable ? '' : ' dim'}`}
       onClick={handleClick}
     >
       <div className="hcard-arc" style={dealing ? { animationDelay: `${dealDelay}ms` } : undefined}>
@@ -325,22 +340,48 @@ export function MatchBoard({
   const [defenseCards, setDefenseCards] = useState<PlayerCard[]>([])
   const [tacticalCards, setTacticalCards] = useState<TacticalCard[]>([])
   const [detailTac, setDetailTac] = useState<TacticalCard | null>(null)
+  // True when the open tactical modal is an already-active Power opened from the shelf (inspect only).
+  const [detailInspectOnly, setDetailInspectOnly] = useState(false)
   const [formation, setFormation] = useState<Formation>(p0.formation)
   const [selectedHandId, setSelectedHandId] = useState<string | null>(null)
   const [showSurrender, setShowSurrender] = useState(false)
 
+  // v10 budget: per-round card cap (4 → 5 → 6) and stamina budget (8 → 10 → 12). Both are
+  // enforced on placement so the player can't overfield, exactly like the AI's validLineup.
+  const playerCap = CARD_CAP(match.round)
+  const staminaMax = p0.maxStamina
+  const staminaLeft = staminaMax - laneStamina(attackCards) - laneStamina(defenseCards)
+
+  // True when adding `card` to `lane` would break the card cap or the stamina budget.
+  // laneStamina re-derives the whole lane (star-core discount included), so this stays exact.
+  const wouldExceedBudget = useCallback(
+    (lane: 'attack' | 'defense', card: PlayerCard): boolean => {
+      if (attackCards.length + defenseCards.length >= playerCap) return true
+      const nextAttack = lane === 'attack' ? [...attackCards, card] : attackCards
+      const nextDefense = lane === 'defense' ? [...defenseCards, card] : defenseCards
+      return laneStamina(nextAttack) + laneStamina(nextDefense) > staminaMax
+    },
+    [attackCards, defenseCards, playerCap, staminaMax],
+  )
+
+  // A hand player card is playable only if it fits in at least one lane within the budget.
+  const canAfford = useCallback(
+    (card: PlayerCard): boolean => !wouldExceedBudget('attack', card) || !wouldExceedBudget('defense', card),
+    [wouldExceedBudget],
+  )
+
   // Discard fly-off is sequenced on the Next-round click (see handleNextRoundClick):
-  // the current hand's cards sweep to the discard pile (and the real fan is hidden so
-  // they're not double-drawn) BEFORE the round advances and the new hand deals in.
+  // the cards that were PLAYED on the pitch sweep to the discard pile BEFORE the round
+  // advances. The resting hand is untouched — those cards stay for the next round.
   const reduceMotion = useReducedMotion()
-  const fanRef = useRef<HTMLDivElement>(null)
+  const boardRef = useRef<HTMLDivElement>(null)
   const discardRef = useRef<HTMLDivElement>(null)
   const ghostSeqRef = useRef(0)
   const [discardGhosts, setDiscardGhosts] = useState<
     { id: string; x: number; y: number; dx: number; dy: number; delay: number }[]
   >([])
   const [discardPulse, setDiscardPulse] = useState(false)
-  const [exiting, setExiting] = useState(false)
+  const [sweeping, setSweeping] = useState(false)
 
   // Reveal cinematic, fully sequenced so each beat finishes before the next starts:
   //   1 your-attack clash → 2 YOUR goal (if scored, gated) → 3 their-attack clash
@@ -407,11 +448,13 @@ export function MatchBoard({
     if (alreadyPlaced) return
 
     if (over.id === 'attack-lane') {
+      if (wouldExceedBudget('attack', playerCard)) return
       setAttackCards((prev) => [...prev, playerCard])
     } else if (over.id === 'defense-lane') {
+      if (wouldExceedBudget('defense', playerCard)) return
       setDefenseCards((prev) => [...prev, playerCard])
     }
-  }, [p0.hand, attackCards, defenseCards])
+  }, [p0.hand, attackCards, defenseCards, wouldExceedBudget])
 
   const handleSelectHandCard = useCallback((id: string) => {
     // Tacticals open their detail modal (read effect → play); players toggle for placement.
@@ -431,9 +474,10 @@ export function MatchBoard({
       attackCards.some((c) => c.id === selectedHandId) ||
       defenseCards.some((c) => c.id === selectedHandId)
     if (alreadyPlaced) return
+    if (wouldExceedBudget('attack', card as PlayerCard)) return
     setAttackCards((prev) => [...prev, card as PlayerCard])
     setSelectedHandId(null)
-  }, [selectedHandId, p0.hand, attackCards, defenseCards])
+  }, [selectedHandId, p0.hand, attackCards, defenseCards, wouldExceedBudget])
 
   const handleDefenseZoneClick = useCallback(() => {
     if (!selectedHandId) return
@@ -443,9 +487,10 @@ export function MatchBoard({
       attackCards.some((c) => c.id === selectedHandId) ||
       defenseCards.some((c) => c.id === selectedHandId)
     if (alreadyPlaced) return
+    if (wouldExceedBudget('defense', card as PlayerCard)) return
     setDefenseCards((prev) => [...prev, card as PlayerCard])
     setSelectedHandId(null)
-  }, [selectedHandId, p0.hand, attackCards, defenseCards])
+  }, [selectedHandId, p0.hand, attackCards, defenseCards, wouldExceedBudget])
 
   const handleRemoveFromAttack = useCallback((card: PlayerCard) => {
     setAttackCards((prev) => prev.filter((c) => c.id !== card.id))
@@ -465,20 +510,28 @@ export function MatchBoard({
     setSelectedHandId(null)
   }, [onCommit, onReveal, formation, attackCards, defenseCards, tacticalCards])
 
-  // Next round: first sweep the current hand's cards to the discard pile (hiding the real
-  // fan so they're not shown twice), THEN advance — the new hand deals in afterwards.
+  // Next round: sweep the cards that were PLAYED on the pitch to the discard pile — your
+  // own lane cards (l-yatk/l-ydef) fly to your discard pile; their cards fade off the pitch
+  // (the opponent has no on-screen pile). The resting hand is left alone — unplayed cards
+  // stay for next round, which is exactly what the engine does. Then advance + deal in.
   const handleNextRoundClick = useCallback(() => {
-    const fanEl = fanRef.current
+    const boardEl = boardRef.current
     const discRect = discardRef.current?.getBoundingClientRect()
-    const cardEls = fanEl ? (Array.from(fanEl.querySelectorAll('.hcard')) as HTMLElement[]) : []
-    if (reduceMotion || !discRect || cardEls.length === 0) {
+    const myCardEls = boardEl
+      ? (Array.from(
+          boardEl.querySelectorAll(
+            '.l-yatk .wcard, .l-yatk .tcard, .l-ydef .wcard, .l-ydef .tcard',
+          ),
+        ) as HTMLElement[])
+      : []
+    if (reduceMotion || !discRect || myCardEls.length === 0) {
       onNextRound()
       return
     }
     const endX = discRect.left + discRect.width / 2 - 36
     const endY = discRect.top + discRect.height / 2 - 51
     const seq = ghostSeqRef.current++
-    const ghosts = cardEls.slice(0, 8).map((el, i) => {
+    const ghosts = myCardEls.slice(0, 8).map((el, i) => {
       const r = el.getBoundingClientRect()
       const x = r.left + r.width / 2 - 36
       const y = r.top + r.height / 2 - 51
@@ -486,11 +539,11 @@ export function MatchBoard({
     })
     const maxDelay = (ghosts.length - 1) * 45
     setDiscardGhosts(ghosts)
-    setExiting(true)
+    setSweeping(true)
     setDiscardPulse(true)
     setTimeout(() => {
       onNextRound()
-      setExiting(false)
+      setSweeping(false)
       setDiscardGhosts([])
       setDiscardPulse(false)
     }, 460 + maxDelay)
@@ -499,7 +552,33 @@ export function MatchBoard({
   // Tactical staging — a selected tactical plays on commit (mirrors attack/defense staging).
   const canStageMoreTacticals = p0.tacticalsThisHalf + tacticalCards.length < TACTICALS_PER_HALF
   const detailStaged = detailTac ? tacticalCards.some((c) => c.id === detailTac.id) : false
-  const detailShowPrimary = detailTac !== null && (detailStaged || canStageMoreTacticals)
+
+  // Whether the staged lineup satisfies a tactical's positional gate (e.g. Long Ball needs ≥1 FWD).
+  // Checked against the locally-staged lanes — the engine board is empty until commit.
+  const stagedGateMet = useCallback(
+    (effect: TacticalEffect): boolean => {
+      const attack: CardInPlay[] = attackCards.map((c) => ({ card: c, lane: 'attack', statuses: [], faceDown: true }))
+      const defense: CardInPlay[] = defenseCards.map((c) => ({ card: c, lane: 'defense', statuses: [], faceDown: true }))
+      // tacticalGatePassed only reads `state.board`, so a board-only stand-in is sufficient.
+      return tacticalGatePassed({ board: { attack, defense } } as unknown as PlayerState, effect)
+    },
+    [attackCards, defenseCards],
+  )
+
+  const detailGateMet = detailTac ? stagedGateMet(detailTac.effect) : true
+  const detailReqLabel = detailTac ? gateLabel(detailTac.effect, t) : null
+  // Play is offered only when under the per-half cap AND the lineup meets the gate, and never for
+  // an already-active Power opened from the shelf. Unstaging a staged tactical is always allowed.
+  const detailShowPrimary =
+    detailTac !== null && !detailInspectOnly && (detailStaged || (canStageMoreTacticals && detailGateMet))
+  // Explain the modal's state: an active Power, or why a tactical can't be played right now.
+  let detailNote: string | undefined
+  if (detailInspectOnly) {
+    detailNote = t('match.tactic.activePower')
+  } else if (detailTac && !detailStaged) {
+    if (!canStageMoreTacticals) detailNote = t('match.tactic.noPlaysLeft', { n: TACTICALS_PER_HALF })
+    else if (!detailGateMet && detailReqLabel) detailNote = t('match.tactic.needs', { req: detailReqLabel })
+  }
 
   const handleStageTactical = useCallback((tac: TacticalCard) => {
     setTacticalCards((prev) => (prev.some((c) => c.id === tac.id) ? prev : [...prev, tac]))
@@ -598,7 +677,7 @@ export function MatchBoard({
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className={`screen board v4board${match.extraTime ? ' et-mode' : ''}`}>
+      <div ref={boardRef} className={`screen board v4board${match.extraTime ? ' et-mode' : ''}${sweeping ? ' sweeping' : ''}`}>
         <div className="stadium-bg" />
 
         {/* top bar: LEFT identity | CENTER scoreboard | RIGHT meters+chips */}
@@ -773,9 +852,36 @@ export function MatchBoard({
         {/* action dock — cap chips + formation + lock-in button (tacticals live in the hand dock) */}
         <div className="match-dock">
 
-          <CapChip kind="players" current={attackCards.length + defenseCards.length} max={5} />
+          <CapChip kind="players" current={attackCards.length + defenseCards.length} max={playerCap} />
           <CapChip kind="tactics" current={p0.tacticalsThisHalf + tacticalCards.length} max={TACTICALS_PER_HALF} />
+          {!isReveal && (
+            <StaminaPips
+              remaining={staminaLeft}
+              max={staminaMax}
+              label={t('match.dock.staminaLeft', { left: staminaLeft, max: staminaMax })}
+            />
+          )}
           {showStarCore && <CapChip kind="star" />}
+
+          {p0.powers.length > 0 && (
+            <div className="shelf board-powers">
+              <span className="label">{t('match.dock.powers')}</span>
+              {p0.powers.map((pw) => (
+                <button
+                  key={pw.id}
+                  type="button"
+                  className="tchip"
+                  data-cat="power"
+                  onClick={() => {
+                    setDetailTac(pw)
+                    setDetailInspectOnly(true)
+                  }}
+                >
+                  {pw.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           <FormationPicker selected={formation} onSelect={setFormation} />
 
@@ -931,8 +1037,8 @@ export function MatchBoard({
             </div>
           )}
 
-          <div className="fan2" ref={fanRef}>
-            {!exiting && fanCards.map((card, i) => (
+          <div className="fan2">
+            {fanCards.map((card, i) => (
               <DraggableCard
                 key={card.id}
                 card={card}
@@ -941,6 +1047,13 @@ export function MatchBoard({
                 onSelect={handleSelectHandCard}
                 index={i}
                 count={fanCards.length}
+                affordable={
+                  isReveal
+                    ? true
+                    : card.type === 'player'
+                      ? canAfford(card as PlayerCard)
+                      : canStageMoreTacticals
+                }
               />
             ))}
           </div>
@@ -955,13 +1068,17 @@ export function MatchBoard({
 
       </div>
 
-      {/* Tactical detail — opened from the fan or the in-use zone. Play it (stage) or stop using it. */}
+      {/* Tactical detail — opened from the fan, the in-use zone, or the powers shelf (inspect only). */}
       <CardDetailModal
         card={detailTac}
         open={detailTac !== null}
-        onClose={() => setDetailTac(null)}
+        onClose={() => {
+          setDetailTac(null)
+          setDetailInspectOnly(false)
+        }}
         primaryLabel={detailShowPrimary ? t(detailStaged ? 'match.tactic.stop' : 'match.tactic.play') : undefined}
         onPrimary={detailShowPrimary ? handleTacticalPrimary : undefined}
+        note={detailNote}
       />
 
       {/* Discard fly-off ghosts — card backs sweeping from the hand to the discard pile. */}

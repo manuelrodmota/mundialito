@@ -6,3 +6,4 @@ export { Chip, StageTag, FormationChip, RampHint, TacticChip, TierStars, RarityM
 export { CapChip } from './CapChip'
 export { CardBack } from './CardBack'
 export { SlotPips } from './SlotPips'
+export { StaminaPips } from './StaminaPips'

@@ -59,6 +59,8 @@ interface CardDetailModalProps {
   /** Optional primary action (e.g. "Play this card" in-match). */
   primaryLabel?: string
   onPrimary?: () => void
+  /** Optional status line shown above the actions (gate requirement / per-half cap reached). */
+  note?: string
 }
 
 /** Thin wrapper over the DS CardModal organism.
@@ -74,6 +76,7 @@ export function CardDetailModal({
   teamBlurb,
   primaryLabel,
   onPrimary,
+  note,
 }: CardDetailModalProps) {
   const { t } = useLang()
   if (!card) return null
@@ -97,6 +100,7 @@ export function CardDetailModal({
         fieldCost={fieldCost}
         primaryLabel={primaryLabel}
         onPrimary={onPrimary}
+        note={note}
       />
       {open && teamBlurb && (
         <div

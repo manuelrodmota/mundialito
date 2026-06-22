@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { newMatch, startRound, resolveRound, halftime, cleanupBoards } from "./match.ts";
 import { makeRng } from "./rng.ts";
 import { commitCard } from "./board.ts";
+import { decideTurn } from "./ai.ts";
 import type { Card, MatchState, OpponentTeam, PlayerCard } from "./types.ts";
 
 function makePlayerCard(
@@ -141,16 +142,33 @@ describe("resolveRound", () => {
 
     const card0 = m.players[0]!.hand.find((c) => c.id === "atk") ?? m.players[0]!.hand[0]!;
     const card1 = m.players[1]!.hand[0]!;
+    // Both sides must field an attacker to generate xG (an empty attack lane now scores nothing).
     commitCard(m.players[0]!, card0, "attack");
-    commitCard(m.players[1]!, card1, "defense");
+    commitCard(m.players[1]!, card1, "attack");
 
     resolveRound(m, rng);
 
     const xgAfter0 = m.players[0]!.xg + m.players[0]!.goals;
     const xgAfter1 = m.players[1]!.xg + m.players[1]!.goals;
     expect(xgAfter0).toBeGreaterThan(xgBefore0);
-    expect(xgAfter1).toBeGreaterThanOrEqual(0.1); // XG_FLOOR
+    expect(xgAfter1).toBeGreaterThanOrEqual(0.1); // XG_FLOOR (attacker fielded)
     void xgBefore1;
+  });
+
+  it("generates zero xG for a side that fields no attacker", () => {
+    const m = newMatch(42, { deck: makeDeck(8, "a"), captainId: "a0" }, { deck: makeDeck(8, "b"), captainId: "b0" }, makeOpp());
+    const rng = makeRng(42);
+
+    // p0 commits only to defense (empty attack lane); p1 fields an attacker.
+    commitCard(m.players[0]!, m.players[0]!.hand[0]!, "defense");
+    commitCard(m.players[1]!, m.players[1]!.hand[0]!, "attack");
+
+    const xgBefore0 = m.players[0]!.xg;
+    resolveRound(m, rng);
+
+    expect(m.players[0]!.xg).toBe(xgBefore0); // no attacker → no open-play floor
+    expect(m.players[0]!.goals).toBe(0);
+    expect(m.players[1]!.xg + m.players[1]!.goals).toBeGreaterThanOrEqual(0.1);
   });
 
   it("cleanup routes common player cards to discard after round", () => {
@@ -184,6 +202,41 @@ describe("resolveRound", () => {
     if (m.round >= 6 || m.winner !== null) {
       expect(m.players[0]!.fatigue).toBe(0);
       expect(m.players[0]!.locked).toHaveLength(0);
+    }
+  });
+});
+
+describe("premium once-per-half lock applies to the AI", () => {
+  it("the CPU never re-fields a premium before halftime", () => {
+    // The AI's captain is a premium, so buildOpeningHand guarantees it in the round-1 hand.
+    const star = makePlayerCard("ai-star", { rarity: "epic", cost: 3, slots: 2, atk: 95, def: 55, position: "FWD" });
+    const aiDeck: Card[] = [star, ...makeDeck(10, "aic")];
+    const m = newMatch(
+      7,
+      { deck: makeDeck(10, "you"), captainId: "you0" },
+      { deck: aiDeck, captainId: "ai-star" },
+      makeOpp(),
+    );
+    const rng = makeRng(7);
+    startRound(m, rng);
+
+    const fieldCounts = new Map<string, number>();
+    for (let r = 1; r <= 4; r++) {
+      decideTurn(m, 0, rng);
+      decideTurn(m, 1, rng);
+      for (const cip of [...m.players[1]!.board.attack, ...m.players[1]!.board.defense]) {
+        if (cip.card.type === "player" && cip.card.rarity !== "common") {
+          fieldCounts.set(cip.card.id, (fieldCounts.get(cip.card.id) ?? 0) + 1);
+        }
+      }
+      resolveRound(m, rng);
+      if (m.winner !== null) break;
+      startRound(m, rng);
+    }
+
+    expect(fieldCounts.size).toBeGreaterThan(0); // a premium was actually fielded
+    for (const [, count] of fieldCounts) {
+      expect(count).toBeLessThanOrEqual(1); // locked once-per-half — never re-fielded before R5
     }
   });
 });

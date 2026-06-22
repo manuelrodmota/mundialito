@@ -3,6 +3,7 @@ export { players, toPlayerCard } from "./players.ts";
 export type { PlayerRating } from "./playerPool.ts";
 export { tacticals } from "./tacticals.ts";
 export { opponents } from "./opponents.ts";
+export { opponentBlurb, OPPONENT_BLURBS } from "./opponentBlurbs.ts";
 
 /** Remote Supabase data layer — typed repositories + derivation helpers. */
 export * from "./remote/index.ts";

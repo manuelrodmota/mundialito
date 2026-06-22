@@ -12,7 +12,7 @@
  */
 
 import { useRef, useState, useCallback } from 'react'
-import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, computeEffectiveStats, computeSynergies, RARITY_MULT, FORMATIONS, FATIGUE_DIV, HALFTIME_ROUND, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP } from '../../engine'
+import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, computeEffectiveStats, computeSynergies, RARITY_MULT, FORMATIONS, FATIGUE_DIV, HALFTIME_ROUND, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP, laneStamina, tacticalGatePassed, GOAL_THRESHOLD } from '../../engine'
 import type { MatchState, Card, Formation, Tier, CardInPlay, PlayerCard, PlayerState } from '../../engine/types'
 import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
@@ -335,12 +335,23 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
     }
 
     for (const tac of opts.tacticals ?? []) {
+      // Enforce the positional gate against the committed lineup (e.g. Long Ball needs ≥1 FWD up
+      // front). The attack/defense players were pushed above, so the board is complete here. This
+      // mirrors the AI's pickTacticals gate and is the backstop for the UI's play-time check.
+      if (!tacticalGatePassed(p0, tac.effect)) continue
       const handIdx = p0.hand.findIndex((c) => c.id === tac.id)
       if (handIdx === -1) continue
       const [removed] = p0.hand.splice(handIdx, 1)
       if (removed) {
-        const cip: CardInPlay = { card: removed, lane: 'attack', statuses: [], faceDown: false }
-        p0.board.attack.push(cip)
+        const tcard = removed as TacticalCard
+        if (tcard.category === 'power') {
+          // Powers stay active all match — route straight to the persistent powers shelf, never
+          // onto the pitch (so they're active from the round played and don't occupy a lane slot).
+          p0.powers.push(tcard)
+        } else {
+          const cip: CardInPlay = { card: removed, lane: 'attack', statuses: [], faceDown: false }
+          p0.board.attack.push(cip)
+        }
         p0.tacticalsThisHalf += 1
       }
     }
@@ -379,10 +390,13 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
 
     resolveRound(match, rng)
 
-    const youXgGained = p0.xg - beforeYouXg
-    const themXgGained = p1.xg - beforeThemXg
     const youGoalsThisRound = p0.goals - beforeYouGoals
     const themGoalsThisRound = p1.goals - beforeThemGoals
+    // xG GENERATED this round = raw meter delta + the threshold each banked goal subtracted from
+    // the meter (addXg carries the remainder, so scoring drives the raw delta negative). Without
+    // adding it back, a round that scored read as e.g. "-0.50 xG · generated almost nothing".
+    const youXgGained = p0.xg - beforeYouXg + youGoalsThisRound * GOAL_THRESHOLD
+    const themXgGained = p1.xg - beforeThemXg + themGoalsThisRound * GOAL_THRESHOLD
 
     // Running scoreline so each GOAL celebration shows the score after it lands.
     let you = beforeYouGoals
@@ -530,4 +544,4 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
   }
 }
 
-export { roundToMinute, computePhase, DIFFICULTY_TO_TIER, difficultyToTier, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD }
+export { roundToMinute, computePhase, DIFFICULTY_TO_TIER, difficultyToTier, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, laneStamina, tacticalGatePassed }

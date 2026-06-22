@@ -7,6 +7,7 @@
  */
 
 import type { Card, CardInPlay, Formation, PlayerState, TacticalCard } from "./types.ts";
+import { laneStamina } from "./validateLineup.ts";
 
 /** Visible information about an opponent's committed board. GDD §15 Intent row, §10 lines 205-206. */
 export interface Intent {
@@ -76,8 +77,13 @@ export function intentOf(state: PlayerState): Intent {
     }
   }
 
+  // Stamina actually committed = the lane cost of the fielded players. Commits never
+  // decrement `state.stamina` (it's a per-round budget checked by validLineup, not a
+  // depleting pool), so deriving the spend from `maxStamina - stamina` always read 0.
+  // Compute it from the board the same way validLineup measures the budget.
   const staminaSpent =
-    state.maxStamina - state.stamina + state.tacticBonus;
+    laneStamina(state.board.attack.map((c) => c.card)) +
+    laneStamina(state.board.defense.map((c) => c.card));
 
   return {
     formation: state.formation,

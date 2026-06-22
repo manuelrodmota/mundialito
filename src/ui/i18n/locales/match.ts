@@ -79,12 +79,22 @@ export const en = {
   // Meter labels
   'match.meter.you': 'YOU',
 
+  // Action dock — stamina readout + active powers shelf
+  'match.dock.stamina': 'Stamina',
+  'match.dock.staminaLeft': '{left}/{max} stamina left',
+  'match.dock.powers': 'Powers',
+
   // Coach plan hint
   'match.commit.lockReveal': 'Lock in & reveal',
   'match.commit.passRound': 'Pass round',
   'match.tactic.play': 'Play this card',
   'match.tactic.stop': 'Stop using this card',
   'match.tactic.inUse': 'In use',
+  'match.tactic.noPlaysLeft': 'No tactical plays left this half ({n}/{n}).',
+  'match.tactic.needs': 'Needs {req} in your lineup to play.',
+  'match.tactic.activePower': 'Power — active for the rest of the match.',
+  'match.tactic.reqPos': '≥{n} {pos}',
+  'match.tactic.reqFwdMid': '≥{n} FWD or MID',
 
   // Round report panel
   'match.report.extraTime': "Extra time +{n}'",
@@ -238,12 +248,22 @@ export const es: typeof en = {
   // Meter labels
   'match.meter.you': 'TÚ',
 
+  // Action dock — stamina readout + active powers shelf
+  'match.dock.stamina': 'Resistencia',
+  'match.dock.staminaLeft': '{left}/{max} de resistencia',
+  'match.dock.powers': 'Poderes',
+
   // Coach plan hint
   'match.commit.lockReveal': 'Confirmar jugada y revelar',
   'match.commit.passRound': 'Pasar ronda',
   'match.tactic.play': 'Jugar esta carta',
   'match.tactic.stop': 'Dejar de usar esta carta',
   'match.tactic.inUse': 'En uso',
+  'match.tactic.noPlaysLeft': 'No quedan jugadas tácticas en esta mitad ({n}/{n}).',
+  'match.tactic.needs': 'Necesita {req} en tu alineación para jugarse.',
+  'match.tactic.activePower': 'Poder — activo el resto del partido.',
+  'match.tactic.reqPos': '≥{n} {pos}',
+  'match.tactic.reqFwdMid': '≥{n} DEL o MED',
 
   // Round report panel
   'match.report.extraTime': "Tiempo extra +{n}'",

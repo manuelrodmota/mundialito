@@ -152,6 +152,12 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
   const defEff0 = applyDefensiveTacticals(m, 0, stats0.defEff);
   const defEff1 = applyDefensiveTacticals(m, 1, stats1.defEff);
 
+  // You must field at least one attacker to threaten the goal. Measured AFTER instants so an
+  // Offside Trap that strips the lone forward also kills the threat. (Any attacking tactical
+  // already requires a forward, so an empty attack lane can carry no legal bonus either.)
+  const hasAtk0 = m.players[0]!.board.attack.some((c) => c.card.type === "player");
+  const hasAtk1 = m.players[1]!.board.attack.some((c) => c.card.type === "player");
+
   // v10.1: DEF_COEFF (<1) keeps a stacked back line from out-suppressing attack
   // into a 0–0 grind — defense still suppresses, just not to a standstill (§7/§19.9).
   let xg0 = xgAdd(stats0.atkEff, defEff1 * DEF_COEFF);
@@ -164,6 +170,10 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
 
   xg0 = applyTacticalXg(m, 0, xg0, defEff1, stats0.atkEff);
   xg1 = applyTacticalXg(m, 1, xg1, defEff0, stats1.atkEff);
+
+  // An empty attack lane generates no xG at all — no open-play floor, no bonuses.
+  if (!hasAtk0) xg0 = 0;
+  if (!hasAtk1) xg1 = 0;
 
   if (m.extraTime) {
     const lead = xg0 >= xg1 ? 0 : 1;
