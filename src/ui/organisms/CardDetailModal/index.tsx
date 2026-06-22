@@ -56,6 +56,9 @@ interface CardDetailModalProps {
   fieldCost?: number
   /** Opponent team blurb shown when viewing opponent cards. */
   teamBlurb?: string
+  /** Optional primary action (e.g. "Play this card" in-match). */
+  primaryLabel?: string
+  onPrimary?: () => void
 }
 
 /** Thin wrapper over the DS CardModal organism.
@@ -69,6 +72,8 @@ export function CardDetailModal({
   showMult,
   fieldCost,
   teamBlurb,
+  primaryLabel,
+  onPrimary,
 }: CardDetailModalProps) {
   const { t } = useLang()
   if (!card) return null
@@ -90,6 +95,8 @@ export function CardDetailModal({
         showMult={showMult}
         tacticDescription={tacticDescription}
         fieldCost={fieldCost}
+        primaryLabel={primaryLabel}
+        onPrimary={onPrimary}
       />
       {open && teamBlurb && (
         <div

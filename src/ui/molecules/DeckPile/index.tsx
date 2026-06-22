@@ -7,14 +7,16 @@ interface DeckPileProps {
   label?: string
   cue?: string
   dw?: number
+  /** Briefly pulse the pile (e.g. when a card lands in it). */
+  pulse?: boolean
 }
 
 /** Deck pile visualisation — draw, bench-locked, discard, or exiled. */
-export function DeckPile({ kind, count, mark, label, cue, dw = 56 }: DeckPileProps) {
+export function DeckPile({ kind, count, mark, label, cue, dw = 56, pulse = false }: DeckPileProps) {
   const isEmpty = count === 0
   return (
     <div
-      className={`deckpile5 dp7 ${kind}${isEmpty ? ' is-empty' : ''}`}
+      className={`deckpile5 dp7 ${kind}${isEmpty ? ' is-empty' : ''}${pulse ? ' pulse' : ''}`}
       style={{ position: 'static' }}
     >
       <div className="dp-stack" style={{ '--dw': dw + 'px' } as CSSProperties}>
