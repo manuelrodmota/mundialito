@@ -26,6 +26,29 @@ The balance is the **v10 pass**, locked from a Monte-Carlo simulator: **diminish
 
 Both modes share the same match engine (xG, formations, fatigue, Tactical Cards, the card cap).
 
+## How AI Was Used
+
+This game was built **with AI across the whole lifecycle**. Note that the shipped product is a
+deterministic card game — there is no LLM at runtime; AI was the tooling we used *to build* it,
+not a feature *inside* it.
+
+- **Implementation & tickets — [Qubika Agentic Framework (QAF)](https://github.com/thisisqubika/qubika-agentic-framework).**
+  Qubika's AI agentic SDLC framework drove the build: we authored the work as spec-driven (SDD)
+  tickets with `/create-sdd-ticket`, then shipped them through the `/implement-ticket` workflow
+  (context-gathering → planning → implementation → validation → pull request). The full JIRA
+  breakdown (5 SCRUM epics + 42 stories) was generated this way; SDD sources mirror under
+  `.claude-temp/tickets/world-cup-clash/`, and the framework itself is vendored at
+  [`qubika-agentic-framework/`](./qubika-agentic-framework).
+- **Game definition & balance — Claude.** Claude took the game from concept to the full design
+  document (`APP_DEFINITION.md`, GDD v10) and tuned the rules — the xG curve, lane
+  diminishing-returns, and the stamina/cost economy — iterating against a Monte-Carlo simulator
+  until scoring settled into a lively ~5–6 goals/match band.
+- **Visual design — Claude.** The design system, card-art direction, and the high-fidelity
+  interactive prototype in [`design/`](./design) (the visual + behavioral source of truth) were
+  produced with Claude.
+- **Data sourcing — Claude.** The datasets — the player card pool, World Cup editions, and
+  campaign opponents (the CSVs in `supabase/seed/`) — were fetch from various sources (mostly Kaggle) then pre-processed and assembled with Claude.
+
 ## Tech stack
 
 - **TypeScript** throughout.
@@ -60,11 +83,18 @@ Both modes share the same match engine (xG, formations, fatigue, Tactical Cards,
 
 North star: **FIFA Ultimate Team card art on a Slay-the-Spire run** — stadium-at-night, glossy. Cards are framed by rarity (silver/blue/purple/gold) with ATK (red) / DEF (blue) pips, and the player figure is a **per-nation procedural jersey kit** rendered in the nation's colours. The `design/` folder holds the full design system plus a **high-fidelity, fully interactive prototype** — treat it as the source of truth for look and behavior when building the UI.
 
-## Getting started
+## How to Run It Locally
 
 The app reads its game data (players, teams, ratings) from a **local Supabase Postgres** —
 without it the client throws on boot and the UI renders empty. First-time setup is the full
 chain below, not just `install` + `dev`.
+
+**About Docker:** you never start the database by hand. The **Supabase CLI owns the Docker
+stack** — `pnpm supabase:start` launches Postgres, the REST API (PostgREST), Studio, and Auth
+as containers for you. There are no `docker` commands to run and no project `docker-compose.yml`
+to manage; you just need **Docker Desktop running** so the CLI has somewhere to bring the
+containers up. (See [Docker & one-command run](#docker--one-command-run) for why there's no
+single `docker compose up`.)
 
 ### Prerequisites
 
@@ -110,6 +140,26 @@ pnpm lint
 pnpm supabase:stop  # stop the local stack when you're done
 ```
 
+### Docker & one-command run
+
+A single `docker compose up` is **not** how this project boots — by design, not omission.
+The data backend is a Supabase stack, and the **Supabase CLI already generates and
+orchestrates its own Docker Compose project under the hood** (`pnpm supabase:start`).
+Hand-authoring a top-level `docker-compose.yml` on top of that would duplicate and fight the
+CLI's container management, and the one-time seed step needs the service-role key that
+`supabase start` only mints at runtime.
+
+So the closest thing to a one-liner — and the canonical local-run command — is:
+
+```bash
+pnpm supabase:start          # Docker stack (Postgres + API + Studio) — CLI-managed
+pnpm db:reset && pnpm seed   # schema + game data (first run only)
+pnpm dev                     # Vite client on the host
+```
+
+The Vite client is a static client-side SPA that runs on the host and needs no container of
+its own.
+
 ## Testing
 
 The project uses **Vitest** for unit testing.
@@ -140,6 +190,11 @@ Use explicit `import { describe, it, expect } from "vitest"` — no globals.
 ## Project tracking
 
 Implementation is tracked as epics + stories in JIRA project **SCRUM** (`manuelrodmota.atlassian.net`); SDD sources mirror under `.claude-temp/tickets/world-cup-clash/`.
+
+## Team
+
+- **Manuel Rodriguez** — Developer
+- **Nicolas Cagnina** — Developer
 
 ---
 
