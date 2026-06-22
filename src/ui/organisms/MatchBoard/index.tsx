@@ -348,9 +348,12 @@ export function MatchBoard({
 
   // v10 budget: per-round card cap (4 → 5 → 6) and stamina budget (8 → 10 → 12). Both are
   // enforced on placement so the player can't overfield, exactly like the AI's validLineup.
+  // Staged tacticals also draw on the same stamina pool (their own `cost`), so a played card
+  // and a played tactical compete for the round's energy.
   const playerCap = CARD_CAP(match.round)
   const staminaMax = p0.maxStamina
-  const staminaLeft = staminaMax - laneStamina(attackCards) - laneStamina(defenseCards)
+  const tacticalCost = tacticalCards.reduce((sum, t) => sum + t.cost, 0)
+  const staminaLeft = staminaMax - laneStamina(attackCards) - laneStamina(defenseCards) - tacticalCost
 
   // True when adding `card` to `lane` would break the card cap or the stamina budget.
   // laneStamina re-derives the whole lane (star-core discount included), so this stays exact.
@@ -359,9 +362,9 @@ export function MatchBoard({
       if (attackCards.length + defenseCards.length >= playerCap) return true
       const nextAttack = lane === 'attack' ? [...attackCards, card] : attackCards
       const nextDefense = lane === 'defense' ? [...defenseCards, card] : defenseCards
-      return laneStamina(nextAttack) + laneStamina(nextDefense) > staminaMax
+      return laneStamina(nextAttack) + laneStamina(nextDefense) + tacticalCost > staminaMax
     },
-    [attackCards, defenseCards, playerCap, staminaMax],
+    [attackCards, defenseCards, playerCap, staminaMax, tacticalCost],
   )
 
   // A hand player card is playable only if it fits in at least one lane within the budget.
@@ -567,10 +570,14 @@ export function MatchBoard({
 
   const detailGateMet = detailTac ? stagedGateMet(detailTac.effect) : true
   const detailReqLabel = detailTac ? gateLabel(detailTac.effect, t) : null
-  // Play is offered only when under the per-half cap AND the lineup meets the gate, and never for
-  // an already-active Power opened from the shelf. Unstaging a staged tactical is always allowed.
+  // Affordable only if its stamina cost fits the remaining budget (a staged card already spent its cost).
+  const detailAffordable = detailTac ? detailStaged || staminaLeft >= detailTac.cost : true
+  // Play is offered only when under the per-half cap, the gate is met, AND its cost is affordable —
+  // never for an already-active Power opened from the shelf. Unstaging a staged tactical is always allowed.
   const detailShowPrimary =
-    detailTac !== null && !detailInspectOnly && (detailStaged || (canStageMoreTacticals && detailGateMet))
+    detailTac !== null &&
+    !detailInspectOnly &&
+    (detailStaged || (canStageMoreTacticals && detailGateMet && detailAffordable))
   // Explain the modal's state: an active Power, or why a tactical can't be played right now.
   let detailNote: string | undefined
   if (detailInspectOnly) {
@@ -578,6 +585,7 @@ export function MatchBoard({
   } else if (detailTac && !detailStaged) {
     if (!canStageMoreTacticals) detailNote = t('match.tactic.noPlaysLeft', { n: TACTICALS_PER_HALF })
     else if (!detailGateMet && detailReqLabel) detailNote = t('match.tactic.needs', { req: detailReqLabel })
+    else if (!detailAffordable) detailNote = t('match.tactic.needsEnergy', { n: detailTac.cost })
   }
 
   const handleStageTactical = useCallback((tac: TacticalCard) => {
@@ -1052,7 +1060,7 @@ export function MatchBoard({
                     ? true
                     : card.type === 'player'
                       ? canAfford(card as PlayerCard)
-                      : canStageMoreTacticals
+                      : canStageMoreTacticals && staminaLeft >= (card as TacticalCard).cost
                 }
               />
             ))}

@@ -266,22 +266,24 @@ export function decideTurn(m: MatchState, aiIdx: 0 | 1, rng: Rng): AiDecision {
     board: { attack: [], defense: [] },
   } as PlayerState;
 
-  for (const card of attack) {
-    tempState.board.attack.push({ card, lane: "attack", statuses: [], faceDown: true });
-  }
-  for (const card of defense) {
-    tempState.board.defense.push({ card, lane: "defense", statuses: [], faceDown: true });
-  }
-
   const finalAttack = [...attack];
   const finalDefense = [...defense];
+
+  // The chosen tacticals share the stamina pool (validLineup counts their cost), so keep them on
+  // the temp board while we trim players — the AI fields fewer players to afford its tacticals,
+  // exactly like the human's stamina budget.
+  const tacticalCips: CardInPlay[] = chosenTacticals.map((t) => ({ card: t, lane: "attack" as const, statuses: [], faceDown: false }));
 
   // Trim to a legal lineup by dropping the weakest card from the larger lane
   // (keeps the lineup as full as stamina allows instead of collapsing to one).
   const syncTemp = () => {
-    tempState.board.attack = finalAttack.map((c) => ({ card: c, lane: "attack" as const, statuses: [], faceDown: true }));
+    tempState.board.attack = [
+      ...finalAttack.map((c) => ({ card: c, lane: "attack" as const, statuses: [], faceDown: true })),
+      ...tacticalCips,
+    ];
     tempState.board.defense = finalDefense.map((c) => ({ card: c, lane: "defense" as const, statuses: [], faceDown: true }));
   };
+  syncTemp();
   let trimGuard = 0;
   while (!validLineup(tempState, m.round) && trimGuard++ < 12) {
     if (finalDefense.length >= finalAttack.length && finalDefense.length > 0) finalDefense.pop();

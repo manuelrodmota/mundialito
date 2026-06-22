@@ -64,7 +64,13 @@ export function validLineup(state: PlayerState, round: number): boolean {
   const totalPlayerCards = attackCards.length + defenseCards.length;
   if (totalPlayerCards > CARD_CAP(round)) return false;
 
-  const staminaUsed = laneStamina(attackCards) + laneStamina(defenseCards);
+  // Tacticals don't count toward the card cap (GDD §6 line 141) but they DO draw on the same
+  // stamina pool as the fielded players — a played card and a played tactical compete for energy.
+  const tacticalCost = [...state.board.attack, ...state.board.defense]
+    .filter((c) => c.card.type === "tactical")
+    .reduce((sum, c) => sum + c.card.cost, 0);
+
+  const staminaUsed = laneStamina(attackCards) + laneStamina(defenseCards) + tacticalCost;
   if (staminaUsed > state.stamina) return false;
 
   return true;
