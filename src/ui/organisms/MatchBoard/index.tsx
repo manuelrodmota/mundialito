@@ -680,7 +680,7 @@ export function MatchBoard({
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
             {coachHint && (
-              <span className="plan-hint" role="status">💡 {coachHint}</span>
+              <span className="plan-hint" role="status">💡 {t(coachHint.key, coachHint.vars)}</span>
             )}
             {!isReveal && canCommit && (
               <button className="btn btn-gold" data-coach="commit" onClick={handleCommit}>
