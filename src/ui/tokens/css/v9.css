@@ -172,17 +172,55 @@
 .shelf .tchip.cancelled { text-decoration: line-through; opacity: 0.5; }
 .shelf .label { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; color: var(--txt-dim); text-transform: uppercase; }
 
-/* hand dock */
+/* hand dock — Hearthstone-style arc fan.
+   Cards rest small in a downward-curving arc; hovering one straightens it,
+   lifts it and scales it up so it floats over the pitch (transform only, so no
+   layout reflow and the hand reserves almost no vertical space). The high
+   z-index lets the popped card sit above the action dock. */
 .hand-dock {
-  position: relative; z-index: 5; display: flex; align-items: flex-end; justify-content: center;
-  padding: 4px 18px 0; min-height: calc(var(--hw, 116px) * 0.92);
+  /* z-index:auto (no stacking context) so hovered/selected cards' high z-index pops
+     them above the action dock. The resting arc is nudged down just a little so its
+     bottom edge tucks off the screen, but the card art stays high in the dock. */
+  position: relative; display: flex; align-items: flex-end; justify-content: center;
+  padding: 0 18px; overflow: visible;
+  --rest-drop: 12px; /* small sink so the very bottom of the card clips off-screen; keep low so the art rides high */
 }
-.hand-dock .fan2 { display: flex; align-items: flex-end; }
-.fan2 > * + * { margin-left: calc(var(--hw, 116px) * -0.34); }
-.fan2 .hcard { position: relative; transition: transform 170ms cubic-bezier(0.16, 1, 0.3, 1), filter 170ms; }
-.fan2 .hcard:hover { transform: translateY(calc(var(--hw, 116px) * -0.28)) scale(1.07); z-index: 12; }
-.fan2 .hcard.selected { transform: translateY(calc(var(--hw, 116px) * -0.32)) scale(1.09); z-index: 13; }
+.hand-dock .fan2 { display: flex; align-items: flex-end; overflow: visible; }
+.fan2 > * + * { margin-left: -30px; }
+/* The hover target (.hcard) carries the resting fan position and NEVER changes on
+   hover, so its hit box stays put — that's what kills the flicker when sweeping
+   between cards. The visual (.hcard-arc) does the grow/lift and is pointer-transparent,
+   so the scaled-up card can't steal hover from its neighbours. */
+.fan2 .hcard {
+  position: relative;
+  transform-origin: 50% 100%;
+  transform: rotate(var(--rot, 0deg)) translateY(calc(var(--ty, 0px) + var(--rest-drop)));
+}
+.fan2 .hcard-arc {
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), filter 180ms;
+  will-change: transform;
+}
+/* Hover/selected: counter-rotate to straighten, cancel the resting drop, lift a touch
+   and scale up. transform-origin is the card's base, so it grows upward over the pitch. */
+.fan2 .hcard:hover { z-index: 100; }
+.fan2 .hcard:hover .hcard-arc {
+  transform: rotate(calc(-1 * var(--rot, 0deg)))
+             translateY(calc(-1 * var(--ty, 0px) - var(--rest-drop) - 14px))
+             scale(1.92);
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.6));
+}
+.fan2 .hcard.selected { z-index: 101; }
+.fan2 .hcard.selected .hcard-arc {
+  transform: rotate(calc(-1 * var(--rot, 0deg)))
+             translateY(calc(-1 * var(--ty, 0px) - var(--rest-drop) - 18px))
+             scale(1.98);
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.6));
+}
 .fan2 .hcard.selected .inner { box-shadow: 0 0 0 3px var(--gold), 0 16px 34px rgba(0, 0, 0, 0.6) !important; }
+/* While dragging, dnd-kit drives the outer node directly — keep the inner card upright. */
+.fan2 .hcard.dragging .hcard-arc { transform: none; transition: none; }
 .fan2 .hcard.dim { filter: saturate(0.45) brightness(0.78) contrast(0.95); }
 .fan2 .hcard.dim::after {
   content: "NEEDS " attr(data-need) " ⚡";
@@ -1234,12 +1272,17 @@
 
 /* ============ piles: draw + bench (locked) left · discard + exiled right ============ */
 .pile-col7 {
-  position: absolute; bottom: 8px; z-index: 6;
-  display: flex; flex-direction: row; align-items: flex-end; gap: 16px;
+  position: absolute; bottom: 6px; z-index: 6;
+  display: flex; flex-direction: row; align-items: flex-end; gap: 10px;
 }
-.pile-col7.left { left: 22px; }
-.pile-col7.right { right: 22px; }
-.pile-col7 .deckpile5 { position: static; }
+.pile-col7.left { left: 18px; }
+.pile-col7.right { right: 18px; }
+.pile-col7 .deckpile5 { position: static; gap: 3px; }
+/* Compact in-hand piles — small stacks + tight meta so the corners stay light. */
+.pile-col7 .dp7 .dp-meta { gap: 4px; }
+.pile-col7 .dp7 .dp-lab { font-size: 8px; letter-spacing: 0.06em; }
+.pile-col7 .dp7 .dp-count { font-size: 9.5px; min-width: 16px; padding: 0 4px; }
+.pile-col7 .dp7 .dp-cue { font-size: 7px; margin-top: -3px; }
 
 /* bench (locked premium players) — gold cue, "back at HT" */
 .dp7.locked .dp-card {
@@ -1431,9 +1474,13 @@
 .screen.board > .match-dock,
 .screen.board > .hand-dock,
 .screen.board > .et-banner7 { flex: 0 0 auto; }
-.screen.board > .hand-dock { min-height: 156px; align-items: flex-end; }
-/* Gentler hand fan so each card (and its jersey) stays readable. */
-.screen.board .hand-dock .fan2 > * + * { margin-left: -20px; }
+/* Short dock — only the visible ~2/3 of the resting arc is reserved; the lower third
+   sinks behind the bottom strip, so the pitch reclaims the height. Hovered/selected
+   cards pop up over the pitch via transform, not layout. */
+.screen.board > .hand-dock { min-height: 88px; align-items: flex-end; }
+.screen.board .hand-dock .fan2 > * + * { margin-left: -30px; }
+/* The hand sits at the very bottom now (the player strip was removed for pitch height);
+   the lower third of each resting card clips cleanly against the screen edge. */
 
 /* Match action dock — a single horizontal row (overrides the legacy absolute/column
    .action-dock from v2.css; this is a distinct class to avoid that collision). */
@@ -1444,25 +1491,53 @@
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
-  padding: 8px 26px;
+  gap: 12px;
+  padding: 5px 26px;
   background: rgba(8, 12, 24, 0.95);
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-/* Just-in-time planning coach — a soft amber nudge beside the Lock-in button when
-   the staged attack is thin. Self-clears as the lineup improves; never blocks play. */
+/* Just-in-time planning coach — a compact 💡 icon beside the Lock-in button; the
+   advice reveals on hover/focus in a tooltip that floats over the pitch, so it no
+   longer eats a wide strip of the dock. Self-clears as the lineup improves. */
 .screen.board > .match-dock .plan-hint {
-  max-width: 360px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.32;
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex: none;
+  font-size: 15px; line-height: 1; cursor: help;
+  border-radius: 50%;
   color: var(--warn);
-  background: rgba(255, 158, 80, 0.10);
-  border: 1px solid rgba(255, 158, 80, 0.34);
-  border-radius: 10px;
-  padding: 6px 12px;
+  background: rgba(255, 158, 80, 0.12);
+  border: 1px solid rgba(255, 158, 80, 0.4);
+  animation: planhint-pulse 1.8s ease-in-out infinite;
 }
+@keyframes planhint-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 158, 80, 0.0); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 158, 80, 0.18); }
+}
+.screen.board > .match-dock .plan-hint .plan-hint-tip {
+  position: absolute; bottom: calc(100% + 10px); right: -6px;
+  width: 250px; max-width: 70vw;
+  background: rgba(10, 14, 24, 0.98);
+  border: 1px solid rgba(255, 158, 80, 0.45);
+  border-radius: 10px; padding: 9px 12px;
+  font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0;
+  color: var(--warn); text-align: left; white-space: normal; text-transform: none;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.6);
+  opacity: 0; visibility: hidden; transform: translateY(4px);
+  transition: opacity 140ms, transform 140ms;
+  z-index: 200; pointer-events: none;
+}
+.screen.board > .match-dock .plan-hint:hover .plan-hint-tip,
+.screen.board > .match-dock .plan-hint:focus-visible .plan-hint-tip {
+  opacity: 1; visibility: visible; transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen.board > .match-dock .plan-hint { animation: none; }
+}
+/* Quit/Surrender moved into the action dock (the bottom strip was removed to give
+   the pitch its height); keep it tucked at the far right, visually quiet. */
+.screen.board > .match-dock .match-dock-surrender { flex: none; align-self: center; }
 
 /* The tactical card is taller than the formation chips beside it; anchor the slot to
    the dock floor so it sits low and compact instead of riding up over the pitch. */

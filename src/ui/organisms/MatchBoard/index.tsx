@@ -133,21 +133,39 @@ function summaryLine(r: RoundReport, oppName: string, t: Translate): string {
   return t('match.summary.cagey')
 }
 
+// Hearthstone-style fan geometry: each card tilts away from the centre and the
+// ends curve downward, so the resting hand reads as an arc that takes little
+// vertical room. Computed per card from its index so the CSS only needs to apply
+// the resulting `--rot`/`--ty` (hover straightens + lifts via transform, no reflow).
+const FAN_SPREAD_DEG = 3.6
+const FAN_CURVE_PX = 2.4
+const HAND_CARD_SIZE = 92
+
 function DraggableCard({
   card,
   isCaptain,
   selected,
   onSelect,
+  index,
+  count,
 }: {
   card: Card
   isCaptain: boolean
   selected: boolean
   onSelect: (id: string) => void
+  index: number
+  count: number
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: card.id })
-  const style = transform
-    ? { transform: `translate(${transform.x}px, ${transform.y}px)`, position: 'relative' as const, zIndex: 99 }
-    : undefined
+  const dragging = transform != null
+  const offset = index - (count - 1) / 2
+  const style = {
+    '--rot': `${offset * FAN_SPREAD_DEG}deg`,
+    '--ty': `${offset * offset * FAN_CURVE_PX}px`,
+    ...(transform
+      ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 99 }
+      : null),
+  } as React.CSSProperties
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -157,31 +175,22 @@ function DraggableCard({
     [card.id, onSelect],
   )
 
-  if (card.type === 'player') {
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...listeners}
-        {...attributes}
-        className={`hcard${selected ? ' selected' : ''}`}
-        onClick={handleClick}
-      >
-        <PlayerCardComponent card={card as PlayerCard} size={118} isCaptain={isCaptain} />
-      </div>
-    )
-  }
-
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
-      className={`hcard${selected ? ' selected' : ''}`}
+      className={`hcard${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}`}
       onClick={handleClick}
     >
-      <TacticCard card={card as TacticalCard} size={118} />
+      <div className="hcard-arc">
+        {card.type === 'player' ? (
+          <PlayerCardComponent card={card as PlayerCard} size={HAND_CARD_SIZE} isCaptain={isCaptain} />
+        ) : (
+          <TacticCard card={card as TacticalCard} size={HAND_CARD_SIZE} />
+        )}
+      </div>
     </div>
   )
 }
@@ -689,7 +698,15 @@ export function MatchBoard({
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
             {coachHint && (
-              <span className="plan-hint" role="status">💡 {t(coachHint.key, coachHint.vars)}</span>
+              <span
+                className="plan-hint"
+                role="status"
+                tabIndex={0}
+                aria-label={t(coachHint.key, coachHint.vars)}
+              >
+                💡
+                <span className="plan-hint-tip">{t(coachHint.key, coachHint.vars)}</span>
+              </span>
             )}
             {!isReveal && canCommit && (
               <button className="btn btn-gold" data-coach="commit" onClick={handleCommit}>
@@ -697,6 +714,16 @@ export function MatchBoard({
               </button>
             )}
           </div>
+
+          {onSurrender && (
+            <button
+              type="button"
+              className="surrender-btn match-dock-surrender"
+              onClick={() => setShowSurrender(true)}
+            >
+              {t(surrenderCopy.button)}
+            </button>
+          )}
         </div>
 
         {/* round report panel — shown after duel animation completes */}
@@ -797,47 +824,32 @@ export function MatchBoard({
         )}
 
         {/* hand dock — fan of draggable+clickable player cards */}
-        <div className="hand-dock" style={{ '--hw': '118px' } as React.CSSProperties}>
+        <div className="hand-dock">
           <div className="pile-col7 left">
-            <DeckPile kind="draw" count={p0.drawPile.length} label={t('match.pile.draw')} />
-            <DeckPile kind="locked" count={p0.locked.length} label={t('match.pile.bench')} cue={t('match.pile.benchCue')} />
+            <DeckPile kind="draw" count={p0.drawPile.length} label={t('match.pile.draw')} dw={34} />
+            <DeckPile kind="locked" count={p0.locked.length} label={t('match.pile.bench')} cue={t('match.pile.benchCue')} dw={34} />
           </div>
 
           <div className="fan2">
-            {handCards.map((card) => (
+            {handCards.map((card, i) => (
               <DraggableCard
                 key={card.id}
                 card={card}
                 isCaptain={card.id === p0.captainId}
                 selected={selectedHandId === card.id}
                 onSelect={handleSelectHandCard}
+                index={i}
+                count={handCards.length}
               />
             ))}
           </div>
 
           <div className="pile-col7 right">
-            <DeckPile kind="discard" count={p0.discard.length} label={t('match.pile.discard')} />
-            <DeckPile kind="exiled" count={p0.exiled.length} label={t('match.pile.exiled')} />
+            <DeckPile kind="discard" count={p0.discard.length} label={t('match.pile.discard')} dw={34} />
+            <DeckPile kind="exiled" count={p0.exiled.length} label={t('match.pile.exiled')} dw={34} />
           </div>
         </div>
 
-        {/* player bottom strip */}
-        <div className="side-strip bottom">
-          <div className="crest">{t('match.you')}</div>
-          <span className="fchip" data-f={formation}>
-            {FORMATION_LABELS[formation].label} {t(FORMATION_LABELS[formation].shapeKey)}
-          </span>
-          {onSurrender && (
-            <button
-              type="button"
-              className="surrender-btn"
-              style={{ marginLeft: 'auto' }}
-              onClick={() => setShowSurrender(true)}
-            >
-              {t(surrenderCopy.button)}
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Surrender confirmation — abandons the run and returns to squad selection. */}
