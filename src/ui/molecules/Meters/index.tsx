@@ -33,34 +33,26 @@ interface XGMeterProps {
   label: string
   /** Whether this is the player's own meter. */
   mine?: boolean
-  /**
-   * v11 telegraph: the conversion probability (0–1) a shot would convert at when this meter is
-   * full — shown so the player knows the odds before locking in. Omit to hide.
-   */
-  conversion?: number
 }
 
 const HEAT_KEYS = ['match.heat.fresh', 'match.heat.warm', 'match.heat.hot', 'match.heat.gassed'] as const
 
 /**
- * Pressure → shot meter with fatigue heat colouring (data-heat 0–3). The bar shows how much of a
- * chance has been built; at full it triggers a shot that converts at `conversion`. v11 §14.
+ * Pressure → shot meter with fatigue heat colouring (data-heat 0–3). The bar fills as you attack;
+ * the label reads the goal chance qualitatively (low / med / high) rather than a raw % — a full bar
+ * is a high chance, not a sure thing. The "high" band glows. Fatigue ("FRESH") sits on its own line.
+ * v11 §14.
  */
-export function XGMeter({ goals, xg, heat, label, mine = false, conversion }: XGMeterProps) {
+export function XGMeter({ goals, xg, heat, label, mine = false }: XGMeterProps) {
   const { t } = useLang()
   const pct = Math.min(100, Math.round(xg * 100))
-  const ready = pct >= 100
-  const convPct = conversion !== undefined ? Math.round(conversion * 100) : undefined
+  const level: 'low' | 'med' | 'high' = pct >= 60 ? 'high' : pct >= 30 ? 'med' : 'low'
+  const barText = t(
+    level === 'high' ? 'match.meter.chanceHigh' : level === 'med' ? 'match.meter.chanceMed' : 'match.meter.chanceLow',
+  )
   const tip = t('match.meter.tip')
-  // The bar's value is the SHOT odds (the decision number) — its fill width shows how much of the
-  // chance is built. Fatigue ("FRESH") sits on its own line so the two never read as one stat.
-  const barText = convPct === undefined
-    ? t('match.meter.chance', { pct })
-    : ready
-      ? t('match.meter.shotReadyPct', { pct: convPct })
-      : t('match.meter.shotPotential', { pct: convPct })
   return (
-    <div className={`xgm4${mine ? ' mine' : ''}${ready ? ' shot-ready' : ''}`} data-heat={heat} title={tip}>
+    <div className={`xgm4${mine ? ' mine' : ''} chance-${level}`} data-heat={heat} title={tip}>
       <div className="xgm-row">
         <span className="xgm-goals">{goals}</span>
         <div className="xgm-bar" title={tip}>

@@ -24,6 +24,11 @@ interface PlayerCardProps {
   faceDown?: boolean
   showSlots?: boolean
   showMult?: boolean
+  /**
+   * v11 lane force-multiplier this card is providing (>1). Rendered as a card-coloured badge that
+   * is part of the card (clipped within it), so it never floats over a neighbouring stacked card.
+   */
+  laneMult?: number
   /** Compact mode — drops the stat row + meta so the jersey keeps its room on small (field) cards. */
   compact?: boolean
   onClick?: MouseEventHandler<HTMLDivElement>
@@ -68,6 +73,7 @@ export function PlayerCard({
   faceDown,
   showSlots,
   showMult,
+  laneMult,
   compact,
   onClick,
   className = '',
@@ -105,6 +111,15 @@ export function PlayerCard({
       <div className="cost" title="Stamina cost to field this round">
         {cost}
       </div>
+      {laneMult !== undefined && laneMult > 1 && (
+        <div
+          className="lane-mult2"
+          data-rar={colorTier(card.overall)}
+          title={`Lane multiplier — this star lifts the whole line ×${laneMult}`}
+        >
+          ×{laneMult}
+        </div>
+      )}
       {showMult && <RarityMultBadge rarity={card.rarity} />}
       {isCaptain && <div className="captain-band">CAPTAIN</div>}
       {isBooked(status) && (

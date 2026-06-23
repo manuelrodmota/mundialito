@@ -8,7 +8,7 @@ import type { MatchState, PlayerCard, TacticalCard, Formation, Card, CardInPlay,
 import type { Intent } from '../../../engine/board'
 import type { LaneFx } from '../../../engine/effectiveStats'
 import type { RevealBoards, RoundReport, SideReport } from '../../quickplay/useQuickplayMatch'
-import { TACTICALS_PER_HALF, CARD_CAP, laneStamina, tacticalGatePassed, previewConversion, PRESSURE_FULL, cardLaneMult } from '../../quickplay/useQuickplayMatch'
+import { TACTICALS_PER_HALF, CARD_CAP, laneStamina, tacticalGatePassed, cardLaneMult } from '../../quickplay/useQuickplayMatch'
 import { Scoreboard } from '../Scoreboard'
 import { ExtraTimeBanner } from '../ExtraTime'
 import { Lane } from '../Lanes'
@@ -253,19 +253,13 @@ function BoardCard({
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: card.id })
   const style: React.CSSProperties = {
-    position: 'relative',
     cursor: 'grab',
     touchAction: 'none',
     ...(transform ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 99, opacity: 0.85 } : null),
   }
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={onRemove}>
-      {laneMult !== undefined && laneMult > 1 && (
-        <div className="lane-mult-badge" data-rar={card.rarity} title={`Lane multiplier — this star lifts the whole line ×${laneMult}`}>
-          ×{laneMult}
-        </div>
-      )}
-      <PlayerCardComponent card={card} size={128} isCaptain={isCaptain} />
+      <PlayerCardComponent card={card} size={128} isCaptain={isCaptain} laneMult={laneMult} />
     </div>
   )
 }
@@ -709,7 +703,8 @@ export function MatchBoard({
   // Explain the modal's state: an active Power, or why a tactical can't be played right now.
   let detailNote: string | undefined
   if (detailInspectOnly) {
-    detailNote = t('match.tactic.activePower')
+    // A persistent Power vs a one-shot Skill/Instant played this round (e.g. the opponent's card).
+    detailNote = detailTac?.category === 'power' ? t('match.tactic.activePower') : t('match.tactic.played')
   } else if (detailTac && !detailStaged) {
     if (!canStageMoreTacticals) detailNote = t('match.tactic.noPlaysLeft', { n: TACTICALS_PER_HALF })
     else if (!detailGateMet && detailReqLabel) detailNote = t('match.tactic.needs', { req: detailReqLabel })
@@ -804,7 +799,14 @@ export function MatchBoard({
             isCaptain={cip.card.id === p0.captainId}
           />
         ) : (
-          <TacticCard key={cip.card.id} card={cip.card as TacticalCard} size={128} />
+          <div
+            key={cip.card.id}
+            style={{ cursor: 'pointer' }}
+            onClick={() => { setDetailTac(cip.card as TacticalCard); setDetailInspectOnly(true) }}
+            title={t('match.tactic.tapToInspect')}
+          >
+            <TacticCard card={cip.card as TacticalCard} size={128} />
+          </div>
         ),
       )}
     </Lane>
@@ -838,6 +840,11 @@ export function MatchBoard({
             ) : null}
             <span className="nm">{match.opponent.name}</span>
             <TierStars tier={match.opponent.tier} />
+            {!isReveal && opponentIntent && intentMeta && (
+              <div className="opp-intent">
+                <b>{intentMeta.label} {t(intentMeta.shapeKey)}</b> · <b>{opponentIntent.cardCount}</b> {opponentIntent.cardCount === 1 ? t('match.intent.cardOne') : t('match.intent.cardMany')} · <b>{opponentIntent.staminaSpent}</b> {t('match.intent.stamina')}
+              </div>
+            )}
             {oppActiveTacticals.length > 0 && (
               <div className="opp-tactics" aria-label={t('match.oppTactics.label')}>
                 {oppActiveTacticals.map((tac) => (
@@ -874,7 +881,6 @@ export function MatchBoard({
                 xg={meterValue('them')}
                 heat={fatigueHeat(p1.fatigue)}
                 label={match.opponent.name}
-                conversion={previewConversion({ ...p1, xg: PRESSURE_FULL })}
               />
               <XGMeter
                 goals={goalsValue('you')}
@@ -882,7 +888,6 @@ export function MatchBoard({
                 heat={fatigueHeat(p0.fatigue)}
                 label={t('match.meter.you')}
                 mine
-                conversion={previewConversion({ ...p0, xg: PRESSURE_FULL })}
               />
             </div>
           </div>
@@ -905,12 +910,6 @@ export function MatchBoard({
             <div className="dirhint4 r">
               <span className="who4">{t('match.dir.theyAttack')}</span>
             </div>
-
-            {!isReveal && opponentIntent && intentMeta && (
-              <div className="intent">
-                {t('match.intent.label')} <b>{intentMeta.label} {t(intentMeta.shapeKey)}</b> · <b>{opponentIntent.cardCount}</b> {opponentIntent.cardCount === 1 ? t('match.intent.cardOne') : t('match.intent.cardMany')} · <b>{opponentIntent.staminaSpent}</b> {t('match.intent.stamina')}
-              </div>
-            )}
 
             <div className="p4-grid">
               {isReveal && revealBoards ? (

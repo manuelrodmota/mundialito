@@ -514,6 +514,9 @@
 /* opponent identity in match strip */
 .opp-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: none; }
 .opp-id .nm { font-weight: 800; font-size: 14px; white-space: nowrap; }
+/* v11: the opponent intent (formation · cards · stamina) now lives in the opponent header. */
+.opp-id .opp-intent { font-size: 11px; font-weight: 600; color: var(--txt-dim); letter-spacing: 0.02em; white-space: nowrap; }
+.opp-id .opp-intent b { color: var(--txt); font-weight: 800; }
 .opp-id .sub3 { display: flex; gap: 8px; align-items: center; font-size: 10.5px; color: var(--txt-dim); font-weight: 600; }
 
 /* keep the strips tidy when chips pile up */
@@ -754,13 +757,13 @@
 .heat-tag { color: #ff9e50; }
 .xgm4[data-heat="3"] .heat-tag { color: #ff6a3c; }
 
-/* v11 Pressure → Conversion: the conversion telegraph + the "shot ready" pulse on a full meter */
-.conv-tag { color: #7ec8ff; font-variant-numeric: tabular-nums; }
-.xgm4.mine .conv-tag { color: #ecd391; }
-.xgm4.shot-ready .xgm-bar { animation: shotReadyPulse 0.9s ease-in-out infinite; }
-.xgm4.shot-ready .xgm-bar i { background: linear-gradient(90deg, #ffd34d, #ff7a3c); }
-.xgm4.shot-ready.mine .xgm-bar i { background: linear-gradient(90deg, #ffe78a, #f4c24a); }
-@keyframes shotReadyPulse {
+/* v11 Pressure → goal-chance bands: the bar fill colours by level; "high" (≥60%) glows. */
+.xgm4.chance-med .xgm-bar i { background: linear-gradient(90deg, #e0b14e, #f0d27a); }
+.xgm4.chance-high .xgm-bar i { background: linear-gradient(90deg, #ffd34d, #ff7a3c); }
+.xgm4.chance-high.mine .xgm-bar i { background: linear-gradient(90deg, #ffe78a, #f4c24a); }
+.xgm4.chance-high .xgm-bar { animation: chanceHighPulse 0.9s ease-in-out infinite; }
+.xgm4.chance-high .xgm-val { color: #fff; text-shadow: 0 0 8px rgba(255, 190, 80, 0.9), 0 1px 3px rgba(0,0,0,0.7); }
+@keyframes chanceHighPulse {
   0%, 100% { box-shadow: 0 0 10px rgba(255, 200, 80, 0.45); }
   50% { box-shadow: 0 0 22px rgba(255, 180, 60, 0.8); }
 }
@@ -768,23 +771,25 @@
 .shot-miss { text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6); }
 .shot-miss .saved { color: #ff7a6a; }
 
-/* v11 lane force-multiplier badge — rides the top-centre of a staged star card, above the
-   captain band, only when the lane has ≥2 cards (so it lifts the whole line). */
-.lane-mult-badge {
+/* v11 lane force-multiplier badge — PART OF the card (clipped within it, never floats over a
+   neighbour). Sits on the upper jersey, filled in the card's own tier colour. Shows only when the
+   lane has ≥2 cards (so the star lifts the whole line). */
+.wcard .lane-mult2 {
   position: absolute;
-  top: -10px; left: 50%; transform: translateX(-50%);
-  z-index: 6;
-  font-size: 13px; font-weight: 900; line-height: 1; letter-spacing: 0.01em;
-  font-variant-numeric: tabular-nums;
-  padding: 3px 9px; border-radius: 999px;
-  background: rgba(8, 11, 18, 0.95);
-  color: #fff; border: 1.5px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+  top: calc(var(--cw, 168px) * 0.20); left: 50%; transform: translateX(-50%);
+  z-index: 4;
+  font-size: calc(var(--cw, 168px) * 0.12); font-weight: 900; line-height: 1;
+  font-variant-numeric: tabular-nums; letter-spacing: 0.01em;
+  padding: calc(var(--cw, 168px) * 0.022) calc(var(--cw, 168px) * 0.06);
+  border-radius: 999px;
+  border: 1.5px solid rgba(0, 0, 0, 0.45);
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.5);
   pointer-events: none; white-space: nowrap;
 }
-.lane-mult-badge[data-rar="rare"] { border-color: #4f8fd6; color: #cfe6ff; }
-.lane-mult-badge[data-rar="epic"] { border-color: #9257d8; color: #e9d6ff; }
-.lane-mult-badge[data-rar="legendary"] { border-color: #d9b04f; color: #ffe6a3; box-shadow: 0 0 12px rgba(217, 176, 79, 0.5); }
+.wcard .lane-mult2[data-rar="rare"] { background: linear-gradient(180deg, #6fb0f0, #2f72c8); color: #fff; }
+.wcard .lane-mult2[data-rar="epic"] { background: linear-gradient(180deg, #b07ce8, #7b3fc8); color: #fff; }
+.wcard .lane-mult2[data-rar="legendary"],
+.wcard .lane-mult2[data-rar="icon"] { background: linear-gradient(180deg, #ffd54a, #d99a06); color: #4a3300; }
 
 /* ---- xG gain float on the pitch ---- */
 .xg-float4 {
@@ -1766,7 +1771,8 @@
 /* The label cluster floats at the top of the lane. */
 .lane4 .lane-fx4 {
   position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
-  z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  z-index: 4; display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: center;
+  align-items: center; gap: 4px;
   pointer-events: none;
 }
 .lane4 .fx-pill {

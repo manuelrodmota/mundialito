@@ -79,12 +79,12 @@ export const en = {
 
   // Meter labels
   'match.meter.you': 'YOU',
-  // v11 Pressure → Conversion meter. The bar's value is the SHOT % (the odds when it fills);
-  // its fill width shows how much of the chance is built. Fatigue ("FRESH") is a separate line.
-  'match.meter.chance': '{pct}% chance built',
-  'match.meter.shotPotential': 'fills → ⚽ {pct}%',
-  'match.meter.shotReadyPct': '⚽ SHOT {pct}%',
-  'match.meter.tip': 'The bar fills as you attack; the % is your SHOT chance when it fills. A goal empties the meter; a miss knocks a chunk off so you keep trying. The tag below (FRESH/HOT) is your fatigue.',
+  // v11 Pressure → Conversion meter. The bar fills as you attack; the label reads the goal chance
+  // qualitatively (a full bar is a high chance, not a sure goal). Fatigue ("FRESH") is a separate line.
+  'match.meter.chanceLow': 'Low goal chance ⚽',
+  'match.meter.chanceMed': 'Med goal chance ⚽',
+  'match.meter.chanceHigh': 'High goal chance ⚽',
+  'match.meter.tip': 'The bar fills as you attack — the fuller it is, the better your chance to score when you take the shot. A goal empties the meter; a miss knocks a chunk off so you keep trying. The tag below (FRESH/HOT) is your fatigue.',
   // v11 shot reveal
   'match.shot.saved': 'SAVED!',
   'match.shot.youMissed': "Your chance goes begging — the keeper wins it.",
@@ -108,6 +108,8 @@ export const en = {
   'match.tactic.needs': 'Needs {req} in your lineup to play.',
   'match.tactic.needsEnergy': 'Needs {n}⚡ — not enough stamina left this round.',
   'match.tactic.activePower': 'Power — active for the rest of the match.',
+  'match.tactic.played': 'Played this round.',
+  'match.tactic.tapToInspect': 'Tap to see what it does',
   'match.tactic.reqPos': '≥{n} {pos}',
   // Hand-card block badges (shown on a dimmed/undroppable card)
   'match.card.pitchFull': 'PITCH FULL',
@@ -267,12 +269,12 @@ export const es: typeof en = {
 
   // Meter labels
   'match.meter.you': 'TÚ',
-  // v11 medidor Presión → Conversión. El valor de la barra es el % de REMATE (las probabilidades
-  // al llenarse); el ancho del relleno muestra cuánta ocasión se ha creado. La fatiga ("FRESH") va aparte.
-  'match.meter.chance': '{pct}% de ocasión',
-  'match.meter.shotPotential': 'llena → ⚽ {pct}%',
-  'match.meter.shotReadyPct': '⚽ REMATE {pct}%',
-  'match.meter.tip': 'La barra se llena al atacar; el % es tu probabilidad de REMATE al llenarse. Un gol vacía el medidor; un fallo le quita una parte para seguir intentándolo. La etiqueta de abajo (FRESH/HOT) es tu fatiga.',
+  // v11 medidor Presión → Conversión. La barra se llena al atacar; la etiqueta indica la ocasión de
+  // gol de forma cualitativa (barra llena = gran ocasión, no gol seguro). La fatiga ("FRESH") va aparte.
+  'match.meter.chanceLow': 'Ocasión baja ⚽',
+  'match.meter.chanceMed': 'Ocasión media ⚽',
+  'match.meter.chanceHigh': 'Ocasión alta ⚽',
+  'match.meter.tip': 'La barra se llena al atacar — cuanto más llena, mejor tu ocasión de marcar al rematar. Un gol vacía el medidor; un fallo le quita una parte para seguir intentándolo. La etiqueta de abajo (FRESH/HOT) es tu fatiga.',
   // v11 revelación del remate
   'match.shot.saved': '¡ATAJADA!',
   'match.shot.youMissed': 'Tu ocasión se esfuma — el portero la gana.',
@@ -296,6 +298,8 @@ export const es: typeof en = {
   'match.tactic.needs': 'Necesita {req} en tu alineación para jugarse.',
   'match.tactic.needsEnergy': 'Necesita {n}⚡ — no queda resistencia esta ronda.',
   'match.tactic.activePower': 'Poder — activo el resto del partido.',
+  'match.tactic.played': 'Jugada esta ronda.',
+  'match.tactic.tapToInspect': 'Toca para ver qué hace',
   'match.tactic.reqPos': '≥{n} {pos}',
   'match.tactic.reqFwdMid': '≥{n} DEL o MED',
   // Insignias de bloqueo en cartas de la mano

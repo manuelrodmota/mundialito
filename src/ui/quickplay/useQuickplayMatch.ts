@@ -12,7 +12,7 @@
  */
 
 import { useRef, useState, useCallback } from 'react'
-import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, computeEffectiveStats, computeSynergies, RARITY_MULT, FORMATIONS, FATIGUE_DIV, HALFTIME_ROUND, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP, laneStamina, laneStack, atkOf, defOf, laneMultiplier, cardLaneMult, tacticalGatePassed, previewConversion, PRESSURE_FULL } from '../../engine'
+import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, computeEffectiveStats, computeSynergies, FORMATIONS, FATIGUE_DIV, HALFTIME_ROUND, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP, laneStamina, laneStack, atkOf, defOf, laneMultiplier, cardLaneMult, tacticalGatePassed } from '../../engine'
 import type { MatchState, Card, Formation, Tier, CardInPlay, PlayerCard, PlayerState, ShotResult } from '../../engine/types'
 import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
@@ -544,4 +544,4 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
   }
 }
 
-export { roundToMinute, computePhase, DIFFICULTY_TO_TIER, difficultyToTier, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, laneStamina, tacticalGatePassed, previewConversion, PRESSURE_FULL, RARITY_MULT, cardLaneMult }
+export { roundToMinute, computePhase, DIFFICULTY_TO_TIER, difficultyToTier, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, laneStamina, tacticalGatePassed, cardLaneMult }
