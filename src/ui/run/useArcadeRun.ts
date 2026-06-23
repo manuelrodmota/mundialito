@@ -44,6 +44,7 @@ import { newRun, stageForIndex, advanceRun, isRunOver, isRunWon, STAGE_AI_STRENG
 import { drawOpponent, allowedTiersForStage } from '../../run'
 import { rollPlayerReward, offerTacticals, applyReward, swapTactical, removeCard, countTacticals } from '../../run'
 import { players as staticPlayerPool } from '../../data/players'
+import { buildOpponentBench } from '../../data/opponentBench'
 import { tacticals as allTacticals } from '../../data/tacticals'
 
 export type ArcadeRunPhase = 'building' | 'map' | 'match' | 'locker' | 'runover'
@@ -257,14 +258,13 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
       // Build the opponent a real deck (like Quickplay): premiums + a bench of cycling commons +
       // its signature tacticals. The raw squad alone is mostly premiums that lock once-per-half —
       // that starved the AI to ~1 fieldable card a round — and it carried no tacticals at all,
-      // so the opponent never played any. The common bench keeps a full lineup every round.
-      const squadCommons = opponent.squad.filter((c) => c.rarity === 'common')
-      const commonPool = [...staticPlayerPool.filter((c) => c.rarity === 'common'), ...squadCommons]
+      // so the opponent never played any. The common bench keeps a full lineup every round, and
+      // buildOpponentBench sources it from the opponent's *own* nation (no foreign fill).
       const opponentDeck = buildQuickplayDeck({
         premiumPicks: oppPremiums,
         tacticalPicks: (opponent.signatureTactical ?? []).slice(0, 3),
         captainId: oppCaptain?.id ?? '',
-        commonPool,
+        commonPool: buildOpponentBench(opponent),
         rosterSize: 16,
         playerBudget: 20,
         tacticalCap: 3,

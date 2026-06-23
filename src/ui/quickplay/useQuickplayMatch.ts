@@ -17,8 +17,8 @@ import type { MatchState, Card, Formation, Tier, CardInPlay, PlayerCard, PlayerS
 import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
 import { pickOpponentByDifficulty } from '../../data/remote/opponents.repo'
-import { fetchPlayers } from '../../data/remote/players.repo'
 import { buildQuickplayDeck } from './buildQuickplayDeck'
+import { buildOpponentBench } from '../../data/opponentBench'
 import type { TacticalCard } from '../../engine/types'
 import { getSupabaseClient } from '../../data/remote/client'
 import { opponents as staticOpponents } from '../../data/opponents'
@@ -254,10 +254,6 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
         opponent = fbPool[Math.floor(rng.next() * fbPool.length)] ?? fbPool[0] ?? opponent
       }
 
-      const commonPool = await fetchPlayers({ season: 2026, limit: 100 }, client)
-        .catch(() => [] as PlayerCard[])
-      const commonCards = commonPool.filter((c) => c.rarity === 'common')
-
       const oppPlayers = opponent.squad.filter((c) => c.type === 'player') as PlayerCard[]
       const oppPremiums: PlayerCard[] = []
       let oppSlots = 0
@@ -272,7 +268,7 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
         premiumPicks: oppPremiums,
         tacticalPicks: opponent.signatureTactical ?? [],
         captainId: oppCaptain?.id ?? '',
-        commonPool: [...commonCards, ...oppPlayers.filter((c) => c.rarity === 'common')],
+        commonPool: buildOpponentBench(opponent),
         rosterSize: 16,
         playerBudget: 20,
         tacticalCap: 3,
