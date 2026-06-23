@@ -33,10 +33,9 @@ import {
   ROUND_CAP,
   RUN_TACTICAL_DECK_CAP,
   tacticalGatePassed,
-  GOAL_THRESHOLD,
 } from '../../engine'
 import { buildQuickplayDeck } from '../quickplay/buildQuickplayDeck'
-import type { MatchState, Card, Formation, CardInPlay, PlayerCard, PlayerState, TacticalCard, OpponentTeam } from '../../engine/types'
+import type { MatchState, Card, Formation, CardInPlay, PlayerCard, PlayerState, TacticalCard, OpponentTeam, ShotResult } from '../../engine/types'
 import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
 import type { RunState } from '../../engine/types'
@@ -66,7 +65,10 @@ export interface SideReport {
   synAtk: number
   synDef: number
   scored: boolean
+  /** xG (pressure) this side BUILT this round — the chance created. */
   xg: number
+  /** v11 finishing: this round's shot outcome (took/scored/conversion P). */
+  shot?: ShotResult
 }
 
 export interface RoundReport {
@@ -363,8 +365,6 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
       them: { attack: [...p1.board.attack], defense: [...p1.board.defense] },
     }
 
-    const beforeYouXg = p0.xg
-    const beforeThemXg = p1.xg
     const beforeYouGoals = p0.goals
     const beforeThemGoals = p1.goals
     const currentRound = match.round
@@ -376,11 +376,10 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
 
     const youGoalsThisRound = p0.goals - beforeYouGoals
     const themGoalsThisRound = p1.goals - beforeThemGoals
-    // xG GENERATED this round = raw meter delta + the threshold each banked goal subtracted from
-    // the meter (a scoring round drives the raw delta negative). Without this, a round that scored
-    // read as e.g. "-0.50 xG · generated almost nothing".
-    const youXgGained = p0.xg - beforeYouXg + youGoalsThisRound * GOAL_THRESHOLD
-    const themXgGained = p1.xg - beforeThemXg + themGoalsThisRound * GOAL_THRESHOLD
+    // v11: report the CHANCE built this round (the engine's fill add), not a carry-back — finishing
+    // is now a separate shot roll. p?.lastFill is set by resolveRound.
+    const youXgGained = p0.lastFill ?? 0
+    const themXgGained = p1.lastFill ?? 0
 
     let you = beforeYouGoals
     let them = beforeThemGoals
@@ -421,8 +420,8 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
       youGoalsTotal: p0.goals,
       themGoalsTotal: p1.goals,
       decided: match.winner !== null,
-      you: { ...youPre, xg: youXgGained, scored: youGoalsThisRound > 0 },
-      them: { ...themPre, xg: themXgGained, scored: themGoalsThisRound > 0 },
+      you: { ...youPre, xg: youXgGained, scored: youGoalsThisRound > 0, shot: p0.lastShot },
+      them: { ...themPre, xg: themXgGained, scored: themGoalsThisRound > 0, shot: p1.lastShot },
     })
     syncSnapshot()
   }, [syncSnapshot])

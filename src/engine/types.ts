@@ -127,6 +127,22 @@ export interface PlayerState {
   captainId: string;
   momentum: number;
   handOfGodUsed: boolean;
+  /** v11 finishing: consecutive missed shots (drives the pity conversion bonus). Optional. */
+  missStreak?: number;
+  /** v11 finishing: this round's shot outcome, for the reveal UI. Optional. */
+  lastShot?: ShotResult;
+  /** v11 finishing: the xG (pressure) this player built this round, for the report UI. Optional. */
+  lastFill?: number;
+}
+
+/** Outcome of a single shot attempt (v11 probabilistic finishing). */
+export interface ShotResult {
+  /** Whether a shot was attempted this round (meter full or a forced tactical). */
+  took: boolean;
+  /** Whether it converted to a goal. */
+  scored: boolean;
+  /** The conversion probability the shot was taken at (0 when no shot). */
+  p: number;
 }
 
 export interface MatchState {

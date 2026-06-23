@@ -79,6 +79,16 @@ export const en = {
 
   // Meter labels
   'match.meter.you': 'YOU',
+  // v11 Pressure → Conversion meter
+  'match.meter.chance': '{pct}% chance built',
+  'match.meter.shotReady': 'SHOT READY',
+  'match.meter.conv': '⚽ {pct}%',
+  'match.meter.tip': 'Attack to build your chance meter. When it fills you take a SHOT — at the % shown — to score. A goal empties the meter; a miss knocks a chunk off so you keep trying.',
+  // v11 shot reveal
+  'match.shot.saved': 'SAVED!',
+  'match.shot.youMissed': "Your chance goes begging — the keeper wins it.",
+  'match.shot.theyMissed': '{opp} blow their chance.',
+  'match.shot.atChance': 'shot taken at {pct}%',
 
   // Action dock — stamina readout + active powers shelf
   'match.dock.stamina': 'Stamina',
@@ -154,7 +164,7 @@ export const en = {
   // Coach-mark steps
   'match.coach.score.title': 'Score with xG',
   'match.coach.score.body':
-    'No health bars here. Each round both teams build expected goals. When a bar fills a whole goal, you SCORE — most goals at full time wins.',
+    'No health bars here. Each round you attack to fill your chance meter. When it fills you take a SHOT — at the % shown — so a full meter is a great chance, not a sure goal. A goal empties it; a miss leaves some pressure to try again. Most goals at full time wins.',
   'match.coach.squad.title': 'Your squad this round',
   'match.coach.squad.body':
     'These are the players in your hand. Drag them onto the pitch — you can field a few each round, limited by your stamina.',
@@ -252,6 +262,16 @@ export const es: typeof en = {
 
   // Meter labels
   'match.meter.you': 'TÚ',
+  // v11 medidor Presión → Conversión
+  'match.meter.chance': '{pct}% de ocasión',
+  'match.meter.shotReady': 'REMATE LISTO',
+  'match.meter.conv': '⚽ {pct}%',
+  'match.meter.tip': 'Ataca para llenar tu medidor de ocasión. Al llenarse REMATAS — al % indicado — para marcar. Un gol vacía el medidor; un fallo le quita una parte para que sigas intentándolo.',
+  // v11 revelación del remate
+  'match.shot.saved': '¡ATAJADA!',
+  'match.shot.youMissed': 'Tu ocasión se esfuma — el portero la gana.',
+  'match.shot.theyMissed': '{opp} desperdician su ocasión.',
+  'match.shot.atChance': 'remate al {pct}%',
 
   // Action dock — stamina readout + active powers shelf
   'match.dock.stamina': 'Resistencia',
@@ -327,7 +347,7 @@ export const es: typeof en = {
   // Coach-mark steps
   'match.coach.score.title': 'Marca con xG',
   'match.coach.score.body':
-    'Aquí no hay barras de vida. Cada ronda ambos equipos acumulan goles esperados. Cuando una barra completa un gol entero, MARCAS — gana quien tenga más goles al final del partido.',
+    'Aquí no hay barras de vida. Cada ronda atacas para llenar tu medidor de ocasión. Al llenarse REMATAS — al % indicado — así que un medidor lleno es una gran ocasión, no un gol seguro. Un gol lo vacía; un fallo deja algo de presión para reintentar. Gana quien tenga más goles al final.',
   'match.coach.squad.title': 'Tu plantilla esta ronda',
   'match.coach.squad.body':
     'Estos son los jugadores en tu mano. Arrástralos al campo — puedes alinear a unos cuantos cada ronda, según tu resistencia.',

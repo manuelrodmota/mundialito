@@ -12,8 +12,8 @@
  */
 
 import { useRef, useState, useCallback } from 'react'
-import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, computeEffectiveStats, computeSynergies, RARITY_MULT, FORMATIONS, FATIGUE_DIV, HALFTIME_ROUND, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP, laneStamina, tacticalGatePassed, GOAL_THRESHOLD } from '../../engine'
-import type { MatchState, Card, Formation, Tier, CardInPlay, PlayerCard, PlayerState } from '../../engine/types'
+import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, computeEffectiveStats, computeSynergies, RARITY_MULT, FORMATIONS, FATIGUE_DIV, HALFTIME_ROUND, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP, laneStamina, tacticalGatePassed, previewConversion, PRESSURE_FULL } from '../../engine'
+import type { MatchState, Card, Formation, Tier, CardInPlay, PlayerCard, PlayerState, ShotResult } from '../../engine/types'
 import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
 import { pickOpponentByDifficulty } from '../../data/remote/opponents.repo'
@@ -44,7 +44,10 @@ export interface SideReport {
   synAtk: number
   synDef: number
   scored: boolean
+  /** xG (pressure) this side BUILT this round — the chance created. */
   xg: number
+  /** v11 finishing: this round's shot outcome (took/scored/conversion P). */
+  shot?: ShotResult
 }
 
 export interface RoundReport {
@@ -374,8 +377,6 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
       },
     }
 
-    const beforeYouXg = p0.xg
-    const beforeThemXg = p1.xg
     const beforeYouGoals = p0.goals
     const beforeThemGoals = p1.goals
     const currentRound = match.round
@@ -388,11 +389,10 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
 
     const youGoalsThisRound = p0.goals - beforeYouGoals
     const themGoalsThisRound = p1.goals - beforeThemGoals
-    // xG GENERATED this round = raw meter delta + the threshold each banked goal subtracted from
-    // the meter (addXg carries the remainder, so scoring drives the raw delta negative). Without
-    // adding it back, a round that scored read as e.g. "-0.50 xG · generated almost nothing".
-    const youXgGained = p0.xg - beforeYouXg + youGoalsThisRound * GOAL_THRESHOLD
-    const themXgGained = p1.xg - beforeThemXg + themGoalsThisRound * GOAL_THRESHOLD
+    // v11: the report shows the CHANCE built this round (the fill the engine added to the meter),
+    // not a carry-back — scoring is now a separate shot roll. p?.lastFill is set by resolveRound.
+    const youXgGained = p0.lastFill ?? 0
+    const themXgGained = p1.lastFill ?? 0
 
     // Running scoreline so each GOAL celebration shows the score after it lands.
     let you = beforeYouGoals
@@ -424,8 +424,8 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
       youGoalsTotal: p0.goals,
       themGoalsTotal: p1.goals,
       decided: match.winner !== null,
-      you: { ...youPre, xg: youXgGained, scored: youGoalsThisRound > 0 },
-      them: { ...themPre, xg: themXgGained, scored: themGoalsThisRound > 0 },
+      you: { ...youPre, xg: youXgGained, scored: youGoalsThisRound > 0, shot: p0.lastShot },
+      them: { ...themPre, xg: themXgGained, scored: themGoalsThisRound > 0, shot: p1.lastShot },
     })
     setPhase('reveal')
     syncSnapshot()
@@ -540,4 +540,4 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
   }
 }
 
-export { roundToMinute, computePhase, DIFFICULTY_TO_TIER, difficultyToTier, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, laneStamina, tacticalGatePassed }
+export { roundToMinute, computePhase, DIFFICULTY_TO_TIER, difficultyToTier, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, laneStamina, tacticalGatePassed, previewConversion, PRESSURE_FULL }

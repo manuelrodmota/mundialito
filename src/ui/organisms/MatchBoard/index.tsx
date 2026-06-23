@@ -8,7 +8,7 @@ import type { MatchState, PlayerCard, TacticalCard, Formation, Card, CardInPlay,
 import type { Intent } from '../../../engine/board'
 import type { LaneFx } from '../../../engine/effectiveStats'
 import type { RevealBoards, RoundReport, SideReport } from '../../quickplay/useQuickplayMatch'
-import { TACTICALS_PER_HALF, CARD_CAP, laneStamina, tacticalGatePassed } from '../../quickplay/useQuickplayMatch'
+import { TACTICALS_PER_HALF, CARD_CAP, laneStamina, tacticalGatePassed, previewConversion, PRESSURE_FULL } from '../../quickplay/useQuickplayMatch'
 import { Scoreboard } from '../Scoreboard'
 import { ExtraTimeBanner } from '../ExtraTime'
 import { Lane } from '../Lanes'
@@ -278,6 +278,23 @@ function FaceDownCard({ size = 96 }: { size?: number }) {
   )
 }
 
+/** v11: a missed shot — the meter was full (or a forced tactical fired) but the keeper won. */
+function ShotMiss({ p, mine, scorer }: { p: number; mine: boolean; scorer?: string }) {
+  const { t } = useLang()
+  return (
+    <div
+      className={`shot-miss${mine ? ' mine' : ''}`}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#dfe7f5' }}
+    >
+      <div style={{ fontSize: 40, fontWeight: 900, letterSpacing: 1 }}>{t('match.shot.saved')}</div>
+      <div style={{ fontSize: 15, opacity: 0.85 }}>
+        {mine ? t('match.shot.youMissed') : t('match.shot.theyMissed', { opp: scorer ?? '' })}
+      </div>
+      <div style={{ fontSize: 13, opacity: 0.6 }}>{t('match.shot.atChance', { pct: Math.round(p * 100) })}</div>
+    </div>
+  )
+}
+
 export interface MatchBoardCommitOptions {
   formation: Formation
   attackCards: PlayerCard[]
@@ -423,8 +440,14 @@ export function MatchBoard({
   // Goal steps hold the GOAL blast (auto-advance after GOAL_HOLD, or click-to-dismiss),
   // so the opponent's attack only plays after your goal and the report only after theirs.
   const [revealStep, setRevealStep] = useState(0)
-  const youScored = (roundReport?.youGoalsThisRound ?? 0) > 0
-  const theyScored = (roundReport?.themGoalsThisRound ?? 0) > 0
+  // v11: a shot beat plays whenever a side TOOK a shot (meter full or a forced tactical) — it
+  // resolves to GOAL or SAVED. Build the beat on shot.took, not just on whether a goal landed.
+  const youShot = roundReport?.you.shot
+  const theyShot = roundReport?.them.shot
+  const youTookShot = youShot?.took ?? false
+  const theyTookShot = theyShot?.took ?? false
+  const youScored = youShot?.scored ?? false
+  const theyScored = theyShot?.scored ?? false
   const duel: 'A' | 'B' | null = revealStep === 1 ? 'A' : revealStep === 3 ? 'B' : null
   const showYouXg = revealStep >= 1
   const showThemXg = revealStep >= 3
@@ -440,12 +463,12 @@ export function MatchBoard({
     if (!isReveal) return
     let t: ReturnType<typeof setTimeout> | undefined
     if (revealStep === 0) t = setTimeout(() => setRevealStep(1), 40)
-    else if (revealStep === 1) t = setTimeout(() => setRevealStep(youScored ? 2 : 3), CLASH_MS)
+    else if (revealStep === 1) t = setTimeout(() => setRevealStep(youTookShot ? 2 : 3), CLASH_MS)
     else if (revealStep === 2) t = setTimeout(() => setRevealStep(3), GOAL_HOLD)
-    else if (revealStep === 3) t = setTimeout(() => setRevealStep(theyScored ? 4 : 5), CLASH_MS)
+    else if (revealStep === 3) t = setTimeout(() => setRevealStep(theyTookShot ? 4 : 5), CLASH_MS)
     else if (revealStep === 4) t = setTimeout(() => setRevealStep(5), GOAL_HOLD)
     return () => { if (t) clearTimeout(t) }
-  }, [isReveal, revealStep, youScored, theyScored])
+  }, [isReveal, revealStep, youTookShot, theyTookShot])
 
   // Reset to plan when leaving reveal, so the next round starts the cinematic clean.
   // Deferred via a timer so the reset is not a synchronous setState in the effect body.
@@ -794,16 +817,18 @@ export function MatchBoard({
             <div className="board-meters">
               <XGMeter
                 goals={p1.goals}
-                xg={p1.xg % 1}
+                xg={Math.min(1, p1.xg)}
                 heat={fatigueHeat(p1.fatigue)}
                 label={match.opponent.name}
+                conversion={previewConversion({ ...p1, xg: PRESSURE_FULL })}
               />
               <XGMeter
                 goals={p0.goals}
-                xg={p0.xg % 1}
+                xg={Math.min(1, p0.xg)}
                 heat={fatigueHeat(p0.fatigue)}
                 label={t('match.meter.you')}
                 mine
+                conversion={previewConversion({ ...p0, xg: PRESSURE_FULL })}
               />
             </div>
           </div>
@@ -918,16 +943,21 @@ export function MatchBoard({
           </div>
         </div>
 
-        {/* GOAL blast — your goal plays after your clash; theirs after their clash.
+        {/* SHOT beat — plays after each side's clash when a shot was taken. A converted shot is the
+            GOAL blast; a missed one is a SAVED card (the v11 drama: a full meter is not a sure goal).
             Click (or auto-advance) continues the cinematic to the next beat. */}
         {showGoalYou && roundReport && (
           <Overlay open onClick={() => setRevealStep(3)}>
-            <Goal isYou score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal - (theyScored ? 1 : 0)]} />
+            {youScored
+              ? <Goal isYou score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal - (theyScored ? 1 : 0)]} />
+              : <ShotMiss p={youShot?.p ?? 0} mine />}
           </Overlay>
         )}
         {showGoalThem && roundReport && (
           <Overlay open onClick={() => setRevealStep(5)}>
-            <Goal isYou={false} scorer={match.opponent.name} score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal]} />
+            {theyScored
+              ? <Goal isYou={false} scorer={match.opponent.name} score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal]} />
+              : <ShotMiss p={theyShot?.p ?? 0} mine={false} scorer={match.opponent.name} />}
           </Overlay>
         )}
 

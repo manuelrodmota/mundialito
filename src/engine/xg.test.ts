@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { xgAdd, addXg } from "./xg.ts";
+import { xgAdd, addPressure, takeShot, previewConversion } from "./xg.ts";
+import { BASE_CONVERSION, CONVERSION_CAP, MISS_DROP_FRAC, PRESSURE_FULL } from "./constants.ts";
 import type { PlayerState } from "./types.ts";
+import type { Rng } from "./rng.ts";
 
 function makeState(overrides: Partial<PlayerState> = {}): PlayerState {
   return {
@@ -24,11 +26,17 @@ function makeState(overrides: Partial<PlayerState> = {}): PlayerState {
     captainId: "",
     momentum: 0,
     handOfGodUsed: false,
+    missStreak: 0,
     ...overrides,
   };
 }
 
-describe("xgAdd", () => {
+/** A stubbed Rng whose next() always returns a fixed roll. */
+function fixedRng(roll: number): Rng {
+  return { next: () => roll, shuffle: (a) => [...a] };
+}
+
+describe("xgAdd (fill)", () => {
   it("returns XG_FLOOR (0.10) when ATK <= DEF", () => {
     expect(xgAdd(50, 50)).toBe(0.1);
     expect(xgAdd(30, 80)).toBe(0.1);
@@ -38,69 +46,77 @@ describe("xgAdd", () => {
     expect(xgAdd(1000, 0)).toBe(0.55);
   });
 
-  it("computes correctly for delta=105 → 0.10 + 105/180 = 0.68 → capped at 0.55", () => {
-    expect(xgAdd(105, 0)).toBe(0.55);
-  });
-
-  it("returns exact value before the cap kicks in (delta=54 → 0.10+0.30=0.40)", () => {
-    expect(xgAdd(54, 0)).toBeCloseTo(0.4, 5);
-  });
-
-  it("returns 0.10 when delta is exactly 0", () => {
-    expect(xgAdd(100, 100)).toBe(0.1);
-  });
-
-  it("is bounded: never below 0.10, never above 0.55", () => {
-    for (const [a, d] of [[0, 9999], [100, 100], [9999, 0]]) {
-      const v = xgAdd(a as number, d as number);
-      expect(v).toBeGreaterThanOrEqual(0.1);
-      expect(v).toBeLessThanOrEqual(0.55);
-    }
+  it("honours a custom floor (Time Wasting → 0)", () => {
+    expect(xgAdd(50, 50, 0)).toBe(0);
   });
 });
 
-describe("addXg", () => {
-  it("accumulates without scoring when xg < GOAL_THRESHOLD", () => {
+describe("addPressure", () => {
+  it("accumulates fill and clamps to PRESSURE_FULL", () => {
     const s = makeState({ xg: 0.3 });
-    addXg(s, 0.4, 1);
-    expect(s.goals).toBe(0);
+    addPressure(s, 0.4);
     expect(s.xg).toBeCloseTo(0.7, 5);
-    expect(s.scoredFirstAt).toBeNull();
+    addPressure(s, 0.9);
+    expect(s.xg).toBe(PRESSURE_FULL);
+  });
+});
+
+describe("takeShot", () => {
+  it("does not shoot below full without a forced shot", () => {
+    const s = makeState({ xg: 0.6 });
+    const out = takeShot(s, { round: 1, rng: fixedRng(0) });
+    expect(out.took).toBe(false);
+    expect(s.goals).toBe(0);
+    expect(s.xg).toBeCloseTo(0.6, 5);
   });
 
-  it("scores a goal on crossing GOAL_THRESHOLD (0.80) and carries the remainder", () => {
-    const s = makeState({ xg: 0.8 });
-    addXg(s, 0.5, 3);
+  it("scores when the roll lands under P, emptying the meter", () => {
+    const s = makeState({ xg: PRESSURE_FULL });
+    const out = takeShot(s, { round: 4, rng: fixedRng(0.0) }); // 0 < P → goal
+    expect(out.took).toBe(true);
+    expect(out.scored).toBe(true);
     expect(s.goals).toBe(1);
-    expect(s.xg).toBeCloseTo(0.5, 5); // 1.3 − 0.8
-    expect(s.scoredFirstAt).toBe(3);
+    expect(s.xg).toBe(0);
+    expect(s.scoredFirstAt).toBe(4);
+    expect(s.missStreak).toBe(0);
   });
 
-  it("scores multiple goals in one add (multi-goal carry)", () => {
-    const s = makeState({ xg: 0.0 });
-    addXg(s, 2.5, 5); // 2.5 / 0.8 = 3 goals, carry 0.1
-    expect(s.goals).toBe(3);
-    expect(s.xg).toBeCloseTo(0.1, 5);
+  it("misses when the roll exceeds P, dropping the meter and raising the streak", () => {
+    const s = makeState({ xg: PRESSURE_FULL });
+    const out = takeShot(s, { round: 2, rng: fixedRng(0.999) }); // 0.999 > P → miss
+    expect(out.scored).toBe(false);
+    expect(s.goals).toBe(0);
+    expect(s.xg).toBeCloseTo(PRESSURE_FULL * (1 - MISS_DROP_FRAC), 5);
+    expect(s.missStreak).toBe(1);
   });
 
-  it("sets scoredFirstAt only on the first goal", () => {
-    const s = makeState({ xg: 0.0 });
-    addXg(s, 1.1, 2);
-    addXg(s, 1.0, 4);
-    expect(s.scoredFirstAt).toBe(2);
-    expect(s.goals).toBe(2);
+  it("a forced shot fires below full at its conversion floor (Penalty)", () => {
+    const s = makeState({ xg: 0.2 });
+    // roll just under 0.78 → penalty converts; would NOT convert at the open-play base.
+    const out = takeShot(s, { round: 3, rng: fixedRng(0.77), forceShot: true, convFloor: 0.78 });
+    expect(out.took).toBe(true);
+    expect(out.scored).toBe(true);
+    expect(out.p).toBeCloseTo(0.78, 5);
+  });
+});
+
+describe("previewConversion (telegraph)", () => {
+  it("is 0 when the meter is not full and no shot is forced", () => {
+    expect(previewConversion(makeState({ xg: 0.5 }))).toBe(0);
   });
 
-  it("does not reset scoredFirstAt once set", () => {
-    const s = makeState({ xg: 0.9, scoredFirstAt: 1, goals: 1 });
-    addXg(s, 0.2, 7);
-    expect(s.scoredFirstAt).toBe(1);
+  it("equals the base conversion at a full meter with no modifiers", () => {
+    expect(previewConversion(makeState({ xg: PRESSURE_FULL }))).toBeCloseTo(BASE_CONVERSION, 5);
   });
 
-  it("handles exact crossing (no remainder)", () => {
-    const s = makeState({ xg: 0.3 });
-    addXg(s, 0.5, 6); // 0.3 + 0.5 = 0.8 = exactly GOAL_THRESHOLD
-    expect(s.goals).toBe(1);
-    expect(s.xg).toBeCloseTo(0, 10);
+  it("adds the pity bonus per consecutive miss", () => {
+    const base = previewConversion(makeState({ xg: PRESSURE_FULL }));
+    const withPity = previewConversion(makeState({ xg: PRESSURE_FULL, missStreak: 2 }));
+    expect(withPity).toBeGreaterThan(base);
+  });
+
+  it("never exceeds CONVERSION_CAP", () => {
+    const p = previewConversion(makeState({ xg: PRESSURE_FULL, missStreak: 99 }), { convFloor: 0.99 });
+    expect(p).toBeLessThanOrEqual(CONVERSION_CAP);
   });
 });

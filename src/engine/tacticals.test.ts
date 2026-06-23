@@ -9,6 +9,7 @@ import {
   applyCatenaccio,
   applyHighPress,
   applyTimeWasting,
+  shotModifiers,
 } from "./tacticals.ts";
 import { routeCard } from "./cards.ts";
 import { computeEffectiveStats, atkOf } from "./effectiveStats.ts";
@@ -272,16 +273,17 @@ describe("applyTacticalXg — Counter-Attack (your DEF >= their ATK)", () => {
   });
 });
 
-describe("applyTacticalXg — Penalty / Tiki-Taka / Long Ball", () => {
-  it("adds the card's xG amount", () => {
-    const pen = makeMatch(makeState({ board: { attack: [wrapTactical(tac("penalty", { amount: 0.6 }))], defense: [] } }), makeState());
-    expect(applyTacticalXg(pen, 0, 0.1, 50, 50)).toBeCloseTo(0.7, 5);
-
+describe("applyTacticalXg — fill boosters (Tiki-Taka / Long Ball)", () => {
+  it("adds the card's xG amount to the fill (Penalty/Hand of God no longer fill — see shotModifiers)", () => {
     const tiki = makeMatch(makeState({ board: { attack: [wrapTactical(tac("tikiTaka", { amount: 0.2 }))], defense: [] } }), makeState());
     expect(applyTacticalXg(tiki, 0, 0.1, 50, 50)).toBeCloseTo(0.3, 5);
 
     const lb = makeMatch(makeState({ board: { attack: [wrapTactical(tac("longBall", { amount: 0.45 }))], defense: [] } }), makeState());
     expect(applyTacticalXg(lb, 0, 0.1, 50, 50)).toBeCloseTo(0.55, 5);
+
+    // Penalty is NOT a fill bonus anymore.
+    const pen = makeMatch(makeState({ board: { attack: [wrapTactical(tac("penalty", { amount: 0.78 }))], defense: [] } }), makeState());
+    expect(applyTacticalXg(pen, 0, 0.1, 50, 50)).toBeCloseTo(0.1, 5);
   });
 });
 
@@ -297,24 +299,25 @@ describe("applyTacticalXg — Nutmeg (forward ignores defense)", () => {
   });
 });
 
-describe("applyTacticalXg — Hand of God (Power, once per match)", () => {
-  it("adds its amount once from powers[] and sets the used flag", () => {
-    const hog = tac("handOfGod", { amount: 0.8 }, "power");
-    const p0 = makeState({ powers: [hog] });
-    const m = makeMatch(p0, makeState());
-
-    const first = applyTacticalXg(m, 0, 0.1, 50, 50);
-    expect(first).toBeCloseTo(0.9, 5);
-    expect(m.players[0]!.handOfGodUsed).toBe(true);
-
-    const second = applyTacticalXg(m, 0, 0.1, 50, 50);
-    expect(second).toBeCloseTo(0.1, 5);
+describe("shotModifiers — Penalty / Hand of God force a high-conversion shot", () => {
+  it("Penalty forces a shot at its conversion floor", () => {
+    const p0 = makeState({ board: { attack: [wrapTactical(tac("penalty", { amount: 0.78 }))], defense: [] } });
+    const mods = shotModifiers(p0);
+    expect(mods.forceShot).toBe(true);
+    expect(mods.convFloor).toBeCloseTo(0.78, 5);
+    expect(mods.handOfGod).toBe(false);
   });
 
-  it("does not fire when already used", () => {
-    const p0 = makeState({ powers: [tac("handOfGod", { amount: 0.8 }, "power")], handOfGodUsed: true });
-    const m = makeMatch(p0, makeState());
-    expect(applyTacticalXg(m, 0, 0.1, 50, 50)).toBeCloseTo(0.1, 5);
+  it("Hand of God (Power) forces a near-certain shot, but only while unused", () => {
+    const hog = tac("handOfGod", { amount: 0.95 }, "power");
+    const fresh = makeState({ powers: [hog] });
+    const m1 = shotModifiers(fresh);
+    expect(m1.forceShot).toBe(true);
+    expect(m1.handOfGod).toBe(true);
+    expect(m1.convFloor).toBeCloseTo(0.95, 5);
+
+    const used = makeState({ powers: [hog], handOfGodUsed: true });
+    expect(shotModifiers(used).forceShot).toBe(false);
   });
 });
 

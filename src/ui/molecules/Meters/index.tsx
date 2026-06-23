@@ -26,33 +26,53 @@ export function StaminaMeter({ current, max, rampLabel }: StaminaMeterProps) {
 interface XGMeterProps {
   /** Goals scored. */
   goals: number
-  /** Current xG fill 0–1. */
+  /** Current pressure fill 0–1 (the chance built toward a shot). */
   xg: number
   /** Fatigue heat level 0–3. */
   heat: 0 | 1 | 2 | 3
   label: string
   /** Whether this is the player's own meter. */
   mine?: boolean
+  /**
+   * v11 telegraph: the conversion probability (0–1) a shot would convert at when this meter is
+   * full — shown so the player knows the odds before locking in. Omit to hide.
+   */
+  conversion?: number
 }
 
 const HEAT_KEYS = ['match.heat.fresh', 'match.heat.warm', 'match.heat.hot', 'match.heat.gassed'] as const
 
-/** xG progress meter with fatigue heat colouring (data-heat 0–3). */
-export function XGMeter({ goals, xg, heat, label, mine = false }: XGMeterProps) {
+/**
+ * Pressure → shot meter with fatigue heat colouring (data-heat 0–3). The bar shows how much of a
+ * chance has been built; at full it triggers a shot that converts at `conversion`. v11 §14.
+ */
+export function XGMeter({ goals, xg, heat, label, mine = false, conversion }: XGMeterProps) {
   const { t } = useLang()
   const pct = Math.min(100, Math.round(xg * 100))
+  const ready = pct >= 100
+  const convPct = conversion !== undefined ? Math.round(conversion * 100) : undefined
+  const tip = t('match.meter.tip')
   return (
-    <div className={`xgm4${mine ? ' mine' : ''}`} data-heat={heat}>
+    <div className={`xgm4${mine ? ' mine' : ''}${ready ? ' shot-ready' : ''}`} data-heat={heat} title={tip}>
       <div className="xgm-row">
         <span className="xgm-goals">{goals}</span>
         <div className="xgm-bar">
           <i style={{ width: pct + '%' }} />
-          <span className="xgm-val">{xg.toFixed(2)} xG</span>
+          <span className="xgm-val">
+            {ready
+              ? t('match.meter.shotReady')
+              : t('match.meter.chance', { pct })}
+          </span>
         </div>
       </div>
       <div className="xgm-sub">
         <span>{label}</span>
-        <span className="heat-tag">{t(HEAT_KEYS[heat])}</span>
+        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+          {convPct !== undefined && (
+            <span className="conv-tag" title={tip}>{t('match.meter.conv', { pct: convPct })}</span>
+          )}
+          <span className="heat-tag">{t(HEAT_KEYS[heat])}</span>
+        </span>
       </div>
     </div>
   )

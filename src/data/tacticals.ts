@@ -150,10 +150,9 @@ export const tacticals: TacticalCard[] = [
     cost: 2,
     slots: 1,
     rarity: "epic",
-    // v10.2 nerf: 0.85 → 0.60. At GOAL_THRESHOLD 0.8 a 0.85 penalty was a guaranteed goal from
-    // an empty meter for an epic FWD-gated skill; 0.60 keeps it a near-certain finish without the
-    // free goal. §12 / §19 balance lever.
-    effect: { kind: "penalty", amount: 0.60, requiresPosition: "FWD", requiresCount: 1 },
+    // v11: penalty no longer fills the meter — it forces a SHOT this round whose conversion is
+    // `amount` (≈ a real penalty, ~78%). Not a guaranteed goal. §12 / §14.
+    effect: { kind: "penalty", amount: 0.78, requiresPosition: "FWD", requiresCount: 1 },
   },
   {
     id: "tac-team-talk",
@@ -186,9 +185,9 @@ export const tacticals: TacticalCard[] = [
     cost: 3,
     slots: 2,
     rarity: "legendary",
-    // v10.2 nerf: 1.0 → 0.80 (= GOAL_THRESHOLD). Still the legendary, once-per-match guaranteed
-    // goal, but it now banks exactly one goal with no overflow that double-dips with open-play xG.
-    effect: { kind: "handOfGod", amount: 0.80, requiresPosition: "FWD", requiresCount: 1 },
+    // v11: forces a near-certain SHOT once per match — conversion `amount` (~95%). No longer an
+    // automatic goal, but as close as the game gets. §12 / §14.
+    effect: { kind: "handOfGod", amount: 0.95, requiresPosition: "FWD", requiresCount: 1 },
   },
   {
     id: "tac-fortress",

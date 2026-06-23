@@ -40,8 +40,37 @@ export const STAR_SYNERGY_DISCOUNT = 0.5;
 export const XG_FLOOR = 0.1;
 export const XG_SLOPE = 180;
 export const XG_CAP = 0.55;
-/** xG that banks one goal (the meter crossing). v10.1: 0.80 (was an implicit 1.0). §7 */
+/**
+ * @deprecated v11 replaced the deterministic "cross the threshold → goal" with probabilistic
+ * finishing (Pressure → Conversion, below). Kept only for the legacy balance-sim curve sweep.
+ */
 export const GOAL_THRESHOLD = 0.8;
+
+// ── v11 probabilistic finishing — "Pressure → Conversion" (§7 / §14 / §19) ──────────────────────
+// The meter (state.xg) is now PRESSURE in [0, PRESSURE_FULL]: each attacking round adds the same
+// xG fill as before, but reaching the top no longer guarantees a goal — it triggers a SHOT that
+// converts with probability P. A goal empties the meter; a miss knocks a chunk off (keep trying).
+// This breaks the deterministic "I score / you score" metronome while keeping the better deck ahead
+// (it fills faster → shoots more often). Tune via scripts/balanceSim.ts.
+/** Meter value that triggers a shot ("full"). The bar is displayed as pressure / PRESSURE_FULL. */
+export const PRESSURE_FULL = 1.0;
+/** Base shot conversion when the meter reaches full (open play). */
+export const BASE_CONVERSION = 0.80;
+/** Open play is never a certainty; hard ceiling on P after all bonuses. */
+export const CONVERSION_CAP = 0.95;
+/** A forced shot (tactical) never drops below this. */
+export const CONVERSION_FLOOR = 0.05;
+/** Fraction of the meter lost on a miss — you keep some pressure to try again next round. */
+export const MISS_DROP_FRAC = 0.5;
+/** Per-consecutive-miss conversion bonus (bad-luck protection / "they're due"). */
+export const PITY_STEP = 0.07;
+export const PITY_CAP = 0.25;
+/** Max conversion bonus from momentum (a side "on top" finishes a little better). */
+export const MOMENTUM_CONVERSION = 0.06;
+/** Penalty Kick: a forced shot at this conversion regardless of build-up (≈ a real penalty). */
+export const PENALTY_CONVERSION = 0.78;
+/** Hand of God: a forced, near-certain shot once per match (no longer a flat guaranteed goal). */
+export const HAND_OF_GOD_CONVERSION = 0.95;
 /**
  * v10.1 defense coefficient — how much of effective DEF is subtracted from the
  * opponent's ATK in the xG delta. <1.0 stops a stacked back line (bunkering

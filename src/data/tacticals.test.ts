@@ -160,12 +160,12 @@ describe("tacticals catalog", () => {
       expect(tacticals.find((t) => t.effect.kind === "longBall")!.effect.amount).toBe(0.45);
     });
 
-    it("penalty amount is 0.60 (v10.2 nerf)", () => {
-      expect(tacticals.find((t) => t.effect.kind === "penalty")!.effect.amount).toBe(0.60);
+    it("penalty amount is 0.78 (v11 forced-shot conversion)", () => {
+      expect(tacticals.find((t) => t.effect.kind === "penalty")!.effect.amount).toBe(0.78);
     });
 
-    it("handOfGod amount is 0.80 (v10.2 nerf)", () => {
-      expect(tacticals.find((t) => t.effect.kind === "handOfGod")!.effect.amount).toBe(0.80);
+    it("handOfGod amount is 0.95 (v11 forced-shot conversion)", () => {
+      expect(tacticals.find((t) => t.effect.kind === "handOfGod")!.effect.amount).toBe(0.95);
     });
 
     it("fortress amount is 8", () => {

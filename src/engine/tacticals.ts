@@ -35,6 +35,8 @@ import {
   SUBSTITUTION_FATIGUE,
   SUBSTITUTION_DRAW,
   TEAM_TALK_DRAW,
+  PENALTY_CONVERSION,
+  HAND_OF_GOD_CONVERSION,
 } from "./constants.ts";
 import { addStatus, applySecondBooking, isBooked, removeStatus } from "./status.ts";
 import { resetFatigue } from "./fatigue.ts";
@@ -296,9 +298,7 @@ export function applyTacticalXg(
         // A direct chance that bypasses the back line — a flat add, unaffected by opp DEF. §12.
         bonus += t.effect.amount ?? 0.45;
         break;
-      case "penalty":
-        bonus += t.effect.amount ?? 0.6;
-        break;
+      // penalty is no longer a fill bonus — it forces a high-conversion SHOT (see shotModifiers).
       case "counterAttack":
         // GDD §12: if YOUR DEF_eff ≥ THEIR ATK_eff this round, add +0.40 (capped) on the break.
         if (ownDefEff >= oppAtkEff) {
@@ -313,13 +313,8 @@ export function applyTacticalXg(
     }
   }
 
-  // Hand of God is a Power (lives in powers[]): once per match, instantly +amount xG. §12.
-  for (const power of self.powers) {
-    if (power.effect.kind === "handOfGod" && !self.handOfGodUsed) {
-      bonus += power.effect.amount ?? 0.8;
-      self.handOfGodUsed = true;
-    }
-  }
+  // Hand of God (Power) is no longer a flat xG add — it forces a near-certain SHOT once per match
+  // (see shotModifiers + takeShot). §12.
 
   // Nutmeg: your best forward ignores the opponent's defense — give back the xG that the back line
   // was suppressing on that one forward (capped at its own ATK). §12.
@@ -342,6 +337,39 @@ export function applyTacticalXg(
   }
 
   return baseXg + bonus;
+}
+
+/**
+ * Reads the player's board + powers for shot-forcing tacticals (v11 finishing). Penalty Kick and
+ * Hand of God no longer fill the meter — they force a SHOT this round at a high conversion floor,
+ * regardless of build-up. Hand of God is once per match (gated on handOfGodUsed; the caller marks
+ * it used when the shot is actually taken). GDD §12 / §14.
+ */
+export function shotModifiers(
+  state: PlayerState,
+): { forceShot: boolean; convFloor: number; handOfGod: boolean } {
+  let forceShot = false;
+  let convFloor = 0;
+  let handOfGod = false;
+
+  for (const cip of [...state.board.attack, ...state.board.defense]) {
+    if (cip.card.type !== "tactical") continue;
+    const t = cip.card as TacticalCard;
+    if (t.effect.kind === "penalty") {
+      forceShot = true;
+      convFloor = Math.max(convFloor, t.effect.amount ?? PENALTY_CONVERSION);
+    }
+  }
+
+  for (const power of state.powers) {
+    if (power.effect.kind === "handOfGod" && !state.handOfGodUsed) {
+      forceShot = true;
+      handOfGod = true;
+      convFloor = Math.max(convFloor, power.effect.amount ?? HAND_OF_GOD_CONVERSION);
+    }
+  }
+
+  return { forceShot, convFloor, handOfGod };
 }
 
 /**
