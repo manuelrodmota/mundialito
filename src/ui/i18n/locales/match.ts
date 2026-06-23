@@ -178,6 +178,9 @@ export const en = {
   'match.coach.lanes.title': 'Two lanes: attack & defense',
   'match.coach.lanes.body':
     'Drop players in ATTACK to create chances, or DEFENSE to shut theirs down. Tap a placed card to send it back to your hand.',
+  'match.coach.stamina.title': 'Watch your stamina',
+  'match.coach.stamina.body':
+    'Every player you field spends stamina from this round’s budget. It refills and grows as the match wears on — spend it where it matters most.',
   'match.coach.shape.title': 'Pick your shape',
   'match.coach.shape.body':
     'Offensive boosts attack, Defensive boosts defense, Balanced is even. You choose a new one every round.',
@@ -368,6 +371,9 @@ export const es: typeof en = {
   'match.coach.lanes.title': 'Dos bandas: ataque y defensa',
   'match.coach.lanes.body':
     'Coloca jugadores en ATAQUE para generar ocasiones, o en DEFENSA para frenar las suyas. Toca una carta colocada para devolverla a tu mano.',
+  'match.coach.stamina.title': 'Cuida tu resistencia',
+  'match.coach.stamina.body':
+    'Cada jugador que alineas gasta resistencia del presupuesto de la ronda. Se recarga y aumenta con el correr del partido — gástala donde más cuente.',
   'match.coach.shape.title': 'Elige tu formación',
   'match.coach.shape.body':
     'Ofensiva potencia el ataque, Defensiva potencia la defensa, Equilibrada es pareja. Eliges una nueva cada ronda.',

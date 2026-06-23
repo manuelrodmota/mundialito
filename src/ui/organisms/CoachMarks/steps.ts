@@ -27,6 +27,11 @@ export const MATCH_ONBOARDING_STEPS: CoachStep[] = [
     body: 'match.coach.lanes.body',
   },
   {
+    target: '.stamina-pips',
+    title: 'match.coach.stamina.title',
+    body: 'match.coach.stamina.body',
+  },
+  {
     target: '.formation-picker',
     title: 'match.coach.shape.title',
     body: 'match.coach.shape.body',
