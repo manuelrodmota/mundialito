@@ -92,11 +92,12 @@ export const tacticals: TacticalCard[] = [
     id: "tac-catenaccio",
     type: "tactical",
     name: "Catenaccio",
+    // amount is the multiplier applied to the opponent's xG against you this round (0.5 = halve). §12
     category: "skill",
     cost: 2,
     slots: 1,
     rarity: "epic",
-    effect: { kind: "catenaccio", requiresPosition: "DEF", requiresCount: 2 },
+    effect: { kind: "catenaccio", amount: 0.5, requiresPosition: "DEF", requiresCount: 2 },
   },
   {
     id: "tac-counter-attack",
@@ -149,7 +150,10 @@ export const tacticals: TacticalCard[] = [
     cost: 2,
     slots: 1,
     rarity: "epic",
-    effect: { kind: "penalty", amount: 0.85, requiresPosition: "FWD", requiresCount: 1 },
+    // v10.2 nerf: 0.85 → 0.60. At GOAL_THRESHOLD 0.8 a 0.85 penalty was a guaranteed goal from
+    // an empty meter for an epic FWD-gated skill; 0.60 keeps it a near-certain finish without the
+    // free goal. §12 / §19 balance lever.
+    effect: { kind: "penalty", amount: 0.60, requiresPosition: "FWD", requiresCount: 1 },
   },
   {
     id: "tac-team-talk",
@@ -182,7 +186,9 @@ export const tacticals: TacticalCard[] = [
     cost: 3,
     slots: 2,
     rarity: "legendary",
-    effect: { kind: "handOfGod", amount: 1.0, requiresPosition: "FWD", requiresCount: 1 },
+    // v10.2 nerf: 1.0 → 0.80 (= GOAL_THRESHOLD). Still the legendary, once-per-match guaranteed
+    // goal, but it now banks exactly one goal with no overflow that double-dips with open-play xG.
+    effect: { kind: "handOfGod", amount: 0.80, requiresPosition: "FWD", requiresCount: 1 },
   },
   {
     id: "tac-fortress",
@@ -212,6 +218,8 @@ export const tacticals: TacticalCard[] = [
     cost: 3,
     slots: 2,
     rarity: "legendary",
-    effect: { kind: "totalFootball" },
+    // amount is the cross-lane fraction: each player also contributes this share of its OTHER
+    // stat to the opposite lane (0.5 = 50%). §12
+    effect: { kind: "totalFootball", amount: 0.5 },
   },
 ] satisfies TacticalCard[];

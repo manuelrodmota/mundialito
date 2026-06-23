@@ -66,7 +66,7 @@ export interface TacticalCard {
 
 export type Card = PlayerCard | TacticalCard;
 
-export type StatusKind = "booked" | "red" | "pressed" | "injured" | "onform";
+export type StatusKind = "booked" | "red" | "pressed" | "injured" | "onform" | "offside";
 
 export interface Status {
   kind: StatusKind;
@@ -110,6 +110,17 @@ export interface PlayerState {
   tacticalsThisHalf: number;
   tacticSpent: number;
   tacticBonus: number;
+  /**
+   * Card ids carrying a match-long Injury (−15 ATK/DEF, GDD §11). Unlike round-scoped statuses,
+   * injuries must survive the card cycling out of play, so they live here and are re-stamped onto
+   * the freshly-built CardInPlay each round in computeEffectiveStats. Optional for back-compat.
+   */
+  injured?: string[];
+  /**
+   * Set by the opponent's Time Wasting: this player's xG floor is 0 for their NEXT round (no
+   * open-play baseline that round). Captured and cleared at the top of resolveRound. §12. Optional.
+   */
+  xgFloorSuppressed?: boolean;
   board: { attack: CardInPlay[]; defense: CardInPlay[] };
   formation: Formation;
   powers: TacticalCard[];

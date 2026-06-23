@@ -61,6 +61,25 @@ export function drawToHand(state: PlayerState, rng: Rng): void {
 }
 
 /**
+ * Draws up to `n` extra cards immediately, beyond the normal refill — used by Substitution and
+ * Halftime Team Talk. Reshuffles the common discard back in if the draw pile empties. GDD §12.
+ */
+export function drawExtra(state: PlayerState, n: number, rng: Rng): void {
+  let toDraw = n;
+  while (toDraw > 0) {
+    if (state.drawPile.length === 0) {
+      if (state.discard.length === 0) break;
+      state.drawPile = rng.shuffle(state.discard);
+      state.discard = [];
+    }
+    const card = state.drawPile.shift();
+    if (card === undefined) break;
+    state.hand.push(card);
+    toDraw--;
+  }
+}
+
+/**
  * Refreshes a player's stamina for the given round.
  * Water Break adds a temporary bonus on top (managed in tacticals.ts).
  * GDD §6 line 140, §17.

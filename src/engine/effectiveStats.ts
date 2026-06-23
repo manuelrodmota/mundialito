@@ -13,7 +13,7 @@
  * before laneStack so they reduce the raw contribution of an affected card.
  */
 
-import type { CardInPlay, PlayerCard, Formation, PlayerState } from "./types.ts";
+import type { Card, CardInPlay, PlayerCard, Formation, PlayerState } from "./types.ts";
 import {
   RARITY_MULT,
   STACK_WEIGHTS,
@@ -21,9 +21,50 @@ import {
   COST_BY_RARITY,
   STAR_SYNERGY_DISCOUNT,
 } from "./constants.ts";
-import { statusMods } from "./status.ts";
+import { statusMods, addStatus } from "./status.ts";
 import { applyFatiguePenalty } from "./fatigue.ts";
 import { computeSynergies } from "./synergies.ts";
+
+/** Whether the player holds an active Power of the given kind. */
+function hasPower(state: PlayerState, kind: string): boolean {
+  return state.powers.some((p) => p.effect.kind === kind);
+}
+
+/** The `amount` of an active Power of the given kind, or a fallback when absent. */
+function powerAmount(state: PlayerState, kind: string, fallback: number): number {
+  const power = state.powers.find((p) => p.effect.kind === kind);
+  return power?.effect.amount ?? fallback;
+}
+
+/** Nation of the player's captain, looked up across every pile (the captain need not be on board). */
+function captainNation(state: PlayerState): string | undefined {
+  const piles: Card[] = [
+    ...state.board.attack.map((c) => c.card),
+    ...state.board.defense.map((c) => c.card),
+    ...state.hand,
+    ...state.drawPile,
+    ...state.discard,
+    ...state.locked,
+    ...state.exiled,
+  ];
+  const cap = piles.find((c) => c.id === state.captainId);
+  return cap?.type === "player" ? cap.nation : undefined;
+}
+
+/**
+ * Re-stamps the match-long Injury status onto any currently-fielded card in the injury registry.
+ * Statuses live on the per-round CardInPlay, so without this an Injury (which is "for the match",
+ * GDD §11) would vanish the moment the card cycled out and back. Idempotent. §11 / §12.
+ */
+function reconcileInjuries(state: PlayerState): void {
+  const ids = state.injured;
+  if (!ids || ids.length === 0) return;
+  for (const cip of [...state.board.attack, ...state.board.defense]) {
+    if (ids.includes(cip.card.id) && !cip.statuses.some((s) => s.kind === "injured")) {
+      addStatus(cip, { kind: "injured", amount: 15 });
+    }
+  }
+}
 
 /**
  * Raw ATK contribution of a single card in play, adjusted for rarity and status.
@@ -198,6 +239,9 @@ export interface EffectiveStats {
  * GDD §17 lines 488-502.
  */
 export function computeEffectiveStats(state: PlayerState): EffectiveStats {
+  // Match-long injuries are re-applied to this round's freshly-built board before any stat reads.
+  reconcileInjuries(state);
+
   const attackCards = state.board.attack;
   const defenseCards = state.board.defense;
   const allCards = [...attackCards, ...defenseCards];
@@ -217,6 +261,26 @@ export function computeEffectiveStats(state: PlayerState): EffectiveStats {
   def = formed.def;
 
   def = applyFatiguePenalty(def, state.fatigue);
+
+  // ── Persistent Power stat-folds (apply last, per GDD §7 fold order) ──────────────────────────
+  // Total Football: every player also contributes a share of its OTHER stat to the opposite lane
+  // — defenders lend ATK to the attack, attackers lend DEF to the defense. §12.
+  if (hasPower(state, "totalFootball")) {
+    const cross = powerAmount(state, "totalFootball", 0.5);
+    atk += cross * defenseCards.reduce((s, c) => s + atkOf(c), 0);
+    def += cross * attackCards.reduce((s, c) => s + defOf(c), 0);
+  }
+
+  // Talisman: your Captain's-nation cards get +amount ATK (in attack) / +amount DEF (in defense). §12.
+  if (hasPower(state, "talisman")) {
+    const nation = captainNation(state);
+    if (nation) {
+      const amt = powerAmount(state, "talisman", 3);
+      const isNation = (c: CardInPlay) => c.card.type === "player" && c.card.nation === nation;
+      atk += amt * attackCards.filter(isNation).length;
+      def += amt * defenseCards.filter(isNation).length;
+    }
+  }
 
   return { atkEff: atk, defEff: def };
 }

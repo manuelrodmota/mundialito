@@ -13,13 +13,13 @@
 import type { Card, MatchState, OpponentTeam, PlayerState } from "./types.ts";
 import type { Rng } from "./rng.ts";
 import { makeRng } from "./rng.ts";
-import { HALFTIME_ROUND, ET_XG_MULT, STAMINA, DEF_COEFF } from "./constants.ts";
+import { HALFTIME_ROUND, ET_XG_MULT, STAMINA, DEF_COEFF, XG_FLOOR } from "./constants.ts";
 import { buildOpeningHand, drawToHand, returnLockedToDrawPile, routeCard } from "./cards.ts";
 import { xgAdd, addXg } from "./xg.ts";
 import { computeEffectiveStats } from "./effectiveStats.ts";
 import { updateFatigue, resetFatigue } from "./fatigue.ts";
 import { checkWin } from "./checkWin.ts";
-import { resolveInstants, resetTacticalCounters, applyTacticalXg, applyDefensiveTacticals, applyHighPress, applyTimeWasting } from "./tacticals.ts";
+import { resolveInstants, resetTacticalCounters, applyTacticalXg, applyDefensiveTacticals, applyCatenaccio, applyHighPress, applyTimeWasting } from "./tacticals.ts";
 import { tickStatuses } from "./status.ts";
 import { updateMomentum, resetMomentum } from "./momentum.ts";
 
@@ -76,6 +76,7 @@ function buildPlayerState(input: NewMatchInput, rng: Rng): PlayerState {
     tacticalsThisHalf: 0,
     tacticSpent: 0,
     tacticBonus: 0,
+    injured: [],
     board: { attack: [], defense: [] },
     formation: "balanced",
     powers: [],
@@ -140,7 +141,14 @@ export function cleanupBoards(m: MatchState): void {
 export function resolveRound(m: MatchState, rng: Rng): MatchState {
   m.phase = "resolve";
 
-  resolveInstants(m);
+  // Consume any Time Wasting floor-suppression set last round (cleared before this round can set a
+  // new one for next round). A suppressed side has no open-play xG floor this round. §12.
+  const floor0 = m.players[0]!.xgFloorSuppressed ? 0 : XG_FLOOR;
+  const floor1 = m.players[1]!.xgFloorSuppressed ? 0 : XG_FLOOR;
+  m.players[0]!.xgFloorSuppressed = false;
+  m.players[1]!.xgFloorSuppressed = false;
+
+  resolveInstants(m, rng);
   applyHighPress(m, 0);
   applyHighPress(m, 1);
   applyTimeWasting(m, 0);
@@ -168,16 +176,22 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
 
   // v10.1: DEF_COEFF (<1) keeps a stacked back line from out-suppressing attack
   // into a 0–0 grind — defense still suppresses, just not to a standstill (§7/§19.9).
-  let xg0 = xgAdd(stats0.atkEff, defEff1 * DEF_COEFF);
-  let xg1 = xgAdd(stats1.atkEff, defEff0 * DEF_COEFF);
+  let xg0 = xgAdd(stats0.atkEff, defEff1 * DEF_COEFF, floor0);
+  let xg1 = xgAdd(stats1.atkEff, defEff0 * DEF_COEFF, floor1);
 
   if (m.extraTime) {
     xg0 *= ET_XG_MULT;
     xg1 *= ET_XG_MULT;
   }
 
-  xg0 = applyTacticalXg(m, 0, xg0, defEff1, stats0.atkEff);
-  xg1 = applyTacticalXg(m, 1, xg1, defEff0, stats1.atkEff);
+  // Counter-Attack's trigger compares your own DEF_eff against the opponent's ATK_eff, so both are
+  // threaded in alongside the opponent DEF that Nutmeg needs. §12.
+  xg0 = applyTacticalXg(m, 0, xg0, defEff1, stats0.atkEff, defEff0, stats1.atkEff);
+  xg1 = applyTacticalXg(m, 1, xg1, defEff0, stats1.atkEff, defEff1, stats0.atkEff);
+
+  // Catenaccio: a defender holding it halves the attacker's final round xG. §12.
+  xg0 = applyCatenaccio(m, 1, xg0);
+  xg1 = applyCatenaccio(m, 0, xg1);
 
   // An empty attack lane generates no xG at all — no open-play floor, no bonuses.
   if (!hasAtk0) xg0 = 0;

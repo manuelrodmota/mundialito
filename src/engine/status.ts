@@ -22,7 +22,7 @@ interface StatMod {
  * GDD §11 table lines 217-223.
  */
 export function statusMods(card: CardInPlay): StatMod {
-  const atkMult = 1;
+  let atkMult = 1;
   const defMult = 1;
   let defFlat = 0;
   let atkFlat = 0;
@@ -35,6 +35,10 @@ export function statusMods(card: CardInPlay): StatMod {
       case "injured":
         atkFlat += -(s.amount ?? 15);
         defFlat += -(s.amount ?? 15);
+        break;
+      case "offside":
+        // Offside Trap: this attacker contributes 0 to xG this round (GDD §12).
+        atkMult = 0;
         break;
       case "booked":
       case "red":

@@ -102,3 +102,16 @@ export const FATIGUE_LOSS = 3;
 // Tactical xG values. §15
 export const COUNTER_ATTACK_XG = 0.4;
 export const MOMENTUM_XG = 0.1;
+
+// High Press / Pressed status. §11 / §12
+/** DEF penalty applied to a Pressed defender. */
+export const PRESSED_DEF = 10;
+/** Fatigue added to a pressed opponent (carries into the next round). */
+export const HIGH_PRESS_FATIGUE = 6;
+
+// Skill fatigue relief. §12
+/** Fatigue reduced by Substitution (fresh legs). */
+export const SUBSTITUTION_FATIGUE = 8;
+/** Extra cards drawn by Substitution / Halftime Team Talk. */
+export const SUBSTITUTION_DRAW = 1;
+export const TEAM_TALK_DRAW = 2;

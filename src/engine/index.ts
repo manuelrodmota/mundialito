@@ -82,7 +82,7 @@ export { commitCard, revealBoards, intentOf, clearBoard } from "./board.ts";
 export type { Intent } from "./board.ts";
 
 // WCC-014 — Tactical resolution
-export { canPlayTactical, playTactical, tacticalGatePassed, resolveInstants, applyTacticalXg, applyDefensiveTacticals, applyHighPress, applyTimeWasting, resetTacticalCounters } from "./tacticals.ts";
+export { canPlayTactical, playTactical, tacticalGatePassed, resolveInstants, applyTacticalXg, applyDefensiveTacticals, applyCatenaccio, applyHighPress, applyTimeWasting, resetTacticalCounters } from "./tacticals.ts";
 
 // WCC-015 — Status effects
 export { statusMods, isRedCarded, isBooked, applySecondBooking, addStatus, tickStatuses, onFormXgBonus, removeStatus } from "./status.ts";

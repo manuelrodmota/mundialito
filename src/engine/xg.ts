@@ -14,8 +14,8 @@ import { clamp } from "./util.ts";
  * Per-round xG delta: clamp(XG_FLOOR + max(0, atkEff − defEff) / XG_SLOPE, 0, XG_CAP).
  * GDD §7, §17 line 161 / pseudocode `xgAddFor`.
  */
-export function xgAdd(atkEff: number, defEff: number): number {
-  return clamp(XG_FLOOR + Math.max(0, atkEff - defEff) / XG_SLOPE, 0, XG_CAP);
+export function xgAdd(atkEff: number, defEff: number, floor = XG_FLOOR): number {
+  return clamp(floor + Math.max(0, atkEff - defEff) / XG_SLOPE, 0, XG_CAP);
 }
 
 /**

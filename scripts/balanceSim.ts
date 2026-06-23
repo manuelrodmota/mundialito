@@ -134,7 +134,7 @@ function newTel(): Tel {
 function resolveRoundParam(m: MatchState, rng: Rng, cfg: CurveCfg, tel: Tel): MatchState {
   m.phase = "resolve";
 
-  resolveInstants(m);
+  resolveInstants(m, rng);
   applyHighPress(m, 0);
   applyHighPress(m, 1);
   applyTimeWasting(m, 0);

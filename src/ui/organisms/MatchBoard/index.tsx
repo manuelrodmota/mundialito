@@ -377,7 +377,12 @@ export function MatchBoard({
   // Staged tacticals also draw on the same stamina pool (their own `cost`), so a played card
   // and a played tactical compete for the round's energy.
   const playerCap = CARD_CAP(match.round)
-  const staminaMax = p0.maxStamina
+  // Water Break grants its stamina THIS round: staging it lifts the planning budget immediately so
+  // you can field an extra player the round you play it (the engine no longer defers it). §12.
+  const waterBreakBonus = tacticalCards
+    .filter((tac) => tac.effect.kind === 'waterBreak')
+    .reduce((sum, tac) => sum + (tac.effect.amount ?? 2), 0)
+  const staminaMax = p0.maxStamina + waterBreakBonus
   const tacticalCost = tacticalCards.reduce((sum, t) => sum + t.cost, 0)
   const staminaLeft = staminaMax - laneStamina(attackCards) - laneStamina(defenseCards) - tacticalCost
 
