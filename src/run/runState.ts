@@ -16,7 +16,7 @@ export const STAGE_AI_STRENGTH: Record<RunState["stage"], number> = {
   r16: 1.0,
   qf: 1.025,
   sf: 1.075,
-  final: 1.1,
+  final: 1.125,
 };
 
 /** Maps a zero-based match index to the corresponding bracket stage label. */

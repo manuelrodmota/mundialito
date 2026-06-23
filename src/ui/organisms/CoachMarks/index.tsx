@@ -10,7 +10,7 @@ interface CoachMarksProps {
   onDone: () => void
 }
 
-const PAD = 8 // spotlight padding around the target
+const PAD = 10 // spotlight padding around the target
 const POP_W = 300
 const GAP = 14 // gap between target and tooltip
 const MARGIN = 12 // viewport edge margin
@@ -49,13 +49,36 @@ export function CoachMarks({ steps, onDone }: CoachMarksProps) {
     let raf = 0
     const measure = () => {
       const el = document.querySelector(step.target)
-      setRect(el ? el.getBoundingClientRect() : null)
+      if (!el) {
+        setRect(null)
+        return
+      }
+      // Expand the box to include any children that overflow their container — the fanned hand
+      // cards are taller/wider than `.fan2`, so the container rect alone clips them. Framing the
+      // visual union makes the spotlight hug what the player actually sees.
+      const base = el.getBoundingClientRect()
+      let { top, left, right, bottom } = base
+      for (const child of Array.from(el.children)) {
+        const cr = (child as HTMLElement).getBoundingClientRect()
+        if (cr.width === 0 || cr.height === 0) continue
+        top = Math.min(top, cr.top)
+        left = Math.min(left, cr.left)
+        right = Math.max(right, cr.right)
+        bottom = Math.max(bottom, cr.bottom)
+      }
+      setRect(new DOMRect(left, top, right - left, bottom - top))
     }
     raf = requestAnimationFrame(measure)
+    // Re-measure as the board settles (crest image load, fonts, the opponent-tactics row, etc.)
+    // so the spotlight doesn't lock onto a pre-settle rect.
+    const t1 = setTimeout(measure, 160)
+    const t2 = setTimeout(measure, 440)
     window.addEventListener('resize', measure)
     window.addEventListener('scroll', measure, true)
     return () => {
       cancelAnimationFrame(raf)
+      clearTimeout(t1)
+      clearTimeout(t2)
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
     }

@@ -899,6 +899,59 @@
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.07);
   flex: none;
+  position: relative;
+}
+.stamina-pips[tabindex] { cursor: help; }
+.stamina-tip {
+  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translate(-50%, 4px);
+  width: 260px; max-width: 70vw;
+  background: rgba(10, 14, 24, 0.98);
+  border: 1px solid rgba(126, 224, 160, 0.45);
+  border-radius: 10px; padding: 9px 12px;
+  font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0;
+  color: var(--txt, #eef0f6); text-align: left; white-space: normal; text-transform: none;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.6);
+  opacity: 0; visibility: hidden;
+  transition: opacity 140ms, transform 140ms;
+  z-index: 200; pointer-events: none;
+}
+.stamina-pips:hover .stamina-tip,
+.stamina-pips:focus-visible .stamina-tip {
+  opacity: 1; visibility: visible; transform: translate(-50%, 0);
+}
+
+/* ---- opponent's active tacticals (top-left, under the crest): persistent powers + this round's plays ---- */
+.opp-tactics { display: flex; gap: 6px; align-items: center; margin-top: 2px; }
+.opp-tac {
+  position: relative;
+  width: 26px; height: 26px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--tc-edge, var(--line));
+  cursor: help;
+}
+.opp-tac[data-cat="instant"] { --tc-edge: rgba(232, 85, 74, 0.55); }
+.opp-tac[data-cat="skill"]   { --tc-edge: rgba(62, 148, 222, 0.55); }
+.opp-tac[data-cat="power"]   { --tc-edge: rgba(232, 200, 115, 0.6); }
+.opp-tac-ico { width: 16px; height: 16px; display: block; }
+.opp-tac-ico svg { width: 100%; height: 100%; display: block; }
+.opp-tac-tip {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  width: 240px; max-width: 70vw;
+  background: rgba(10, 14, 24, 0.98);
+  border: 1px solid var(--tc-edge, var(--line));
+  border-radius: 10px; padding: 9px 12px;
+  font-size: 12px; font-weight: 600; line-height: 1.4;
+  color: var(--txt, #eef0f6); text-align: left; white-space: normal;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.6);
+  opacity: 0; visibility: hidden; transform: translateY(4px);
+  transition: opacity 140ms, transform 140ms;
+  z-index: 200; pointer-events: none;
+}
+.opp-tac-tip b { display: block; color: #fff; font-size: 12.5px; font-weight: 800; margin-bottom: 3px; }
+.opp-tac:hover .opp-tac-tip,
+.opp-tac:focus-visible .opp-tac-tip {
+  opacity: 1; visibility: visible; transform: translateY(0);
 }
 .stamina-pips .pip {
   width: 12px;
@@ -1108,6 +1161,8 @@
 
 /* ============ deck piles flanking the hand ============ */
 .hand-dock { position: relative; }
+/* drag a staged card over the hand to send it back off the pitch */
+.hand-dock.drop-hot { box-shadow: inset 0 3px 0 0 var(--gold), 0 0 24px rgba(232, 200, 115, 0.12) inset; }
 .deckpile5 {
   position: absolute;
   bottom: 8px;

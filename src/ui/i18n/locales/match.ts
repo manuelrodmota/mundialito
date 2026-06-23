@@ -65,6 +65,7 @@ export const en = {
   'match.intent.cardOne': 'card',
   'match.intent.cardMany': 'cards',
   'match.intent.stamina': 'stamina',
+  'match.oppTactics.label': "Opponent's active tactics",
 
   // Lane labels (reveal + plan)
   'match.lane.yourDefense': 'Your defense',
@@ -82,6 +83,8 @@ export const en = {
   // Action dock — stamina readout + active powers shelf
   'match.dock.stamina': 'Stamina',
   'match.dock.staminaLeft': '{left}/{max} stamina left',
+  'match.dock.staminaTip':
+    "Your energy this round (8 → 10 → 12 as the match goes on). Fielding each player and tactical spends it — a star in a lane makes its support cards cost half. Cards you can't afford are dimmed.",
   'match.dock.powers': 'Powers',
 
   // Coach plan hint
@@ -235,6 +238,7 @@ export const es: typeof en = {
   'match.intent.cardOne': 'carta',
   'match.intent.cardMany': 'cartas',
   'match.intent.stamina': 'resistencia',
+  'match.oppTactics.label': 'Tácticas activas del rival',
 
   // Lane labels
   'match.lane.yourDefense': 'Tu defensa',
@@ -252,6 +256,8 @@ export const es: typeof en = {
   // Action dock — stamina readout + active powers shelf
   'match.dock.stamina': 'Resistencia',
   'match.dock.staminaLeft': '{left}/{max} de resistencia',
+  'match.dock.staminaTip':
+    'Tu energía esta ronda (8 → 10 → 12 a medida que avanza el partido). Alinear cada jugador y táctica la gasta — una estrella en una banda hace que sus cartas de apoyo cuesten la mitad. Las cartas que no puedes pagar se atenúan.',
   'match.dock.powers': 'Poderes',
 
   // Coach plan hint
