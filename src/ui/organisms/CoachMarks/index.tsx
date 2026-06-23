@@ -59,6 +59,11 @@ export function CoachMarks({ steps, onDone }: CoachMarksProps) {
       const base = el.getBoundingClientRect()
       let { top, left, right, bottom } = base
       for (const child of Array.from(el.children)) {
+        // Skip children that aren't actually visible — e.g. the stamina bar's hover
+        // tooltip is a 260px absolutely-positioned box that stays laid out while hidden
+        // (opacity/visibility, not display:none), and would otherwise balloon the box.
+        const cs = getComputedStyle(child as HTMLElement)
+        if (cs.visibility === 'hidden' || cs.display === 'none' || cs.opacity === '0') continue
         const cr = (child as HTMLElement).getBoundingClientRect()
         if (cr.width === 0 || cr.height === 0) continue
         top = Math.min(top, cr.top)
@@ -109,33 +114,35 @@ export function CoachMarks({ steps, onDone }: CoachMarksProps) {
   const vw = typeof window !== 'undefined' ? window.innerWidth : 0
   const vh = typeof window !== 'undefined' ? window.innerHeight : 0
 
-  // Clamp the spotlight box inside the viewport so its border is never cut off by
-  // an edge (e.g. a target flush against the top, like the score meters in step 1).
+  // Hug the target with PAD on all sides — never clamp the box into the viewport.
+  // Clamping kept the golden border on-screen but sliced through whatever bled past an
+  // edge: the score meters that sit flush at the top (their first row got cut), and the
+  // fanned hand that droops below the bottom (card names got cut). Letting the box bleed
+  // off-screen drops the border on that edge but leaves every visible pixel of the target
+  // fully framed and undimmed, which is what reads correctly.
   let spotlightStyle: React.CSSProperties | undefined
   if (hasTarget) {
-    const sTop = Math.max(MARGIN, rect!.top - PAD)
-    const sLeft = Math.max(MARGIN, rect!.left - PAD)
-    const sBottom = Math.min(vh - MARGIN, rect!.bottom + PAD)
-    const sRight = Math.min(vw - MARGIN, rect!.right + PAD)
     spotlightStyle = {
-      top: sTop,
-      left: sLeft,
-      width: Math.max(0, sRight - sLeft),
-      height: Math.max(0, sBottom - sTop),
+      top: rect!.top - PAD,
+      left: rect!.left - PAD,
+      width: rect!.width + PAD * 2,
+      height: rect!.height + PAD * 2,
     }
   }
 
-  // Place the tooltip below the target if it fully fits, else above, else clamp it
-  // into the viewport. Uses the measured height so the action buttons are never cut
-  // off the bottom (the prior fixed 220px estimate overflowed for tall tooltips).
+  // Sit the tooltip adjacent to the target (a GAP away) so it reads as pointing at the
+  // spotlight — below if it fully fits, else above, else the roomier side then clamp.
+  // Uses the measured height so the action buttons are never cut off the bottom. The
+  // spotlight is PAD-inflated, so offset from that edge (not the bare rect) to keep the
+  // gap even.
   let popStyle: React.CSSProperties = {}
   let placeClass = 'centered'
   if (hasTarget) {
     const h = popH || 260 // first-pass estimate; corrected before paint by the measure effect
     const centerX = rect!.left + rect!.width / 2
     const left = Math.min(Math.max(centerX - POP_W / 2, MARGIN), vw - POP_W - MARGIN)
-    const belowTop = rect!.bottom + GAP
-    const aboveTop = rect!.top - GAP - h
+    const belowTop = rect!.bottom + PAD + GAP
+    const aboveTop = rect!.top - PAD - GAP - h
     let top: number
     if (belowTop + h <= vh - MARGIN) {
       top = belowTop
