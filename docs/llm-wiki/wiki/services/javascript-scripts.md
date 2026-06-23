@@ -1,10 +1,10 @@
 ---
 document_type: service
 summary: >-
-  The `javascript-scripts` service is the client-side SPA for the Mundialito
-  card-game project. It is a pure browser application built with React 19,
-  TypeScrip...
-last_updated: '2026-06-15T00:42:43.827Z'
+  `javascript-scripts` is the production client application for Mundialito — a
+  card-based World Cup match game. It is a single-service TypeScript SPA
+  responsib...
+last_updated: '2026-06-23T20:48:06.792Z'
 tags:
   - service
   - javascript
@@ -15,85 +15,121 @@ service_id: javascript-scripts
 
 ## Purpose
 
-The `javascript-scripts` service is the client-side SPA for the Mundialito card-game project. It is a pure browser application built with React 19, TypeScript, and Vite 8. Its responsibility is rendering the game UI — squad selection, match board, and card interactions — and bridging between React component state and a JavaScript game engine exposed on `window.WCC_ENGINE`. There is no server-side rendering, no backend, and no routing layer; the service is a single-page client scaffold with an iterative series of board component prototypes (`Board.jsx` through `Board5.jsx`) that represent successive design experiments.
+`javascript-scripts` is the production client application for Mundialito — a card-based World Cup match game. It is a single-service TypeScript SPA responsible for the complete user-facing experience: bootstrapping game data from Supabase, running the deterministic match engine, orchestrating Quickplay and Arcade Run game modes, and rendering the animated card-game UI. The service owns no backend of its own; it is a pure browser application that reads from a Supabase Postgres instance (local Docker in dev, hosted in prod).
 
 ---
 
 ## Public API / Surface
 
-As a library-typed frontend service, this project exposes no HTTP routes, webhooks, or queue topics. Its external surface is exactly the compiled static bundle that Vite emits.
+This service exposes no HTTP endpoints or webhooks — it is a client-only SPA. Its public surface consists of the npm scripts defined in `package.json` and the data-layer barrel re-exported from `src/data/remote/index.ts`.
 
-**Developer-facing CLI commands** (source: `package.json`):
+**CLI commands (npm scripts):**
 
-| Command | Purpose |
+| Command | Action |
 |---|---|
-| `vite` | Start the Vite dev server with HMR (port 5173) |
-| `tsc -b && vite build` | Type-check and produce an optimised production bundle |
-| `eslint .` | Run ESLint across the entire source tree |
+| `pnpm dev` | Starts Vite dev server on port 5173 |
+| `pnpm build` | Type-checks (`tsc -b`) then bundles (`vite build`) |
+| `vitest run` | Runs engine unit tests |
+| `eslint .` | Lints entire project |
+| `pnpm db:reset` | Resets local Supabase schema |
+| `pnpm seed` | Seeds local Postgres from CSV fixtures |
 
-No exported library symbols are published to npm. The sole integration seam visible to the outside is the `window.WCC_ENGINE` global that the game engine is expected to populate before the React tree renders — this is the de-facto contract between the engine bundle and the UI layer.
+**Exported data-layer surface** (`src/data/remote/index.ts`): barrel re-exporting all repo functions consumed by UI screens — primarily `fetchPlayers` and `fetchCampaignTeamsByDifficulty`. Consumer agents can use `query_graph_tool` with `pattern: "children_of"` on `src/data/remote/index.ts` for the full export list.
 
 ---
 
 ## Internal Architecture
 
-The source tree is minimal: `src/` holds seven files — `main.tsx` (Vite entry point), `App.tsx` (root component), companion CSS, and static assets under `src/assets/`. The design-time prototypes live in a separate `design/` directory containing JSX and JS variants of the board and engine.
+The service is vertically sliced into three tiers with a deliberate dependency direction: engine → data → UI.
 
-The two architectural hubs identified by coupling analysis are:
+**Engine tier** (`src/engine/`) — pure TypeScript with no framework or DOM dependency. Contains state-transition functions (`match.ts`, `board.ts`, `ai.ts`, `rng.ts`) that operate on immutable `MatchState` objects. Shared by both game modes without any React coupling. Unit-tested headlessly via Vitest.
 
-- `design/jsx/Board5.jsx::Board5` — coupling score 145, the most evolved board prototype
-- `design/js/engine4.js::reveal` — coupling score 125, the engine function that drives card reveal
+**Data tier** (`src/data/remote/`) — thin PostgREST wrappers over Supabase. A lazy singleton client (`client.ts`) is shared by two repos (`players.repo.ts`, `opponents.repo.ts`) whose output is mapped to engine domain types via `mappers.ts`. All writes are denied at the DB layer by RLS policy.
 
-No dependency-injection container, no repository layer, no middleware stack, and no background workers are present. State management is handled entirely through React's built-in hooks (`useState`, `useRef`, `useEffect`) inside individual components — no external state library (Redux, Zustand, Jotai, etc.) is in use.
+**Run/orchestration tier** (`src/ui/run/`, `src/ui/quickplay/`) — React hooks (`useArcadeRun`, `useQuickplayMatch`) that wire engine state transitions to React state and handle game-mode lifecycle. These are the largest hooks in the project (~395 and ~362 lines respectively) and duplicate substantial match-flow logic; fixes must land in both.
+
+**UI tier** (`src/ui/`) — screens, organisms, and atoms following the atomic design hierarchy. `MatchBoard` (~450 lines) is the largest single UI component. Animation uses Framer Motion; drag-to-lane card placement uses dnd-kit.
+
+**Design prototype** (`design/`) — an older HTML/JSX interactive prototype (`Board7.jsx` et al.) that is the visual/behavioral source of truth but is not part of the production build. It is indexed by the graph but its large-function signals should not be treated as `src/` quality signals.
+
+**Highest-degree hubs** (by graph score):
+
+| Node | Kind | Score |
+|---|---|---|
+| `src/engine/rng.ts::makeRng` | Function | 180 |
+| `src/ui/run/useArcadeRun.ts::useArcadeRun` | Function | 153 |
+| `design/jsx/Board7.jsx::Board7` | Function | 153 |
+
+**Bridge nodes** (highest betweenness centrality): `MatchBoard`, `Quickplay`, `useArcadeRun`.
 
 ---
 
-## Request Lifecycle
+## Request Lifecycle (or Job Lifecycle)
 
-Because this is a browser SPA, the "request" is the initial page load and subsequent user interactions:
+The following describes the data-bootstrap flow that runs at app startup before the first game is playable:
 
-1. **Bundle load** — The browser fetches the Vite-compiled JS/CSS bundle from the static host.
-2. **Engine initialisation** — The game-engine script populates `window.WCC_ENGINE` before (or during) React bootstrap.
-3. **React root mount** — `src/main.tsx` calls `ReactDOM.createRoot` and renders the top-level `<App />` component into the DOM.
-4. **App render** — `src/App.tsx` renders the active view. No router or auth wrapper has been detected; navigation state (not determined by analysis) is managed locally.
-5. **Board mount** — A `Board` component receives `squad`, `captainId`, `tuning`, `motion`, and `cardSize` props. On first render it calls `window.WCC_ENGINE.newMatch(squad, captainId, tuning)` and stores the match object in a `useRef`, preventing repeated engine instantiation across re-renders.
-6. **User interaction** — Card taps, selection, and animation transitions drive a set of `useState` slices (`tossed`, `selected`, `anim`, `inspect`, `shake`). A `force` counter state is used to trigger imperative re-renders when the engine mutates game state outside React.
-7. **Viewport resize** — A `useEffect` listener tracks `window.innerHeight` into a `vh` state slice, allowing the board to reflow when the browser viewport changes.
+1. **Bootstrap Supabase client** — `src/data/remote/client.ts::getSupabaseClient` lazily constructs a singleton `@supabase/supabase-js` client using `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` inlined at build time. `persistSession: false` — no local session storage; purely stateless anonymous reads.
+
+2. **Paginate player_ratings** — `src/data/remote/players.repo.ts::fetchPlayers` loops over PostgREST's 1 000-row page cap, issuing repeated queries until the requested row count is collected or the season is exhausted.
+
+3. **Map DB rows to domain types** — `src/data/remote/mappers.ts::ratingRowToPlayerCard` transforms each raw row into a typed engine `PlayerCard`. A `seenIds` map inside the mapper prevents duplicates across pages.
+
+4. **Fetch campaign opponents** — `src/data/remote/opponents.repo.ts::fetchCampaignTeamsByDifficulty` loads AI opponent data used for Arcade Run matchmaking.
+
+5. **Expose via barrel** — `src/data/remote/index.ts` re-exports all repo functions; UI screens import only from this barrel.
+
+After bootstrap, game state transitions are entirely in-memory: `useArcadeRun` or `useQuickplayMatch` calls engine functions (`startRound`, `resolveRound`, `halftime`, etc.) and stores the resulting `MatchState` in React state.
 
 ---
 
 ## Data Layer
 
-There are no owned databases, queue topics, cache key prefixes, or object-store buckets. All mutable runtime state is ephemeral, held in React component state and the in-memory match object returned by `window.WCC_ENGINE.newMatch`. There is no persistence layer of any kind.
+The service reads from a single Supabase Postgres database and owns no other data stores.
+
+| Table | Role |
+|---|---|
+| `player_ratings` | Card pool — 296+ player rows with stats (overall, atk, def, cost, rarity, position, nation, worldCup year) |
+| `campaign_teams` | AI opponent roster with formation, tier, and strength fields |
+| `teams` | Team metadata |
+| `tournaments` | Tournament reference data |
+| `players` | Base player identity rows |
+| `squad_members` | Squad membership join table |
+
+All six tables carry RLS policies granting `SELECT` to the `anon` and `authenticated` roles; `INSERT`/`UPDATE`/`DELETE` are denied. The service-role key is used only in server-side seed scripts and must never appear in `VITE_*` env vars.
+
+Local dev data originates from three committed CSVs in `supabase/seed/` (squads, ratings, campaign_teams) loaded via `pnpm seed`.
 
 ---
 
 ## Configuration
 
-(no environment variables consumed)
+| Variable | Purpose |
+|---|---|
+| `VITE_SUPABASE_URL` | HTTPS base URL for the Supabase project (hosted) or `http://localhost:54321` (local Docker). Inlined at build time by Vite. |
+| `VITE_SUPABASE_ANON_KEY` | Public anon key for PostgREST read access. Inlined at build time. Safe to expose to the browser — write access is blocked by RLS. |
 
-No `.env` files, no `import.meta.env` reads, and no `process.env` references were detected in the client source tree. The Vite dev server port defaults to 5173.
+No other environment variables are consumed by the production build. The local Docker stack (`pnpm supabase:start`) provides its own local demo values for both vars; no Supabase account is required for local development.
 
 ---
 
 ## Integrations
 
-**`window.WCC_ENGINE` (game engine global)** — The board components depend on a globally-scoped engine object. This is the only runtime integration the service has; if the engine script fails to load or does not populate `window.WCC_ENGINE`, the board cannot initialise a match.
+**Supabase Postgres** — the only external dependency. Accessed via the PostgREST REST API exposed by `@supabase/supabase-js`. In production, this is the hosted Supabase instance. In local development, `supabase start` runs the full Supabase stack in Docker. See [[data-layer-supabase]] for broader context on the data architecture decision.
 
-**Backend API** — (not determined by analysis). The analysis found no `fetch`, `axios`, or API-client patterns in the client source. It is unresolved whether the application is purely static or calls a backend service. See `api-backend-url` verification item in the upstream analysis.
-
-No message buses, third-party SDKs, or inbound webhooks are present.
+No inbound webhooks, message buses, third-party auth providers, or server-to-server integrations exist. The app is purely a browser → Supabase read path.
 
 ---
 
 ## Service-Specific Patterns
 
-**Ref-bridged imperative engine** — Game engine state lives outside React's ownership. Components hold a `useRef` to the match object and call engine methods directly; when the engine mutates, a `force`-counter state is incremented to schedule a re-render. This is an intentional escape hatch around React's data-flow model for the game loop.
+**Pure functional engine state machine** — each engine function (`startRound`, `resolveRound`, `halftime`, `cleanupBoards`) takes immutable state plus a seeded `Rng` and returns new state. No side effects; deterministic replay is guaranteed by seeding `makeRng` with a fixed value in tests.
 
-**Iterative prototype series** — `Board.jsx` through `Board5.jsx` (300–489 lines each) and `engine1.js` through `engine4.js` form a progressive prototype ladder. Each iteration adds behaviour without replacing the prior version, indicating that design exploration is preferred over abstraction consolidation at this stage. Consumer agents querying component behaviour should prefer the highest-numbered variant (`Board5`, `engine4`) as the most current.
+**Factory-function test fixtures** — engine unit tests build typed stubs via inline factory helpers (`makePlayerCard`, `makeOpp`) rather than external fixture files or snapshot serialization. This keeps test setup co-located and self-documenting.
 
-**Monolithic board component** — Each board variant accumulates all match state (`tossed`, `selected`, `anim`, `inspect`, `shake`, `dmgByCard`, `vh`) in a single component scope rather than distributing into child components or custom hooks. This is consistent with the prototype-first development mode observed.
+**Lazy singleton data client** — `getSupabaseClient()` constructs and caches the Supabase client on first call. This avoids re-instantiating the PostgREST client on every repo call while remaining compatible with Vite's module graph.
 
-**No test coverage** — No test runner (`jest`, `vitest`, or otherwise) is declared in `package.json`, and no test files exist in the source tree. The absence appears to be a current state of the project rather than an explicit architectural decision; see `mundialito-client-no-tests` verification item.
+**Paginated PostgREST collection** — `fetchPlayers` loops with a `while` guard rather than assuming a single page fits the dataset. The pattern is: issue query with `range`, accumulate results, break when fewer rows than page size are returned.
 
-**Quality gates** — ESLint runs locally (`eslint .`) with `eslint-plugin-react-hooks` (Rules of Hooks enforcement) and `eslint-plugin-react-refresh` (component-export lint). TypeScript type-checking is integrated into the build command (`tsc -b`) but is not wired to a pre-commit hook or CI pipeline.
+**Barrel re-export data surface** — `src/data/remote/index.ts` is the single import point for all repo functions, decoupling UI consumers from internal repo file layout.
+
+**Duplicated orchestration hooks** — `useArcadeRun` and `useQuickplayMatch` are near-identical match-flow orchestrators. The duplication is a known structural smell (see [[match-orchestrators-duplicated]]); any engine-level fix must be applied to both hooks.

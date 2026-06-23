@@ -1,6 +1,6 @@
 ---
 name: testing-conventions
-description: Project-specific testing conventions, fixtures, mocking rules, and examples
+description: Project-specific testing conventions for Vitest + React Testing Library in World Cup Clash
 disable-model-invocation: false
 version: 1.0
 ---
@@ -9,79 +9,54 @@ version: 1.0
 
 ## Testing Philosophy
 
-Tests run on **Vitest** with **React Testing Library** in a **jsdom** environment. Config lives in `vitest.config.ts` (globals on, `setupFiles: ['./src/setupTests.ts']` which loads `@testing-library/jest-dom`, v8 coverage). Run with `npm run test` (once), `npm run test:watch`, or `npm run coverage`.
-
-## Test Placement
-
-- **Co-locate** each component test beside its source: `src/ui/{layer}/{Name}/{Name}.test.tsx` next to `index.tsx` — do NOT use a central `src/__tests__/` directory
-- Vitest discovers `src/**/*.test.ts` and `src/**/*.test.tsx`
+- Engine modules (`src/engine/`) get unit tests — they are pure functions and must be fully deterministic.
+- UI components get RTL tests focused on user-visible behavior, not implementation details.
+- Do not test Supabase database behavior in unit or component tests — mock the client at the call boundary.
 
 ## Unit Test Patterns
 
-```tsx
-// src/ui/atoms/{Name}/{Name}.test.tsx
-import { render, screen } from '@testing-library/react';
-import { {Name} } from './index';
+Co-locate engine tests with their module (`src/engine/{name}.test.ts`). Pass a fixed seed to make tests deterministic; never rely on `Math.random()`.
 
-describe('{Name}', () => {
-  it('renders expected content', () => {
-    render(<{Name} />);
-    expect(screen.getByRole('...')).toBeInTheDocument();
+```typescript
+// src/engine/xg.test.ts
+import { describe, it, expect } from 'vitest';
+import { addPressure } from './xg';
+
+describe('addPressure', () => {
+  it('clamps the meter at 1.0', () => {
+    const result = addPressure({ meter: 0.9 }, 0.2);
+    expect(result.meter).toBeLessThanOrEqual(1.0);
   });
 });
 ```
 
-When asserting reduced-motion behaviour, mock the hook rather than the OS query:
+## Component Test Patterns
 
-```tsx
-vi.mock('framer-motion', async (orig) => ({
-  ...(await orig<typeof import('framer-motion')>()),
-  useReducedMotion: () => true,
-}));
+Use React Testing Library. Query by role and visible text; avoid querying by class or internal structure.
+
+```typescript
+// src/ui/atoms/Button/Button.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Button } from '.';
+
+it('calls onClick when pressed', () => {
+  const handler = vi.fn();
+  render(<Button onClick={handler}>Confirm</Button>);
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+  expect(handler).toHaveBeenCalledOnce();
+});
 ```
 
-## Engine Reproducibility Check
+## What NOT to Mock
 
-The match engine is deterministic given a seed. Assert this with co-located Vitest tests (`src/engine/{name}.test.ts`), not an ad-hoc harness — run two identical seeded runs and `toEqual` the results (`src/engine/match.test.ts` "fixed-seed determinism: same seed → byte-identical final state" and `src/engine/rng.test.ts` are the references).
+- **Seeded RNG functions** — pass a fixed seed instead; mocking hides non-determinism bugs.
+- **Pure engine functions** — test them directly; mocking in orchestrator tests masks incorrect wiring.
 
-```ts
-// src/engine/match.test.ts — run the same seed twice, assert deep-equal final state
-const m1 = runFullMatch(123);
-const m2 = runFullMatch(123);
-expect(m1).toEqual(m2);
-```
+## Fixture Conventions
 
-- Always thread the same seeded `Rng` through a run; never read `Math.random()` in engine code (it breaks reproducibility)
-- When adding engine behaviour, extend the co-located test to assert the new output field stays stable across identical seeds
-
-## Data Layer (Supabase) Tests Mock the Client — Never Hit a Live DB
-
-Repository tests (`src/data/remote/*.repo.test.ts`) must pass with the Supabase stack down, so `npm run test` stays green in CI/local with no Docker. Pass a hand-rolled mock `SupabaseClient` (chainable `vi.fn().mockReturnThis()` query builder, terminal method resolves `{ data, error }`) into the repo function — never the real `getSupabaseClient()`. Pure mapper/derive tests need no client at all.
-
-```ts
-// src/data/remote/players.repo.test.ts — mock the query builder, assert mapped output
-const client = {
-  from: vi.fn().mockReturnValue({
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    range: vi.fn().mockResolvedValue({ data: rows, error: null }),
-  }),
-} as unknown as SupabaseClient<Database>;
-expect(await fetchPlayers(client)).toEqual(/* mapped PlayerCards */);
-```
-
-## Mode-Flow Integration Tests Run the Real Engine — Fixed Seed, Static Opponent, No Supabase
-
-A mode's orchestration tier (`src/ui/{mode}/`) gets a fixed-seed integration test that drives the *real* engine end-to-end with no mocks of game logic and no live data: build the deck with `build{Mode}Deck`, pick a `data/opponents` static opponent, and loop `startRound → decideTurn → resolveRound` to a decisive result (`quickplayFlow.test.tsx` is the reference). Assert a winner is reached (`winner` not null, `=== 0 || === 1` — no draw), it bounds within max rounds (guard against infinite loops), and the same seed reproduces identical goals. Screen-container tests, by contrast, still mock the Supabase client and seed the rng (see the data-layer rule above).
-
-```tsx
-// src/ui/{mode}/{mode}Flow.test.tsx — real engine, fixed seed, static opponent
-const m1 = runMatchToEnd(FIXED_SEED);
-expect(m1.winner === 0 || m1.winner === 1).toBe(true); // decisive, no draw
-expect(runMatchToEnd(FIXED_SEED).players[0]!.goals).toBe(m1.players[0]!.goals); // reproducible
-```
+- Co-locate test files with their module: `{name}.test.ts` next to `{name}.ts`.
+- Component tests: `{Name}.test.tsx` inside the component directory alongside `index.tsx`.
 
 ## Coverage Expectations
 
-- No coverage gate exists today — establish one when the first test file is added
-- Prioritise testing user-visible behaviour over implementation details
+Run `npm run coverage` for v8 coverage. The engine tier (`src/engine/`) is the highest-priority target; branch coverage on xG computation and stamina logic is the minimum bar.

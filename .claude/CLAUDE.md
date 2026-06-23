@@ -1,94 +1,61 @@
 # mundialito-client
 
-## The Game — World Cup Clash (v10)
-
-This project is **World Cup Clash**, a **Slay the Spire–style arcade roguelike** themed on World Cup football. The full game design document is **`APP_DEFINITION.md`** (GDD v10) — read it first for any gameplay work. The complete design system + an interactive HTML/React prototype (the behavioral source of truth) live in **`design/`**, with the current handoff at **`design/README.md`** — the **v10 balance build** (prototype entry `design/World Cup Clash.html`): engine `design/js/engine9.js` → `window.WCC9E` (+ run helpers `engine3.js`), board `design/jsx/Board9.jsx`, shell `App9.jsx`, builder `Builder9.jsx`, styles `design/css/v9.css`; national-team crests under `design/assets/crests/`. *(Older vN prototype files — engine8/Board8 etc. — were removed; `design/js/engine9.js` is the design source of truth for the v10 rules, mirrored by the pure-TS `src/engine/`.)* Player-card figure art is a **per-nation jersey kit** (procedural SVG) — `design/jsx/Card2.jsx` + `Jersey.jsx`, handoff at `design/design_handoff_jersey_cards/`; to be built with the PlayerCard component (SCRUM-29 / WCC-020).
-
-**Core concept:** you don't drain an HP bar — you **score goals**, driven by **expected goals (xG)**. Each round (a slice of the match clock) you pick a **formation**, secretly field a **capped lineup** across **attack/defense lanes**, and play single-use **Tactical Cards** (visible to the opponent the moment they're played; lineups stay hidden).
-
-**Two modes share one match engine:**
-- **Arcade Run** — a 7-match knockout ladder to the Final vs historic national teams, with a lean XI that grows via rewards and roguelike **permadeath**.
-- **Quickplay** — build a loaded deck (a **~16-player roster**: **20 slots** spent on premiums + the bench **auto-filled with random commons**, plus up to 3 Tactical Cards), pick a difficulty (sets opponent tier), play **one match**. No run, no rewards.
-
-**The match (v10 rules):** a full **90 minutes = 10 rounds**.
-- **Mercy rule:** a **3-goal lead** ends the match instantly.
-- Otherwise the **leader at full time (90')** wins; **level → golden-goal extra time**. ET is **true sudden death** (xG ×2, meters reset to 0, stars + fatigue refreshed): the first meter to cross 1.0 wins and — unlike regulation — **both sides can't bank a goal in the same passage** (the v10 fix; only the higher-xG side scores each ET round).
-- **xG engine (v10-tuned fill):** `clamp(0.05 + max(0, ATK_eff − DEF_eff)/210, 0, 0.50)` per team per round (was `/150, 0.60`) fills a pressure meter [0,1].
-- **v11 probabilistic finishing ("Pressure → Conversion"):** a **full meter is no longer an auto-goal** — it triggers a SHOT that converts with probability `P` = `BASE_CONVERSION` (0.80) + pity (per consecutive miss) + momentum, capped 0.95. Goal → meter empties; miss → meter drops by `MISS_DROP_FRAC` (half). Penalty Kick (0.78) and Hand of God (0.95, once/match) are **forced shots**, not fill. The odds are telegraphed on the meter before lock-in. This broke the deterministic "I score / you score" metronome; the better deck still wins (it fills faster → shoots more). Knobs in `src/engine/constants.ts`; finishing logic in `src/engine/xg.ts` (`takeShot`/`addPressure`/`previewConversion`); shot flow in `match.ts resolveRound`.
-- **v10 balance pass (locked from the Monte-Carlo sim):** **diminishing returns** on lane stacking (per lane, sort contributions high→low × `[1.00, 0.85, 0.70, 0.55, 0.40, 0.25]` — quality beats count); **star-core stamina discount** (in a lane with ≥1 premium, the costliest card pays full, every other card ×0.5 stamina, min 1; all-common lane = no discount); **gentle per-round field-cost curve** `COST_BY_RARITY = common 2 / rare 2 / epic 3 / legendary 4` (was 2/3/4/6; deck-build **slot** costs unchanged).
-- **Fatigue:** defending tires your back line (raises the opponent's fill-rate); attacking rests it. Cleared at halftime (R5) and at the start of ET.
-- **Card flow:** **common players cycle** (draw→discard→reshuffle, the sustain engine); **premium players are once-per-half** (lock when played, return at halftime / start of ET); **Tactical Cards are single-use** (exiled when played).
-- **Hand & tactical limits:** each round you **draw up to a 5-card minimum hand** (grays reshuffle mid-draw); you may play **≤2 Tactical Cards per half (4/match)**; the Run deck carries **~4 tacticals** (a reward past the cap becomes a swap).
-- Ramping **stamina** (8/10/12) and **per-round card cap** (4/5/6).
-- **v11 rarity multiplier = a LANE force-multiplier:** a star's tier mult (common 1.0 / rare 1.1 / epic 1.2 / legendary 1.3) multiplies the **whole lane's** effective stat, but **only when the lane has ≥2 cards** (alone = no boost, since it'd just inflate one card). Highest tier wins per lane. **Gold goalkeepers** (overall ≥ `GOLD_THRESHOLD` = 87) anchor at ×1.3 even if only epic-rated (`cardLaneMult`); no other position gets this. Cards contribute BASE stats to `laneStack`; the lane mult is applied on top (`effectiveStats.ts` `laneMultiplier`/`cardLaneMult` + `computeEffectiveStats`). The match board shows a `×mult` badge on the top star once its lane is paired (`MatchBoard` `BoardCard`).
-
-**Build phasing:** MVP = Quickplay end-to-end; V2 = the Arcade Run shell + full tactical set; V3 = meta/leaderboards. Engine is pure framework-agnostic TS under `src/engine/`, shared headless by both modes; React UI lives under `src/ui/`.
-
-**Implementation tickets:** the build is tracked as JIRA epics + stories in project **SCRUM** on `manuelrodmota.atlassian.net` (5 epics SCRUM-5…9, 42 stories SCRUM-10…51; `WCC-NNN → SCRUM-(NNN+9)`). SDD sources live in `.claude-temp/tickets/world-cup-clash/`.
-
 ## Tech Stack
 
-- **mundialito-client** (TypeScript) — React 19.2.6, Vite, ESLint; UI layer uses Framer Motion + dnd-kit; tests on Vitest + React Testing Library (jsdom)
-- **Data backend** — Supabase Postgres, local-first via Docker (`@supabase/supabase-js`). Local dev: `pnpm supabase:start` → `pnpm db:reset` → `pnpm seed`. Env via `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (copy committed `.env.example` → gitignored `.env.local`). The browser uses the **anon** key only; the service-role key is server/seed-only and must **never** be a `VITE_*` var or committed. RLS is read-only public on data tables.
+- **pnpm** — package manager
+
+- **mundialito-client** (TypeScript) — React 19.2.6 + Vite 8, Framer Motion ^12.40.0, dnd-kit ^6.3.1, @supabase/supabase-js ^2.108.2
 
 ## File Placement Guide
 
 | File Type | Location Pattern | Example |
 | --------- | ---------------- | ------- |
-| React component | `src/{name}.tsx` | `src/App.tsx` |
-| CSS stylesheet | `src/{name}.css` | `src/App.css` |
-| Entry point | `src/main.tsx` | `src/main.tsx` |
-| Static asset | `src/assets/{name}` | `src/assets/hero.png` |
-| Match engine (pure TS, framework-agnostic) | `src/engine/{name}.ts` | `src/engine/engine.ts` |
-| Co-located engine test (Vitest) | `src/engine/{name}.test.ts` | `src/engine/match.test.ts` |
-| Run orchestration (framework-agnostic TS; engine + static data, no UI) | `src/run/{name}.ts` | `src/run/runState.ts` |
-| Co-located run test (Vitest) | `src/run/{name}.test.ts` | `src/run/rewards.test.ts` |
-| UI component — presentational (atomic design) | `src/ui/{atoms\|molecules\|organisms}/{Name}/index.tsx` | `src/ui/atoms/Button/index.tsx` |
-| UI screen — stateful, data-aware container | `src/ui/screens/{Name}/index.tsx` | `src/ui/screens/Quickplay/index.tsx` |
-| UI orchestration — hook/helper wiring engine runtime + repos | `src/ui/{mode}/{name}.ts` | `src/ui/quickplay/useQuickplayMatch.ts` |
-| Co-located component test | `src/ui/.../{Name}/{Name}.test.tsx` | `src/ui/atoms/Button/Button.test.tsx` |
+| React screen (stateful container) | `src/ui/screens/{Name}/index.tsx` | `src/ui/screens/Quickplay/index.tsx` |
+| React organism component | `src/ui/organisms/{Name}/index.tsx` | `src/ui/organisms/MatchBoard/index.tsx` |
+| React atom component | `src/ui/atoms/{Name}/index.tsx` | `src/ui/atoms/Button/index.tsx` |
+| Match engine module (pure TS) | `src/engine/{name}.ts` | `src/engine/rng.ts` |
+| Engine unit test | `src/engine/{name}.test.ts` | `src/engine/match.test.ts` |
+| Run orchestration hook | `src/ui/run/{name}.ts` | `src/ui/run/useArcadeRun.ts` |
+| Quickplay orchestration hook | `src/ui/quickplay/{name}.ts` | `src/ui/quickplay/useQuickplayMatch.ts` |
+| Supabase data repo | `src/data/remote/{name}.ts` | `src/data/remote/players.repo.ts` |
 | CSS design tokens | `src/ui/tokens/{name}.css` | `src/ui/tokens/index.css` |
-| Typed data-access layer (Supabase repos/mappers) | `src/data/remote/{name}.ts` | `src/data/remote/players.repo.ts` |
-| DB schema / migrations / seed scripts | `supabase/{migrations\|scripts\|seed}/{name}` | `supabase/migrations/{ts}_init_schema.sql` |
+| Design system gallery | `src/ui/gallery/{Name}.tsx` | `src/ui/gallery/DesignSystemGallery.tsx` |
 
 ## Directory Structure
 
 ```
 project/
-├── supabase/    # DB backend: config.toml, migrations/ (SQL), scripts/ (TS seed/import), seed/ (CSV); local-first
 └── src/
-    ├── assets/  # Static asset
-    ├── engine/  # Pure TS match engine — no JSX/DOM; public surface via index.ts; co-located *.test.ts
-    ├── run/     # Framework-agnostic TS run-orchestration tier (Arcade Run: runState/matchmaking/rewards);
-                 #   sibling to engine/, public surface via index.ts, co-located *.test.ts. May import engine
-                 #   types + static data/ (e.g. opponents) — UNLIKE engine/, which imports neither.
-    ├── data/    # Game data: static pool (players/tacticals/opponents) + remote/ typed Supabase repos+mappers (barrel remote/index.ts)
-    └── ui/      # React UI; barrel src/ui/index.ts. Two tiers:
-                 #   PRESENTATIONAL (engine import type-only): atoms/ molecules/ organisms/
-                 #     (one dir per component: index.tsx + *.test.tsx), plus tokens/ (CSS),
-                 #     data/, jersey/ (procedural SVG), motion/, gallery/ (#ds route)
-                 #   ORCHESTRATION (engine runtime + data repos OK): screens/{Name}/ stateful
-                 #     containers + {mode}/ hooks/helpers (e.g. quickplay/useQuickplayMatch.ts)
+    ├── data/  # Supabase data repo
+    ├── engine/  # Match engine module (pure TS), Engine unit test
+    └── ui/  # React screen (stateful container), React organism compone…
 ```
+
+## Essential Commands
+
+| Command | Description |
+| ------- | ----------- |
+| `pnpm db:reset` | From README.md § How to Run It Locally |
+| `pnpm seed` | From README.md § How to Run It Locally |
+| `pnpm dev` | From README.md § How to Run It Locally |
+| `vitest run` | Run tests (_root) |
+| `tsc -b && vite build` | Build (_root) |
+| `eslint .` | Run linters (_root) |
+
+### Per-service commands (low-level)
+
+> Prefer the wrapper above when present; these run a single service in isolation and may not start dependent services.
+
+| Service | Start dev environment |
+| ------- | --- |
+| _root | `vite` |
 
 ## Services & Ports
 
 | Service | Type | Port | Role |
 | ------- | ---- | ---- | ---- |
 | mundialito-client | frontend | 5173 | React frontend |
-
-## Essential Commands
-
-| Command | Description |
-| ------- | ----------- |
-| `vite` | Start dev environment (_root) |
-| `tsc -b && vite build` | Build (_root) |
-| `eslint .` | Run linters (_root) |
-| `npm run test` | Run the Vitest suite once (jsdom + RTL); `npm run test:watch` to watch, `npm run coverage` for v8 coverage |
-| `pnpm supabase:start` / `supabase:stop` | Start/stop the local Supabase Docker stack |
-| `pnpm db:reset` | Drop + re-apply migrations to the local DB |
-| `pnpm db:types` | Regenerate `src/data/remote/database.types.ts` from the local schema |
-| `pnpm seed` | Idempotent CSV import into the local DB (`supabase/scripts/import.ts`) |
+| supabase-postgres | database | — (SaaS — accessed via HTTPS to Supabase hosted API using anon key; local dev uses Docker-managed Supabase stack with no fixed port in project config) | supabase-postgres |
 
 <!-- LLM_WIKI_START -->
 ## LLM Wiki
