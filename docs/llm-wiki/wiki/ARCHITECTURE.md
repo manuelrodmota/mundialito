@@ -1,178 +1,190 @@
 ---
 document_type: architecture
 summary: >-
-  This repository is a **single-service polyrepo** — there is no monorepo
-  tooling, no workspaces, and no sibling packages. The client is a Vite + React
-  SPA backed by a Supabase data API (read-only player/team data).
-last_updated: '2026-06-20T17:20:19.000Z'
+  mundialito-client is a **single-service repository** — one TypeScript SPA with
+  no backend of its own. There is no monorepo workspace tool; the repository
+  roo...
+last_updated: '2026-06-23T20:48:06.792Z'
 tags:
   - architecture
   - topology
   - typescript
   - react
-  - javascript
+  - vite
 ---
 # Architecture
 
 ## Monorepo / Repository Shape
 
-This repository is a **single-service polyrepo** — there is no monorepo tooling, no workspaces, and no sibling packages. The entire project is a pure client-side single-page application (SPA) scaffolded with Vite and React. The package manager is `pnpm`.
+mundialito-client is a **single-service repository** — one TypeScript SPA with no backend of its own. There is no monorepo workspace tool; the repository root is both the project root and the only `package.json`. Package management is done with **pnpm**.
 
-The top-level layout is minimal. Application source lives under `src/`: the React entry point, one top-level component, CSS, and static assets, plus four pure-logic / presentation subdirectories — `src/engine/` (a framework-agnostic TypeScript layer: canonical v10 domain types + tuning constants + a seeded PRNG, plus the full match-resolution engine + opponent AI — built fresh from the GDD rules, not ported), `src/run/` (a framework-agnostic run-orchestration tier for the Arcade Run — run-state machine, matchmaking, rewards — that reuses the engine per stage and may import engine types + static `data/`), `src/data/` (static game data — player pool, tactical catalog, opponent teams, derived from the GDD), and `src/ui/` (the presentational React component library + design-token layer). The throwaway Monte-Carlo simulator (`src/sim/` + `tsconfig.sim.json`) was retired. A `supabase/` directory (config, SQL migrations, CSV seed/import scripts) defines a **Supabase Postgres data backend** for the player/team data — local-first via Docker, consumed read-only by the browser through `src/data/remote/`. No bespoke server code or shared library packages live in the repo; the backend is managed Supabase (PostgREST), configured from `supabase/`.
+The top-level layout reflects three distinct tiers: a pure, framework-agnostic match engine (`src/engine/`), a run-orchestration layer (`src/ui/run/` and `src/ui/quickplay/`), and the React UI layer (`src/ui/`). A `design/` directory holds an older HTML/JSX interactive prototype that serves as the visual and behavioural source of truth but is not the production app.
 
-| Workspace / Directory | Contents |
-|-----------------------|----------|
-| `src/` | React components, stylesheets, entry point, static assets |
-| `src/assets/` | Static asset files (images, fonts, etc.) |
-| `src/engine/` | Pure framework-agnostic TS, no DOM/I/O, deterministic given a seed: canonical v10 `types.ts` + `constants.ts` + seeded `rng.ts`, plus the full match engine + AI built fresh from the GDD rules (not ported) — `xg`, `effectiveStats`, `synergies`, `fatigue`, `cards`, `validateLineup`, `board`, `tacticals`, `status`, `momentum`, `checkWin`, the `match` state machine (`resolveRound`), and `ai`; public surface via `index.ts` |
-| `src/run/` | Pure framework-agnostic TS run-orchestration tier for the Arcade Run: `runState` (7-stop knockout ladder + permadeath), `matchmaking` (stage tier-gates + seeded weighted draw), `rewards` (rarity-by-stage rolls + tactical-cap swap); reuses the engine per stage, may import engine types + static `data/` (e.g. opponents); public surface via `index.ts`; co-located `*.test.ts` |
-| `src/data/` | Game data: `src/data/remote/` = typed Supabase access layer (client, generated `database.types.ts`, DB→`PlayerCard` mappers, deck-builder + opponent repos) — the primary source; `tacticals.ts` + a static fallback pool stay in-bundle; co-located Vitest tests (mock the Supabase client) |
-| `src/ui/` | React 19 UI. **Presentational tier** (`atoms`/`molecules`/`organisms` per atomic-design + `tokens/` design-token layer + jersey kit + `#ds` gallery) imports `src/engine/` **type-only**. **Orchestration tier** (`screens/` data-aware screens + `quickplay/` — the `useQuickplayMatch` hook + `buildQuickplayDeck`) is the deliberate integration layer that imports the engine runtime API + the Supabase repos and drives the playable Quickplay loop (deck builder → difficulty → match board → result) |
-| `supabase/` | Supabase data backend: `config.toml`, SQL `migrations/` (6 tables + read-only RLS), `scripts/` (idempotent CSV seed + squads↔ratings normalization), `seed/*.csv` (source datasets), `README.md` (local workflow + cloud handoff). CLI local state (`.temp`/`.branches`/`out`) git-ignored |
-| `public/` | (not determined by analysis) |
+| Workspace / Path | Purpose |
+| --- | --- |
+| `src/engine/` | Pure-TS match engine — no React, no DOM, fully unit-testable |
+| `src/ui/run/` | Arcade Run orchestration hooks |
+| `src/ui/quickplay/` | Quickplay orchestration hooks |
+| `src/ui/screens/` | Stateful screen containers |
+| `src/ui/organisms/` | Composed UI components |
+| `src/ui/atoms/` | Primitive UI components |
+| `src/ui/tokens/` | CSS design tokens |
+| `src/ui/i18n/` | Dependency-free EN/ES i18n (`useLang()` / `t()`) |
+| `src/data/remote/` | Supabase repository modules |
+| `src/ui/gallery/` | Design system gallery |
+| `design/` | Legacy HTML/JSX prototype (read-only reference) |
+| `supabase/` | Docker local stack, migrations, and seed CSVs |
+| `scripts/` | Balance simulation utilities (`arcadeSim.ts`, `balanceSim.ts`) |
 
 ---
 
 ## Service Inventory
 
 | ID | Type | Language | Port | Role |
-|----|------|----------|------|------|
-| [[mundialito-client]] | frontend | TypeScript 6.0.2 | 5173 | React 19 SPA served by Vite dev server |
+| --- | --- | --- | --- | --- |
+| [[mundialito-client]] | frontend | TypeScript 5 / React 19.2.6 + Vite 8 | 5173 | Card-game SPA — match engine, drag-and-drop squad builder, animated game board |
 
-The `javascript-scripts` group identified by static analysis is a library-type artefact comprised of 40 JavaScript files found in the repository (likely design prototypes or build artefacts in `design/`). It is not a deployable service and has no dedicated port or entry point.
+The `design/` directory contains JavaScript files classified by the analyser as a separate `javascript-scripts` library but they are not a deployed service — they are a static reference prototype consumed by developers only.
 
 ---
 
 ## Service Communication
 
-The repo holds no bespoke server code. There is one service boundary: the browser running mundialito-client, which now reads its player/team data from a **Supabase PostgREST API** over HTTPS (the first such call — added by the data-backend layer).
+mundialito-client is a single-process SPA; there are no inter-service HTTP calls between deployed services.
 
-| Source | Target | Protocol | Data Shape |
-|--------|--------|----------|------------|
-| mundialito-client (browser, `src/data/remote/`) | Supabase PostgREST | HTTPS REST (anon key) | JSON rows (player_ratings, squad_members, campaign_teams, …) → mapped to `PlayerCard`/`OpponentTeam` |
+| Source | Target | Protocol | Notes |
+| --- | --- | --- | --- |
+| mundialito-client (browser) | Supabase hosted API | HTTPS / REST + PostgREST | Read-only queries for players, ratings, and campaign teams via `@supabase/supabase-js` anon key |
+| mundialito-client (browser) | Supabase hosted API | HTTPS / Realtime (optional) | Not actively used for real-time sync in current scope |
+| Local dev browser | Supabase Docker stack | HTTP (localhost) | Same anon key flow, directed at the local Docker endpoint instead of hosted |
+
+All data access goes through thin repository modules in `src/data/remote/`. The match engine itself is pure in-memory TypeScript and makes no network calls.
 
 ---
 
 ## External Integrations
 
-**Supabase** is the one external integration — `@supabase/supabase-js` is the client wrapper, used read-only from `src/data/remote/` for the player/team data. The other runtime deps are client-side UI libraries (React 19, **Framer Motion**, **dnd-kit**, `@fontsource-variable/inter`); the toolchain adds Vite, TypeScript, ESLint, the **Vitest + RTL + jsdom** test stack, and the **Supabase CLI** (+ `csv-parse`/`tsx` for the seed import). Only Supabase reaches a network service.
-
 | Vendor | Client Wrapper Path | Auth Mechanism | Environments |
-|--------|---------------------|----------------|--------------|
-| Supabase | `src/data/remote/client.ts` (`@supabase/supabase-js`) | anon API key (`VITE_SUPABASE_ANON_KEY`), read-only RLS; service-role key is local/seed-only, never `VITE_*` | local (Docker, `supabase start`) · hosted (WCC-050 handoff) |
+| --- | --- | --- | --- |
+| Supabase (Postgres + PostgREST) | `src/data/remote/*.repo.ts`, `src/data/remote/database.types.ts` | Anon key (`VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` env vars) | Production (hosted Supabase), local dev (Docker) |
+| Vercel (hosting) | None — static build deployed via `vercel redeploy` | Git-connected project `mundialito` on manuelrodmotas-projects | Production alias `mundialito-rho.vercel.app` |
+
+No third-party analytics, error monitoring, payment, or auth providers have been detected in the codebase.
 
 ---
 
 ## Authentication & Authorisation
 
-No authentication or authorisation layer exists in the current codebase. There is no identity provider integration, no token handling code, no session management, and no role or permission registry. The application renders without any auth gate.
+The application currently uses Supabase's **anon key** for all database reads. This key is public by design (Supabase RLS is the enforcement boundary). No user-facing login flow or session lifecycle is present in the current scope.
 
-If authentication is added in the future, the natural insertion point would be `src/App.tsx` or a dedicated auth context wrapping the component tree.
+Access control model:
+
+- Supabase Row-Level Security (RLS) is the intended long-term enforcement mechanism for per-user state.
+- In the current build all reads are unauthenticated and scoped to read-only public game data (players, ratings, opponents).
+- There is no JWT issuance, no session cookie, and no role registry in the client.
+
+If user accounts are introduced, the natural integration point is `@supabase/supabase-js` `auth` methods feeding into RLS policies on the existing tables.
 
 ---
 
 ## Request Lifecycle
 
-Because mundialito-client is a pure SPA, the only meaningful request lifecycle is the **initial page load** served by the Vite dev server (development) or a static file host (production).
+### Browser → Game Data (most common path)
 
-**Browser page load (development)**
+1. **App boot** — Vite serves `index.html`; React mounts the router.
+2. **Screen render** — a screen component (e.g. `src/ui/screens/Quickplay/index.tsx`) initialises a data-fetch hook.
+3. **Repository call** — the hook calls a function in `src/data/remote/` (e.g. `players.repo.ts`), which issues a PostgREST query via `@supabase/supabase-js` using the anon key.
+4. **Supabase responds** — the hosted (or Docker) Postgres returns rows; the repo deserialises them into typed objects (`src/data/remote/database.types.ts`).
+5. **State update** — hook state updates, triggering a re-render; cards and board data flow as props into organism components.
 
-1. Developer runs `vite` from the repository root; Vite starts on port 5173.
-2. Browser navigates to `http://localhost:5173`.
-3. Vite serves `index.html` from the project root.
-4. The browser loads `src/main.tsx`, which mounts the React application into the DOM.
-5. `src/App.tsx` renders the root component tree; child components and stylesheets are loaded via Vite's HMR-aware module graph.
-6. All subsequent interactions are handled entirely in-browser via React's reconciler. No network requests leave the browser unless explicitly coded.
+### User Action → Match Simulation
 
-**Production static bundle**
-
-1. `tsc -b && vite build` compiles TypeScript and emits optimised bundles to `dist/`.
-2. The `dist/` directory is deployed to a static file host (deployment mechanism not determined by analysis).
-3. The browser fetches `index.html`, then loads hashed JS/CSS chunks.
-4. React hydrates and takes over; no server round-trips occur for UI interactions.
+1. User drags a card to a lane — `dnd-kit` fires a drop event handled in the screen component.
+2. The screen calls the orchestration hook (`useArcadeRun` or `useQuickplayMatch`).
+3. The hook calls the pure-TS match engine (`src/engine/`) passing squad state and an `rng` instance produced by `makeRng`.
+4. The engine returns a result object; the hook updates React state.
+5. Framer Motion animations are triggered by the state change (xG meter fill, score update, card transitions).
 
 ---
 
 ## Data Architecture
 
-Player/team reference data lives in a **Supabase Postgres database** (tables: `teams`, `tournaments`, `players`, `player_ratings` [the card pool], `squad_members`, `campaign_teams`), seeded from the CSVs under `supabase/seed/` and read **read-only** by the browser via PostgREST (`src/data/remote/` repositories map rows → `PlayerCard`/`OpponentTeam`). Schema is managed by SQL migrations under `supabase/migrations/`. There is still no client-side ORM/IndexedDB and no dedicated state-management library — transient UI state stays in React primitives (`useState`/`useContext`/`useReducer`); `src/data/tacticals.ts` and a static fallback pool remain in-bundle.
+| Store | Technology | Ownership | Schema Management | Local Dev |
+| --- | --- | --- | --- | --- |
+| Player / team data | Supabase Postgres | Supabase (hosted SaaS); Docker locally | SQL migrations in `supabase/migrations/`; applied via `pnpm db:reset` | `pnpm supabase:start` → `pnpm db:reset` → `pnpm seed` |
+| Seed data | Three committed CSVs in `supabase/seed/` | Repository | Static files; `pnpm seed` imports idempotently | Same as above |
+| TypeScript schema types | `src/data/remote/database.types.ts` (generated) | Generated artefact | `pnpm db:types` regenerates from live schema | Re-run after any migration |
 
-| Store | Technology | Ownership | Schema Management | Local Dev Story |
-|-------|-----------|-----------|-------------------|-----------------|
-| (none identified) | — | — | — | — |
+The three seed datasets are:
+
+- **Squad compositions** — which players belong to which national team squad.
+- **Player ratings** (card pool) — men's players 1950–2026, with per-attribute ratings.
+- **Campaign teams** — Arcade Run opponent decks.
+
+There is no cache layer, no queue, and no object store in the current architecture.
 
 ---
 
 ## Deployment Topology
 
-No CI/CD pipeline configuration, Dockerfile, or cloud-provider manifest has been detected in the repository. Deployment is (not determined by analysis).
+| Target | Service Hosted | Deploy Trigger |
+| --- | --- | --- |
+| Vercel (static SPA) | mundialito-client | Git push to `main` via Vercel git integration → automatic preview/production deploy |
+| Manual redeploy | mundialito-client | `vercel redeploy` from CI or local (preferred over `vercel --prod` due to 100 MB upload limit) |
 
-| Deployment Target | Service Hosted | Deploy Trigger |
-|-------------------|----------------|----------------|
-| (not determined by analysis) | mundialito-client | (not determined by analysis) |
+The Vercel project is `mundialito` under `manuelrodmotas-projects`; the production alias is `mundialito-rho.vercel.app`. Sensitive environment variables are set via the Vercel dashboard and are not extractable via `vercel env pull`.
 
-The production artifact is the `dist/` directory produced by `tsc -b && vite build`. It is a set of static files suitable for any CDN or static file host (Netlify, Vercel, S3 + CloudFront, GitHub Pages, etc.).
+No containerised or server-side deployment exists. The SPA is a fully static build (`tsc -b && vite build`) uploaded to Vercel's CDN.
 
 ---
 
 ## Local Development
 
-A developer needs only Node.js, pnpm, and a terminal to run the full local stack — there is no Docker Compose, no emulator, and no backend dependency.
+Full local stack requires the Supabase Docker CLI in addition to Node/pnpm. First-time setup order is strict:
 
 ```
-# Install dependencies
-pnpm install
-
-# Start development server (hot-module replacement enabled)
-vite
-# → http://localhost:5173
-
-# Type-check + production build
-tsc -b && vite build
-
-# Unit tests (Vitest) — co-located *.test.ts / *.test.tsx
-pnpm test
-
-# Lint
-eslint .
+pnpm install          # install JS dependencies
+pnpm supabase:start   # boot Docker-managed Supabase (Postgres, PostgREST, Studio)
+pnpm db:reset         # drop + re-apply all migrations
+pnpm seed             # import the three CSVs idempotently
+pnpm dev              # start Vite dev server on :5173
 ```
 
-Vite's dev server provides near-instant HMR for React component changes. TypeScript errors are surfaced in the terminal via `tsc --watch` or in-editor via the tsconfig.
+The Supabase local stack uses Supabase's universal demo keys (same on every machine). No Supabase cloud account is needed for local development. The Vite dev server runs on **port 5173** with HMR enabled.
 
-There are no environment variables documented, no `.env.example`, and no emulated services required. If a backend API is added later, its base URL would typically be injected via a `.env.local` file read by Vite.
+For schema changes: edit `supabase/migrations/`, run `pnpm db:reset` to re-apply, then `pnpm db:types` to regenerate TypeScript types.
+
+For balance testing: `scripts/arcadeSim.ts` and `scripts/balanceSim.ts` run headlessly against the engine.
 
 ---
 
 ## Automation & CI
 
-There is no Makefile, Justfile, Taskfile, or shell script automation layer. All workflows are driven by `pnpm` scripts defined in `package.json`.
+| Interface | Tool | Commands |
+| --- | --- | --- |
+| Package scripts | pnpm | `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm test`, `pnpm seed`, `pnpm db:reset`, `pnpm db:types`, `pnpm supabase:start` |
+| Test runner | Vitest | `vitest run` (unit tests under `src/engine/*.test.ts`) |
+| Linter | ESLint | `eslint .` |
+| Type-check + build | tsc + Vite | `tsc -b && vite build` |
 
-| Command | Description | When Used |
-|---------|-------------|-----------|
-| `vite` | Start Vite dev server on port 5173 | Local development |
-| `tsc -b && vite build` | Type-check (app + node projects) and emit production bundle to `dist/` | CI build, release |
-| `pnpm test` | Run the Vitest suite once (`vitest run`); `pnpm coverage` for a v8 coverage report | Pre-commit, CI test step |
-| `eslint .` | Run ESLint across the whole repository | Pre-commit, CI lint step |
-
-The TypeScript build is split into two referenced projects: `tsconfig.app.json` (browser SPA + `src/engine/` + `src/data/` + `src/ui/`) and `tsconfig.node.json` (Vite/Vitest config). The earlier `tsconfig.sim.json` Node-only project was removed when the throwaway simulator was retired.
-
-No CI provider configuration file (GitHub Actions, CircleCI, GitLab CI, Bitrise, etc.) has been detected in the repository. CI is (not determined by analysis).
+No Makefile, Justfile, Taskfile, or shell scripts are present. CI provider and workflows are not determined by analysis — no `.github/workflows/` or equivalent configuration was detected in the structure analysis.
 
 ---
 
 ## Coupling Hotspots
 
-The following nodes were identified as high-coupling points by structural analysis. Hub nodes (high total degree) are change-amplification risks; bridge nodes (high betweenness) are connectivity risks.
+The analyser identified the following architectural hub and bridge nodes. Changes to these propagate widely.
 
-**Hubs** — changes here have disproportionate blast radius:
+**Hub nodes** (highest total degree — most connected):
 
-- `design/jsx/Board5.jsx::Board5` (Function, score 145)
-- `design/js/engine4.js::reveal` (Function, score 125)
+- `src/engine/rng.ts::makeRng` (Function, score 180)
+- `src/ui/run/useArcadeRun.ts::useArcadeRun` (Function, score 153)
+- `design/jsx/Board7.jsx::Board7` (Function, score 153) — prototype reference file; high degree due to its role as the visual source of truth
 
-Both hub nodes reside in the `design/` directory, which appears to contain prototype or design-iteration files rather than production `src/` code. Their high coupling scores likely reflect dense internal cross-referencing within that directory tree rather than coupling to the production application. They should be reviewed if the design files are intended to be merged into `src/`.
+**Bridge nodes** (highest betweenness — most on shortest paths between subsystems):
 
-**Bridges** — removal would fragment the dependency graph:
+- `src/ui/organisms/MatchBoard/index.tsx::MatchBoard` (Function, score 0.007681)
+- `src/ui/screens/Quickplay/index.tsx::Quickplay` (Function, score 0.00637)
+- `src/ui/run/useArcadeRun.ts::useArcadeRun` (Function, score 0.003914)
 
-- `qubika-agentic-framework/orchestration/src/services/framework/project-inspection/inspector.service.ts::inspectProject` (Function, score 0.002496)
-
-This bridge node belongs to a path (`qubika-agentic-framework/`) that does not correspond to any declared source directory in mundialito-client's `package.json` or `src/` layout. It is most likely a tooling or framework file included in the static analysis scan but external to the application's own code. Its betweenness score is near zero, indicating minimal real architectural risk.
+`useArcadeRun` appears in both lists, confirming it as the most structurally critical node in the codebase — it bridges the engine tier, the data tier, and the React UI tier. `makeRng` is the highest hub and is a transitive dependency of every simulation path. Any change to either deserves heightened review attention.

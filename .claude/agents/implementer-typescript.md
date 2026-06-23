@@ -9,6 +9,7 @@ skills:
   - figma-design-fetcher
   - mastering-typescript
   - react-frontend
+  - mastering-vitest
   - atomic-design-react
   - code-conventions
   - multi-file-workflows
@@ -108,6 +109,7 @@ The following skills are preloaded and available:
 - **figma-design-fetcher**: Provides patterns and conventions for this area
 - **mastering-typescript**: Provides patterns and conventions for this area
 - **react-frontend**: Provides patterns and conventions for this area
+- **mastering-vitest**: Provides patterns and conventions for this area
 - **atomic-design-react**: Provides patterns and conventions for this area
 - **code-conventions**: Provides patterns and conventions for this area
 - **multi-file-workflows**: Provides patterns and conventions for this area

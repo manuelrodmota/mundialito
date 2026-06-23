@@ -3,7 +3,7 @@ document_type: index
 summary: >-
   Summary catalog for the client LLM wiki — one line per page, frontmatter
   inline.
-last_updated: '2026-06-15T00:42:43.827Z'
+last_updated: '2026-06-23T20:48:06.792Z'
 related:
   - ARCHITECTURE.md
   - SERVICES.md
@@ -14,7 +14,7 @@ Summary catalog of every page in this wiki. Each line carries the page summary, 
 
 ## Architecture
 
-- [ARCHITECTURE](ARCHITECTURE.md) — *architecture* — This repository is a **single-service polyrepo** — no monorepo tooling, no workspaces. The client is a Vite + React SPA backed by a **Supabase** data API (read-only player/team data). **Tags:** architecture, topology, typescript, react, javascript, supabase.
+- [ARCHITECTURE](ARCHITECTURE.md) — *architecture* — mundialito-client is a **single-service repository** — one TypeScript SPA with no backend of its own. There is no monorepo workspace tool; the repository roo... **Tags:** architecture, topology, typescript, react, vite.
 
 ## Services catalog
 
@@ -22,8 +22,8 @@ Summary catalog of every page in this wiki. Each line carries the page summary, 
 
 ## Per-service docs
 
-- [javascript-scripts](services/javascript-scripts.md) — *service* — The `javascript-scripts` service is the client-side SPA for the Mundialito card-game project. It is a pure browser application built with React 19, TypeScrip... **Tags:** service, javascript, library.
-- [mundialito-client](services/mundialito-client.md) — *service* — `mundialito-client` is a TypeScript single-page application responsible for delivering the entire user-facing frontend experience. Built on React 19.2.6 and ... **Tags:** service, typescript, frontend, react.
+- [javascript-scripts](services/javascript-scripts.md) — *service* — `javascript-scripts` is the production client application for Mundialito — a card-based World Cup match game. It is a single-service TypeScript SPA responsib... **Tags:** service, javascript, library.
+- [mundialito-client](services/mundialito-client.md) — *service* — `mundialito-client` is a TypeScript single-page application and the only deployed runtime. Built on React 19.2.6 and Vite 8 (port 5173 in dev), it hosts the ... **Tags:** service, typescript, frontend, react, vite.
 
 ## How agents should use this
 

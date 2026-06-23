@@ -10,14 +10,22 @@
         "path": ".",
         "type": "frontend",
         "language": "typescript",
-        "language_version": "6.0.2",
+        "language_version": "~6.0.2",
         "frameworks": {
-          "main": "React 19.2.6"
+          "main": "React 19.2.6 + Vite 8",
+          "testing": "vitest"
+        },
+        "testing": {
+          "unit": {
+            "framework": "vitest",
+            "config_file": "package.json",
+            "file_pattern": "**/*.test.ts"
+          }
         },
         "environment": {
           "port": 5173
         },
-        "file_count": 7,
+        "file_count": 268,
         "manifest_file": "package.json"
       },
       {
@@ -27,17 +35,20 @@
         "type": "library",
         "language": "javascript",
         "frameworks": {},
-        "file_count": 40
+        "file_count": 39
       }
     ],
     "is_monorepo": false,
+    "package_manager": "pnpm",
+    "software_version_control": "github",
     "file_counts": {
-      "total": 61,
+      "total": 273,
       "by_language": {
-        "javascript": 40,
-        "css": 15,
-        "html": 4,
-        "typescript": 2
+        "typescript": 194,
+        "javascript": 39,
+        "css": 30,
+        "html": 6,
+        "sql": 4
       }
     },
     "automation": {
@@ -47,11 +58,67 @@
       "shell_scripts": [],
       "ci_hints": []
     },
+    "readme_run_sections": [
+      {
+        "path": "README.md",
+        "heading": "How to Run It Locally",
+        "body": "The app reads its game data (players, teams, ratings) from a **local Supabase Postgres** —\nwithout it the client throws on boot and the UI renders empty. First-time setup is the full\nchain below, not just `install` + `dev`.\n\n**No Supabase account needed.** Everything runs locally — `supabase start` spins up the whole\nstack on your machine, and the player/team data ships as committed CSVs in `supabase/seed/`.\nThe keys you'll see are Supabase's universal local demo keys (the same on every machine).",
+        "fenced_blocks": [
+          "pnpm install",
+          "pnpm supabase:start",
+          "pnpm db:reset",
+          "pnpm seed",
+          "pnpm dev"
+        ]
+      }
+    ],
     "command_catalog": {
+      "setup": [
+        {
+          "tier": "readme",
+          "command": "pnpm db:reset",
+          "description": "From README.md § How to Run It Locally",
+          "source": "README.md#how-to-run-it-locally"
+        },
+        {
+          "tier": "readme",
+          "command": "pnpm install",
+          "description": "From README.md § How to Run It Locally",
+          "source": "README.md#how-to-run-it-locally"
+        },
+        {
+          "tier": "readme",
+          "command": "pnpm supabase:start",
+          "description": "From README.md § How to Run It Locally",
+          "source": "README.md#how-to-run-it-locally"
+        }
+      ],
+      "seed": [
+        {
+          "tier": "readme",
+          "command": "pnpm seed",
+          "description": "From README.md § How to Run It Locally",
+          "source": "README.md#how-to-run-it-locally"
+        }
+      ],
       "start_dev": [
+        {
+          "tier": "readme",
+          "command": "pnpm dev",
+          "description": "From README.md § How to Run It Locally",
+          "source": "README.md#how-to-run-it-locally"
+        },
         {
           "tier": "package_manager",
           "command": "vite",
+          "source": "documented_commands(package_json)",
+          "per_service": "_root"
+        }
+      ],
+      "run_tests": [
+        {
+          "tier": "package_manager",
+          "command": "vitest run",
           "source": "documented_commands(package_json)",
           "per_service": "_root"
         }
