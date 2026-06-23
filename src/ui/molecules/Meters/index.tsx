@@ -52,27 +52,25 @@ export function XGMeter({ goals, xg, heat, label, mine = false, conversion }: XG
   const ready = pct >= 100
   const convPct = conversion !== undefined ? Math.round(conversion * 100) : undefined
   const tip = t('match.meter.tip')
+  // The bar's value is the SHOT odds (the decision number) — its fill width shows how much of the
+  // chance is built. Fatigue ("FRESH") sits on its own line so the two never read as one stat.
+  const barText = convPct === undefined
+    ? t('match.meter.chance', { pct })
+    : ready
+      ? t('match.meter.shotReadyPct', { pct: convPct })
+      : t('match.meter.shotPotential', { pct: convPct })
   return (
     <div className={`xgm4${mine ? ' mine' : ''}${ready ? ' shot-ready' : ''}`} data-heat={heat} title={tip}>
       <div className="xgm-row">
         <span className="xgm-goals">{goals}</span>
-        <div className="xgm-bar">
+        <div className="xgm-bar" title={tip}>
           <i style={{ width: pct + '%' }} />
-          <span className="xgm-val">
-            {ready
-              ? t('match.meter.shotReady')
-              : t('match.meter.chance', { pct })}
-          </span>
+          <span className="xgm-val">{barText}</span>
         </div>
       </div>
       <div className="xgm-sub">
         <span>{label}</span>
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-          {convPct !== undefined && (
-            <span className="conv-tag" title={tip}>{t('match.meter.conv', { pct: convPct })}</span>
-          )}
-          <span className="heat-tag">{t(HEAT_KEYS[heat])}</span>
-        </span>
+        <span className="heat-tag">{t(HEAT_KEYS[heat])}</span>
       </div>
     </div>
   )

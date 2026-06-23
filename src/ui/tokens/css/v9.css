@@ -226,8 +226,8 @@
 /* While dragging, dnd-kit drives the outer node directly — keep the inner card upright. */
 .fan2 .hcard.dragging .hcard-arc { transform: none; transition: none; }
 .fan2 .hcard.dim { filter: saturate(0.45) brightness(0.78) contrast(0.95); }
-.fan2 .hcard.dim .hcard-arc::after {
-  content: "NEEDS " attr(data-need) " ⚡";
+.fan2 .hcard.dim .hcard-arc[data-block]::after {
+  content: attr(data-block);
   position: absolute; left: 33%; top: 55%; transform: translate(-50%, -50%) rotate(-8deg);
   z-index: 14; pointer-events: none;
   font-size: 11px; font-weight: 800; letter-spacing: 0.08em; white-space: nowrap;

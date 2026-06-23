@@ -161,6 +161,7 @@ function DraggableCard({
   index,
   count,
   affordable = true,
+  blockLabel,
 }: {
   card: Card
   isCaptain: boolean
@@ -170,6 +171,8 @@ function DraggableCard({
   count: number
   /** Player cards that can't fit any lane within the cap/stamina budget are dimmed + not selectable. */
   affordable?: boolean
+  /** Why the card is blocked, shown as a badge on the dimmed card (e.g. "PITCH FULL", "NEEDS ⚡"). */
+  blockLabel?: string
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: card.id })
   const dragging = transform != null
@@ -212,7 +215,11 @@ function DraggableCard({
       className={`hcard${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}${dealing ? ' dealing' : ''}${affordable ? '' : ' dim'}`}
       onClick={handleClick}
     >
-      <div className="hcard-arc" style={dealing ? { animationDelay: `${dealDelay}ms` } : undefined}>
+      <div
+        className="hcard-arc"
+        data-block={!affordable ? blockLabel : undefined}
+        style={dealing ? { animationDelay: `${dealDelay}ms` } : undefined}
+      >
         {card.type === 'player' ? (
           <PlayerCardComponent card={card as PlayerCard} size={HAND_CARD_SIZE} isCaptain={isCaptain} />
         ) : (
@@ -402,6 +409,9 @@ export function MatchBoard({
   const staminaMax = p0.maxStamina + waterBreakBonus
   const tacticalCost = tacticalCards.reduce((sum, t) => sum + t.cost, 0)
   const staminaLeft = staminaMax - laneStamina(attackCards) - laneStamina(defenseCards) - tacticalCost
+  // When the player cap is hit, no further player fits regardless of stamina — the blocker is the
+  // full pitch, not energy, so the hand badge must say "PITCH FULL" rather than "NEEDS ⚡".
+  const capReached = attackCards.length + defenseCards.length >= playerCap
 
   // True when adding `card` to `lane` would break the card cap or the stamina budget.
   // laneStamina re-derives the whole lane (star-core discount included), so this stays exact.
@@ -1166,6 +1176,21 @@ export function MatchBoard({
                     : card.type === 'player'
                       ? canAfford(card as PlayerCard)
                       : canStageMoreTacticals && staminaLeft >= (card as TacticalCard).cost
+                }
+                blockLabel={
+                  isReveal
+                    ? undefined
+                    : card.type === 'player'
+                      ? (canAfford(card as PlayerCard)
+                          ? undefined
+                          : capReached
+                            ? t('match.card.pitchFull')
+                            : t('match.card.needsEnergy'))
+                      : (canStageMoreTacticals && staminaLeft >= (card as TacticalCard).cost)
+                        ? undefined
+                        : !canStageMoreTacticals
+                          ? t('match.card.tacticsUsed')
+                          : t('match.card.needsEnergy')
                 }
               />
             ))}
