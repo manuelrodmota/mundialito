@@ -6,6 +6,19 @@ const RUN_LENGTH = 7;
 /** Index of the Final match in the ladder. */
 const FINAL_INDEX = RUN_LENGTH - 1;
 
+/**
+ * Per-stage difficulty handicap — a multiplier on the AI opponent's effective ATK & DEF
+ * (MatchState.aiStrengthMult). The ladder gets sharper as you advance: the group stage plays
+ * straight (1.0) so the run opens fair, then the knockouts ramp. Tuned via scripts/arcadeSim.ts.
+ */
+export const STAGE_AI_STRENGTH: Record<RunState["stage"], number> = {
+  group: 0.95,
+  r16: 1.0,
+  qf: 1.025,
+  sf: 1.075,
+  final: 1.125,
+};
+
 /** Maps a zero-based match index to the corresponding bracket stage label. */
 export function stageForIndex(matchIndex: number): RunState["stage"] {
   if (matchIndex <= 2) return "group";

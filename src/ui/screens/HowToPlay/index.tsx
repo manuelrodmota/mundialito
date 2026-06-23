@@ -64,6 +64,11 @@ export function HowToPlay({ onBack }: HowToPlayProps) {
         </section>
 
         <section className="htp-card">
+          <h2><span className="ico">⚡</span> {t('screens.htpEnergyTitle')}</h2>
+          <p dangerouslySetInnerHTML={{ __html: t('screens.htpEnergyBody') }} />
+        </section>
+
+        <section className="htp-card">
           <h2><span className="ico">🫁</span> {t('screens.htpStaminaTitle')}</h2>
           <p dangerouslySetInnerHTML={{ __html: t('screens.htpStaminaBody') }} />
         </section>

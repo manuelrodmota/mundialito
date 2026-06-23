@@ -28,6 +28,9 @@ export const en = {
     '<b>Star players</b> (rare → legendary) are once-per-half trumps: they bench after use and return at halftime.',
   'screens.htpCardsBullet3':
     '<b>Tactical cards</b> are single-use — at most <b>2 per half</b>. Once played, your opponent sees them.',
+  'screens.htpEnergyTitle': 'Energy each round',
+  'screens.htpEnergyBody':
+    "Every round you get an <b>energy budget</b> (<b>8 → 10 → 12</b> as the match goes on). Fielding each player and playing each tactical <b>spends energy</b> — so you can't field everything. A <b>star</b> in a lane makes its support cards cost half. Cards you can't afford are <b>dimmed</b> in your hand.",
   'screens.htpStaminaTitle': 'Attack vs. defend',
   'screens.htpStaminaBody':
     "Attacking <b>rests your legs</b>; defending <b>tires them</b>. A tired back line lets the opponent score faster — so you can't park the bus forever. Halftime clears fatigue for both sides.",
@@ -93,6 +96,9 @@ export const es: typeof en = {
     'Las <b>estrellas</b> (rara → legendaria) son triunfos de un uso por tiempo: van a la banca tras usarse y vuelven en el descanso.',
   'screens.htpCardsBullet3':
     'Las <b>cartas tácticas</b> son de un solo uso — como máximo <b>2 por tiempo</b>. Una vez jugadas, tu rival las ve.',
+  'screens.htpEnergyTitle': 'Energía por ronda',
+  'screens.htpEnergyBody':
+    'Cada ronda tienes un <b>presupuesto de energía</b> (<b>8 → 10 → 12</b> a medida que avanza el partido). Alinear cada jugador y jugar cada táctica <b>gasta energía</b> — así que no puedes alinearlo todo. Una <b>estrella</b> en una banda hace que sus cartas de apoyo cuesten la mitad. Las cartas que no puedes pagar se <b>atenúan</b> en tu mano.',
   'screens.htpStaminaTitle': 'Atacar vs. defender',
   'screens.htpStaminaBody':
     'Atacar <b>descansa tus piernas</b>; defender <b>las cansa</b>. Una línea defensiva cansada deja que el rival marque más rápido — así que no puedes encerrarte para siempre. El descanso elimina la fatiga de ambos lados.',

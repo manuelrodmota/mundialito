@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useReducedMotion } from 'framer-motion'
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
-import { useDraggable } from '@dnd-kit/core'
+import { useDraggable, useDroppable } from '@dnd-kit/core'
 import type { MatchState, PlayerCard, TacticalCard, Formation, Card, CardInPlay, PlayerState, TacticalEffect } from '../../../engine/types'
 import type { Intent } from '../../../engine/board'
 import type { LaneFx } from '../../../engine/effectiveStats'
@@ -18,9 +18,10 @@ import { XGMeter } from '../../molecules/Meters'
 import { FormationPicker } from '../FormationPicker'
 import { CapChip } from '../../atoms/CapChip'
 import { StaminaPips } from '../../atoms/StaminaPips'
-import { CardDetailModal, TACTICAL_DESCRIPTIONS } from '../CardDetailModal'
+import { CardDetailModal, TACTICAL_DESCRIPTIONS, TACTICAL_DESCRIPTION_KEYS } from '../CardDetailModal'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
+import { CAT_GLYPH } from '../../molecules/TacticCard/glyphs'
 import { crestSrc } from '../../data/nations'
 import { XGFloat } from '../Lanes'
 import { Modal, Overlay } from '../Modal'
@@ -226,6 +227,33 @@ function DraggableCard({
   )
 }
 
+/**
+ * A staged player card on the pitch during planning — draggable so it can be moved to the other
+ * lane or back to the hand. A plain click still unstages it (the 8px drag threshold keeps the two
+ * gestures distinct).
+ */
+function BoardCard({
+  card,
+  isCaptain,
+  onRemove,
+}: {
+  card: PlayerCard
+  isCaptain: boolean
+  onRemove: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: card.id })
+  const style: React.CSSProperties = {
+    cursor: 'grab',
+    touchAction: 'none',
+    ...(transform ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 99, opacity: 0.85 } : null),
+  }
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={onRemove}>
+      <PlayerCardComponent card={card} size={128} isCaptain={isCaptain} />
+    </div>
+  )
+}
+
 /** Face-down card placeholder rendered for the opponent's committed cards during planning. */
 function FaceDownCard({ size = 96 }: { size?: number }) {
   return (
@@ -265,7 +293,6 @@ interface MatchBoardProps {
   onReveal?: () => void
   /** Called to advance to the next round after the report is dismissed. */
   onNextRound?: () => void
-  onCardClick?: (card: Card) => void
   canCommit?: boolean
   opponentIntent?: Intent | null
   /** Snapshot of both boards captured before resolveRound; present in 'reveal' phase. */
@@ -317,7 +344,6 @@ export function MatchBoard({
   onCommit,
   onReveal = () => {},
   onNextRound = () => {},
-  onCardClick,
   canCommit = false,
   opponentIntent,
   revealBoards,
@@ -348,9 +374,12 @@ export function MatchBoard({
 
   // v10 budget: per-round card cap (4 → 5 → 6) and stamina budget (8 → 10 → 12). Both are
   // enforced on placement so the player can't overfield, exactly like the AI's validLineup.
+  // Staged tacticals also draw on the same stamina pool (their own `cost`), so a played card
+  // and a played tactical compete for the round's energy.
   const playerCap = CARD_CAP(match.round)
   const staminaMax = p0.maxStamina
-  const staminaLeft = staminaMax - laneStamina(attackCards) - laneStamina(defenseCards)
+  const tacticalCost = tacticalCards.reduce((sum, t) => sum + t.cost, 0)
+  const staminaLeft = staminaMax - laneStamina(attackCards) - laneStamina(defenseCards) - tacticalCost
 
   // True when adding `card` to `lane` would break the card cap or the stamina budget.
   // laneStamina re-derives the whole lane (star-core discount included), so this stays exact.
@@ -359,9 +388,9 @@ export function MatchBoard({
       if (attackCards.length + defenseCards.length >= playerCap) return true
       const nextAttack = lane === 'attack' ? [...attackCards, card] : attackCards
       const nextDefense = lane === 'defense' ? [...defenseCards, card] : defenseCards
-      return laneStamina(nextAttack) + laneStamina(nextDefense) > staminaMax
+      return laneStamina(nextAttack) + laneStamina(nextDefense) + tacticalCost > staminaMax
     },
-    [attackCards, defenseCards, playerCap, staminaMax],
+    [attackCards, defenseCards, playerCap, staminaMax, tacticalCost],
   )
 
   // A hand player card is playable only if it fits in at least one lane within the budget.
@@ -425,28 +454,48 @@ export function MatchBoard({
   // instead of being swallowed as a micro-drag.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
+  // The hand fan is a drop target so a staged card can be dragged back off the pitch.
+  const { setNodeRef: setHandDropRef, isOver: handDropOver } = useDroppable({ id: 'hand' })
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
-
     const cardId = active.id as string
+
+    // A card already staged on the pitch — move it between lanes, or drop it on the hand to unstage.
+    const inAttack = attackCards.some((c) => c.id === cardId)
+    const inDefense = defenseCards.some((c) => c.id === cardId)
+    if (inAttack || inDefense) {
+      if (!over) return
+      const card = (attackCards.find((c) => c.id === cardId) ?? defenseCards.find((c) => c.id === cardId))!
+      if (over.id === 'hand') {
+        if (inAttack) setAttackCards((p) => p.filter((c) => c.id !== cardId))
+        else setDefenseCards((p) => p.filter((c) => c.id !== cardId))
+      } else if (over.id === 'attack-lane' && inDefense) {
+        const nextDefense = defenseCards.filter((c) => c.id !== cardId)
+        const nextAttack = [...attackCards, card]
+        if (laneStamina(nextAttack) + laneStamina(nextDefense) + tacticalCost > staminaMax) return
+        setDefenseCards(nextDefense)
+        setAttackCards(nextAttack)
+      } else if (over.id === 'defense-lane' && inAttack) {
+        const nextAttack = attackCards.filter((c) => c.id !== cardId)
+        const nextDefense = [...defenseCards, card]
+        if (laneStamina(nextAttack) + laneStamina(nextDefense) + tacticalCost > staminaMax) return
+        setAttackCards(nextAttack)
+        setDefenseCards(nextDefense)
+      }
+      return
+    }
+
+    // A card dragged from the hand fan.
     const card = p0.hand.find((c) => c.id === cardId)
     if (!card) return
-
     // Dragging a tactical does the same as clicking it — open its detail modal.
     if (card.type === 'tactical') {
       setDetailTac(card as TacticalCard)
       return
     }
-
     if (!over || card.type !== 'player') return
-
     const playerCard = card as PlayerCard
-    const alreadyPlaced =
-      attackCards.some((c) => c.id === cardId) ||
-      defenseCards.some((c) => c.id === cardId)
-
-    if (alreadyPlaced) return
-
     if (over.id === 'attack-lane') {
       if (wouldExceedBudget('attack', playerCard)) return
       setAttackCards((prev) => [...prev, playerCard])
@@ -454,7 +503,7 @@ export function MatchBoard({
       if (wouldExceedBudget('defense', playerCard)) return
       setDefenseCards((prev) => [...prev, playerCard])
     }
-  }, [p0.hand, attackCards, defenseCards, wouldExceedBudget])
+  }, [p0.hand, attackCards, defenseCards, wouldExceedBudget, tacticalCost, staminaMax])
 
   const handleSelectHandCard = useCallback((id: string) => {
     // Tacticals open their detail modal (read effect → play); players toggle for placement.
@@ -567,10 +616,14 @@ export function MatchBoard({
 
   const detailGateMet = detailTac ? stagedGateMet(detailTac.effect) : true
   const detailReqLabel = detailTac ? gateLabel(detailTac.effect, t) : null
-  // Play is offered only when under the per-half cap AND the lineup meets the gate, and never for
-  // an already-active Power opened from the shelf. Unstaging a staged tactical is always allowed.
+  // Affordable only if its stamina cost fits the remaining budget (a staged card already spent its cost).
+  const detailAffordable = detailTac ? detailStaged || staminaLeft >= detailTac.cost : true
+  // Play is offered only when under the per-half cap, the gate is met, AND its cost is affordable —
+  // never for an already-active Power opened from the shelf. Unstaging a staged tactical is always allowed.
   const detailShowPrimary =
-    detailTac !== null && !detailInspectOnly && (detailStaged || (canStageMoreTacticals && detailGateMet))
+    detailTac !== null &&
+    !detailInspectOnly &&
+    (detailStaged || (canStageMoreTacticals && detailGateMet && detailAffordable))
   // Explain the modal's state: an active Power, or why a tactical can't be played right now.
   let detailNote: string | undefined
   if (detailInspectOnly) {
@@ -578,6 +631,7 @@ export function MatchBoard({
   } else if (detailTac && !detailStaged) {
     if (!canStageMoreTacticals) detailNote = t('match.tactic.noPlaysLeft', { n: TACTICALS_PER_HALF })
     else if (!detailGateMet && detailReqLabel) detailNote = t('match.tactic.needs', { req: detailReqLabel })
+    else if (!detailAffordable) detailNote = t('match.tactic.needsEnergy', { n: detailTac.cost })
   }
 
   const handleStageTactical = useCallback((tac: TacticalCard) => {
@@ -634,6 +688,20 @@ export function MatchBoard({
 
   const oppCrest = crestSrc(match.opponent.nation)
 
+  // Opponent tacticals the player can see: persistent powers (p1.powers, e.g. Total Football) +
+  // this round's face-up plays (intent.visibleTacticals), deduped by id. A power shows here every
+  // round so the player doesn't have to remember it was played.
+  const oppActiveTacticals = ((): TacticalCard[] => {
+    const seen = new Set<string>()
+    const out: TacticalCard[] = []
+    for (const tac of [...p1.powers, ...(opponentIntent?.visibleTacticals ?? [])]) {
+      if (seen.has(tac.id)) continue
+      seen.add(tac.id)
+      out.push(tac)
+    }
+    return out
+  })()
+
   const intentMeta = opponentIntent ? FORMATION_LABELS[opponentIntent.formation] : null
 
   const renderRevealLane = (cips: CardInPlay[], kind: 'atk' | 'def', id: string, clsName: string, label: string) => (
@@ -688,6 +756,19 @@ export function MatchBoard({
             ) : null}
             <span className="nm">{match.opponent.name}</span>
             <TierStars tier={match.opponent.tier} />
+            {oppActiveTacticals.length > 0 && (
+              <div className="opp-tactics" aria-label={t('match.oppTactics.label')}>
+                {oppActiveTacticals.map((tac) => (
+                  <span key={tac.id} className="opp-tac" tabIndex={0} data-cat={tac.category}>
+                    <span className="opp-tac-ico">{CAT_GLYPH[tac.category]}</span>
+                    <span className="opp-tac-tip" role="tooltip">
+                      <b>{tac.name}</b>
+                      {TACTICAL_DESCRIPTION_KEYS[tac.effect.kind] ? t(TACTICAL_DESCRIPTION_KEYS[tac.effect.kind]) : ''}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -769,14 +850,12 @@ export function MatchBoard({
                     cls="l-ydef"
                   >
                     {defenseCards.map((card) => (
-                      <div key={card.id} onClick={() => handleRemoveFromDefense(card)} style={{ cursor: 'pointer' }}>
-                        <PlayerCardComponent
-                          card={card}
-                          size={128}
-                          isCaptain={card.id === p0.captainId}
-                          onClick={() => onCardClick?.(card)}
-                        />
-                      </div>
+                      <BoardCard
+                        key={card.id}
+                        card={card}
+                        isCaptain={card.id === p0.captainId}
+                        onRemove={() => handleRemoveFromDefense(card)}
+                      />
                     ))}
                   </Lane>
 
@@ -791,14 +870,12 @@ export function MatchBoard({
                     cls="l-yatk"
                   >
                     {attackCards.map((card) => (
-                      <div key={card.id} onClick={() => handleRemoveFromAttack(card)} style={{ cursor: 'pointer' }}>
-                        <PlayerCardComponent
-                          card={card}
-                          size={128}
-                          isCaptain={card.id === p0.captainId}
-                          onClick={() => onCardClick?.(card)}
-                        />
-                      </div>
+                      <BoardCard
+                        key={card.id}
+                        card={card}
+                        isCaptain={card.id === p0.captainId}
+                        onRemove={() => handleRemoveFromAttack(card)}
+                      />
                     ))}
                   </Lane>
 
@@ -859,6 +936,7 @@ export function MatchBoard({
               remaining={staminaLeft}
               max={staminaMax}
               label={t('match.dock.staminaLeft', { left: staminaLeft, max: staminaMax })}
+              tip={t('match.dock.staminaTip')}
             />
           )}
           {showStarCore && <CapChip kind="star" />}
@@ -1012,8 +1090,8 @@ export function MatchBoard({
           </div>
         )}
 
-        {/* hand dock — fan of player + tactical cards; staged tacticals move to the left "in use" zone */}
-        <div className="hand-dock">
+        {/* hand dock — fan of player + tactical cards; also a drop target to drag staged cards back off the pitch */}
+        <div className={`hand-dock${handDropOver ? ' drop-hot' : ''}`} ref={setHandDropRef}>
           <div className="pile-col7 left">
             <DeckPile kind="draw" count={p0.drawPile.length} label={t('match.pile.draw')} dw={34} />
             <DeckPile kind="locked" count={p0.locked.length} label={t('match.pile.bench')} cue={t('match.pile.benchCue')} dw={34} />
@@ -1052,7 +1130,7 @@ export function MatchBoard({
                     ? true
                     : card.type === 'player'
                       ? canAfford(card as PlayerCard)
-                      : canStageMoreTacticals
+                      : canStageMoreTacticals && staminaLeft >= (card as TacticalCard).cost
                 }
               />
             ))}

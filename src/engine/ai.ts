@@ -8,9 +8,56 @@
 
 import type { Card, CardInPlay, Formation, MatchState, PlayerCard, PlayerState, TacticalCard } from "./types.ts";
 import type { Rng } from "./rng.ts";
-import { CARD_CAP } from "./constants.ts";
+import { CARD_CAP, RARITY_MULT, XG_SLOPE } from "./constants.ts";
 import { canPlayTactical, tacticalGatePassed } from "./tacticals.ts";
 import { validLineup } from "./validateLineup.ts";
+
+/** Rough xG-equivalent worth of each tactical, used to weigh it against the player slot it costs. */
+const TACTICAL_VALUE: Record<string, number> = {
+  handOfGod: 1.0, penalty: 0.85, longBall: 0.45, counterAttack: 0.4, offsideTrap: 0.35,
+  nutmeg: 0.3, totalFootball: 0.3, talisman: 0.25, tikiTaka: 0.2, catenaccio: 0.2,
+  var: 0.2, referee: 0.2, injury: 0.2, fortress: 0.18, highPress: 0.15,
+  timeWasting: 0.12, substitution: 0.12, teamTalk: 0.12, waterBreak: 0.1,
+};
+function tacticalValue(t: TacticalCard): number {
+  return TACTICAL_VALUE[t.effect.kind] ?? 0.15;
+}
+
+/** Approximate per-round xG a fielded player adds in its lane (stat × rarity ÷ slope). */
+function playerXg(c: PlayerCard, lane: "attack" | "defense"): number {
+  const stat = lane === "attack" ? c.atk : c.def;
+  return (stat * RARITY_MULT[c.rarity]) / XG_SLOPE;
+}
+
+function mkCip(card: Card, lane: "attack" | "defense"): CardInPlay {
+  return { card, lane, statuses: [], faceDown: card.type === "player" };
+}
+
+/** Weakest fielded player by lane-xG, never the lone attacker while a defender can be dropped instead
+ *  (an empty attack lane scores nothing — §7 floor gate). Returns its lane + index, or null. */
+function weakestPlayer(
+  attack: PlayerCard[],
+  defense: PlayerCard[],
+): { lane: "attack" | "defense"; idx: number; val: number } | null {
+  let best: { lane: "attack" | "defense"; idx: number; val: number } | null = null;
+  const scan = (arr: PlayerCard[], lane: "attack" | "defense") => {
+    for (let i = 0; i < arr.length; i++) {
+      if (lane === "attack" && attack.length === 1 && defense.length > 0) continue;
+      const val = playerXg(arr[i]!, lane);
+      if (best === null || val < best.val) best = { lane, idx: i, val };
+    }
+  };
+  scan(attack, "attack");
+  scan(defense, "defense");
+  return best;
+}
+
+/** Lowest-value tactical in the set, or null. */
+function weakestTactical(tacs: TacticalCard[]): TacticalCard | null {
+  let best: TacticalCard | null = null;
+  for (const t of tacs) if (best === null || tacticalValue(t) < tacticalValue(best)) best = t;
+  return best;
+}
 
 export interface AiDecision {
   formation: Formation;
@@ -153,8 +200,14 @@ function pickTacticals(
   state: PlayerState,
   tacticals: TacticalCard[],
   m: MatchState,
+  board: { attack: CardInPlay[]; defense: CardInPlay[] },
 ): TacticalCard[] {
   if (!canPlayTactical(state)) return [];
+
+  // Gate against the lineup the AI intends to FIELD this round, not its (empty) board at decision
+  // time. The old empty-board check meant position-gated signatures (Penalty/Long Ball/Tiki-Taka)
+  // never fired for the AI. §12.
+  const gateState = { ...state, board } as PlayerState;
 
   const signatureIds = new Set(
     (m.opponent.signatureTactical ?? []).map((t) => t.id),
@@ -170,7 +223,7 @@ function pickTacticals(
   for (const tac of sortedCandidates) {
     if (chosen.length >= 2) break;
     if (!canPlayTactical({ ...state, tacticalsThisHalf: state.tacticalsThisHalf + chosen.length })) break;
-    if (!tacticalGatePassed(state, tac.effect)) continue;
+    if (!tacticalGatePassed(gateState, tac.effect)) continue;
 
     const kind = tac.effect.kind;
     const goalLead = state.goals - m.players.find((p) => p !== state)!.goals;
@@ -256,46 +309,51 @@ export function decideTurn(m: MatchState, aiIdx: 0 | 1, rng: Rng): AiDecision {
   const formation = pickFormation(state, oppState, m);
   state.formation = formation;
 
-  const tacs = tacticalCards(state.hand);
-  const chosenTacticals = pickTacticals(state, tacs, m);
-
+  // 1) Baseline lineup first — best players sized by formation, before any tacticals.
   const { attack, defense } = pickLanes(state, formation, m.round, oppState, rng, m);
-
-  const tempState = {
-    ...state,
-    board: { attack: [], defense: [] },
-  } as PlayerState;
-
-  for (const card of attack) {
-    tempState.board.attack.push({ card, lane: "attack", statuses: [], faceDown: true });
-  }
-  for (const card of defense) {
-    tempState.board.defense.push({ card, lane: "defense", statuses: [], faceDown: true });
-  }
-
   const finalAttack = [...attack];
   const finalDefense = [...defense];
 
-  // Trim to a legal lineup by dropping the weakest card from the larger lane
-  // (keeps the lineup as full as stamina allows instead of collapsing to one).
+  // 2) Candidate tacticals, gated against the lineup we intend to field.
+  const finalTacticals = pickTacticals(state, tacticalCards(state.hand), m, {
+    attack: finalAttack.map((c) => mkCip(c, "attack")),
+    defense: finalDefense.map((c) => mkCip(c, "defense")),
+  });
+
+  // 3) Players and tacticals share the stamina pool (validLineup counts tactical cost). Trim to a
+  //    legal lineup by repeatedly dropping the LEAST-VALUABLE card: a low-value tactical is dropped
+  //    before a useful player, but a weak common is sacrificed for a high-value tactical (Penalty,
+  //    Long Ball). Card cap counts players only, so an over-cap trim always drops a player.
+  const tempState = { ...state, board: { attack: [], defense: [] } } as PlayerState;
   const syncTemp = () => {
-    tempState.board.attack = finalAttack.map((c) => ({ card: c, lane: "attack" as const, statuses: [], faceDown: true }));
-    tempState.board.defense = finalDefense.map((c) => ({ card: c, lane: "defense" as const, statuses: [], faceDown: true }));
+    tempState.board.attack = [
+      ...finalAttack.map((c) => mkCip(c, "attack")),
+      ...finalTacticals.map((t) => mkCip(t, "attack")),
+    ];
+    tempState.board.defense = finalDefense.map((c) => mkCip(c, "defense"));
   };
+  syncTemp();
   let trimGuard = 0;
-  while (!validLineup(tempState, m.round) && trimGuard++ < 12) {
-    if (finalDefense.length >= finalAttack.length && finalDefense.length > 0) finalDefense.pop();
-    else if (finalAttack.length > 0) finalAttack.pop();
-    else break;
+  while (!validLineup(tempState, m.round) && trimGuard++ < 24) {
+    const overCap = finalAttack.length + finalDefense.length > CARD_CAP(m.round);
+    const wp = weakestPlayer(finalAttack, finalDefense);
+    const wt = overCap ? null : weakestTactical(finalTacticals);
+    if (wt && (!wp || tacticalValue(wt) < wp.val)) {
+      finalTacticals.splice(finalTacticals.indexOf(wt), 1);
+    } else if (wp) {
+      (wp.lane === "attack" ? finalAttack : finalDefense).splice(wp.idx, 1);
+    } else {
+      break;
+    }
     syncTemp();
   }
 
-  commitAiCards(state, finalAttack, finalDefense, chosenTacticals);
+  commitAiCards(state, finalAttack, finalDefense, finalTacticals);
 
   return {
     formation,
     attack: finalAttack,
     defense: finalDefense,
-    tacticals: chosenTacticals,
+    tacticals: finalTacticals,
   };
 }

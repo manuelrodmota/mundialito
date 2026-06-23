@@ -22,14 +22,16 @@ import {
   type OpponentTeam,
   type RunState,
 } from "../src/engine/index.ts";
-import { newRun, drawOpponent, advanceRun, isRunWon, stageForIndex, rollPlayerReward, applyReward } from "../src/run/index.ts";
+import { newRun, drawOpponent, advanceRun, isRunWon, stageForIndex, rollPlayerReward, applyReward, STAGE_AI_STRENGTH } from "../src/run/index.ts";
 import { players as staticPlayerPool } from "../src/data/players.ts";
+import { tacticals as ALL_TACTICALS } from "../src/data/tacticals.ts";
 import { buildQuickplayDeck } from "../src/ui/quickplay/buildQuickplayDeck.ts";
 
 const PREMIUMS = staticPlayerPool.filter((p) => p.rarity !== "common");
 const COMMONS = staticPlayerPool.filter((p) => p.rarity === "common");
 
-/** A representative starting XI: ~12 premium slots drafted at random + a common bench. */
+/** A representative starting deck: ~12 premium slots + a common bench + 3 tacticals (like the
+ *  human, who also fields tacticals — without them the sim under-represents the player). */
 function buildPlayerDeck(rng: Rng): { deck: ReturnType<typeof buildQuickplayDeck>["deck"]; captainId: string } {
   const shuffled = rng.shuffle([...PREMIUMS]);
   const picks: PlayerCard[] = [];
@@ -40,9 +42,10 @@ function buildPlayerDeck(rng: Rng): { deck: ReturnType<typeof buildQuickplayDeck
     slots += p.slots;
   }
   const captainId = picks[0]?.id ?? COMMONS[0]!.id;
+  const tacticalPicks = rng.shuffle([...ALL_TACTICALS]).slice(0, 3);
   const { deck } = buildQuickplayDeck({
     premiumPicks: picks,
-    tacticalPicks: [],
+    tacticalPicks,
     captainId,
     commonPool: COMMONS,
     rng,
@@ -79,6 +82,8 @@ function simMatch(
   playerDeck: PlayerCard[] | ReturnType<typeof buildQuickplayDeck>["deck"],
   playerCaptain: string,
   opponent: OpponentTeam,
+  stage: keyof typeof STAGE_AI_STRENGTH,
+  scale: number,
   rng: Rng,
 ): { winner: 0 | 1; you: number; them: number; et: boolean } {
   const oppDeck = buildOpponentDeck(opponent, rng);
@@ -90,6 +95,8 @@ function simMatch(
     opponent,
     "run",
   );
+  // Per-stage AI handicap, scaled for sweeping (scale=1 → the shipped curve).
+  m.aiStrengthMult = 1 + (STAGE_AI_STRENGTH[stage] - 1) * scale;
 
   startRound(m, rng);
   let guard = 0;
@@ -110,7 +117,7 @@ interface StageStat {
   won: number;
 }
 
-function run(numRuns: number) {
+function run(numRuns: number, scale: number) {
   const stages = ["group", "r16", "qf", "sf", "final"] as const;
   const stat: Record<string, StageStat> = {};
   for (const s of stages) stat[s] = { played: 0, won: 0 };
@@ -137,7 +144,7 @@ function run(numRuns: number) {
         break; // pool exhausted (shouldn't happen in a single run)
       }
 
-      const res = simMatch(runState.deck as PlayerCard[], runState.captainId, opponent, rng);
+      const res = simMatch(runState.deck as PlayerCard[], runState.captainId, opponent, stage, scale, rng);
       const won = res.winner === 0;
       stat[stage]!.played++;
       if (won) stat[stage]!.won++;
@@ -158,7 +165,7 @@ function run(numRuns: number) {
   }
 
   const pct = (n: number, d: number) => (d === 0 ? "—" : `${((100 * n) / d).toFixed(1)}%`);
-  console.log(`\nArcade Monte-Carlo — ${numRuns} runs (both sides = engine AI; permadeath)\n`);
+  console.log(`\nArcade Monte-Carlo — ${numRuns} runs (both sides = engine AI; permadeath; handicap scale ${scale})\n`);
   console.log("Per-stage win rate (when the stage is reached):");
   for (const s of stages) {
     console.log(`  ${s.padEnd(6)}  win ${pct(stat[s]!.won, stat[s]!.played).padStart(6)}   (reached ${reachedStage[s]})`);
@@ -169,4 +176,5 @@ function run(numRuns: number) {
 }
 
 const n = Number(process.argv[2] ?? 3000);
-run(n);
+const handicapScale = Number(process.argv[3] ?? 1);
+run(n, handicapScale);

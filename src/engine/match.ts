@@ -149,6 +149,14 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
   const stats0 = computeEffectiveStats(m.players[0]!);
   const stats1 = computeEffectiveStats(m.players[1]!);
 
+  // Difficulty handicap: the AI opponent (player 1) sharpens by a per-stage multiplier set by the
+  // Arcade run. Defaults to 1 (off) — Quickplay and AI-vs-AI tests are unaffected.
+  const aiMult = m.aiStrengthMult ?? 1;
+  if (aiMult !== 1) {
+    stats1.atkEff *= aiMult;
+    stats1.defEff *= aiMult;
+  }
+
   const defEff0 = applyDefensiveTacticals(m, 0, stats0.defEff);
   const defEff1 = applyDefensiveTacticals(m, 1, stats1.defEff);
 
