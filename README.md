@@ -16,14 +16,15 @@ The complete design is the game design document, **[`APP_DEFINITION.md`](./APP_D
 
 ## How a match plays
 
-A full **90 minutes = 10 rounds**. There is no HP — each team fills an **xG meter**, and every time a meter crosses **1.0** it's a **GOAL**.
+A full **90 minutes = 10 rounds**. There is no HP — each team fills an **xG meter** by attacking. When a meter fills, that team takes a **shot** — a strong chance, but **not a sure thing**: it converts on a probability, so a full meter can still be a great save. Score and the meter empties; miss and it drops a chunk, so you keep the pressure on. The better deck fills faster → shoots more often → wins.
 
-- **Lead by 3 → instant win** (mercy rule). Otherwise the **leader at full time** wins; **level → golden-goal extra time** (sudden death).
-- **xG per round:** `clamp(0.05 + max(0, ATK_eff − DEF_eff) / 210, 0, 0.50)` — tuned for a lively ~5–6 goals/match.
+- **Lead by 3 → instant win** (mercy rule). Otherwise the **leader at full time** wins; **level → golden-goal extra time** (sudden death, stars + fatigue refreshed, xG ×2).
+- **xG fill per round:** `clamp(0.05 + max(0, ATK_eff − DEF_eff) / 210, 0, 0.50)`. A full meter then triggers a shot that converts at a base **~80%** (nudged by a pity bonus on misses and momentum) — finishing is **probabilistic, not automatic**. Scoring lands around **~4–6 goals/match**.
+- **Star multiplier:** a star (rare → legendary) lifts its **whole lane's** stats when paired with a lanemate — so building *around* your stars is the play (a lone star gets no boost). Gold goalkeepers anchor at the top tier.
 - **Fatigue** tires your back line as you defend (raising the opponent's fill-rate) and rests it as you attack; it clears at halftime and at the start of extra time.
-- **Card flow:** commons cycle forever (your sustain engine), premium players are once-per-half, Tactical Cards are single-use (≤2 per half).
+- **Card flow:** commons cycle forever (your sustain engine), premium players are once-per-half (return at halftime **and** extra time), Tactical Cards are single-use (≤2 per half).
 
-The balance is the **v10 pass**, locked from a Monte-Carlo simulator: **diminishing returns on lane stacking**, a **star-core stamina discount**, a **gentle field-cost curve**, and the **retuned xG curve** — so a star-led deck reliably beats a wall of commons while scoring stays in a sane band.
+The balance is the **v10 pass**, locked from a Monte-Carlo simulator — **diminishing returns on lane stacking**, a **star-core stamina discount**, a **gentle field-cost curve**, and the **retuned xG curve** — extended in **v11** with **probabilistic finishing** (the shot model above) that breaks the old deterministic "I score / you score" metronome while keeping the better deck on top.
 
 ## Two modes, one engine
 
@@ -46,9 +47,10 @@ not a feature *inside* it.
   `.claude-temp/tickets/world-cup-clash/`, and the framework itself is vendored at
   [`qubika-agentic-framework/`](./qubika-agentic-framework).
 - **Game definition & balance — Claude.** Claude took the game from concept to the full design
-  document (`APP_DEFINITION.md`, GDD v10) and tuned the rules — the xG curve, lane
-  diminishing-returns, and the stamina/cost economy — iterating against a Monte-Carlo simulator
-  until scoring settled into a lively ~5–6 goals/match band.
+  document (`APP_DEFINITION.md`, GDD v10 + v11 finishing) and tuned the rules — the xG curve, lane
+  diminishing-returns, the stamina/cost economy, and the probabilistic shot model — iterating
+  against a Monte-Carlo simulator until scoring settled into a lively ~4–6 goals/match band with the
+  better deck reliably on top.
 - **Visual design — Claude.** The design system, card-art direction, and the high-fidelity
   interactive prototype in [`design/`](./design) (the visual + behavioral source of truth) were
   produced with Claude.
