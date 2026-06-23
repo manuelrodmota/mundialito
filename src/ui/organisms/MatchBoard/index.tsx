@@ -8,7 +8,7 @@ import type { MatchState, PlayerCard, TacticalCard, Formation, Card, CardInPlay,
 import type { Intent } from '../../../engine/board'
 import type { LaneFx } from '../../../engine/effectiveStats'
 import type { RevealBoards, RoundReport, SideReport } from '../../quickplay/useQuickplayMatch'
-import { TACTICALS_PER_HALF, CARD_CAP, laneStamina, tacticalGatePassed, previewConversion, PRESSURE_FULL } from '../../quickplay/useQuickplayMatch'
+import { TACTICALS_PER_HALF, CARD_CAP, laneStamina, tacticalGatePassed, previewConversion, PRESSURE_FULL, cardLaneMult } from '../../quickplay/useQuickplayMatch'
 import { Scoreboard } from '../Scoreboard'
 import { ExtraTimeBanner } from '../ExtraTime'
 import { Lane } from '../Lanes'
@@ -243,19 +243,28 @@ function BoardCard({
   card,
   isCaptain,
   onRemove,
+  laneMult,
 }: {
   card: PlayerCard
   isCaptain: boolean
   onRemove: () => void
+  /** v11 lane force-multiplier this card is providing (>1) — shows a ×mult badge on top. */
+  laneMult?: number
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: card.id })
   const style: React.CSSProperties = {
+    position: 'relative',
     cursor: 'grab',
     touchAction: 'none',
     ...(transform ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 99, opacity: 0.85 } : null),
   }
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={onRemove}>
+      {laneMult !== undefined && laneMult > 1 && (
+        <div className="lane-mult-badge" data-rar={card.rarity} title={`Lane multiplier — this star lifts the whole line ×${laneMult}`}>
+          ×{laneMult}
+        </div>
+      )}
       <PlayerCardComponent card={card} size={128} isCaptain={isCaptain} />
     </div>
   )
@@ -413,6 +422,11 @@ export function MatchBoard({
   // full pitch, not energy, so the hand badge must say "PITCH FULL" rather than "NEEDS ⚡".
   const capReached = attackCards.length + defenseCards.length >= playerCap
 
+  // v11 lane force-multiplier: the best star's tier multiplier lifts the whole lane, but only once
+  // the lane has ≥2 cards. The ×mult badge rides the top-tier card that's providing it.
+  const atkLaneMult = attackCards.length >= 2 ? Math.max(1, ...attackCards.map(cardLaneMult)) : 1
+  const defLaneMult = defenseCards.length >= 2 ? Math.max(1, ...defenseCards.map(cardLaneMult)) : 1
+
   // True when adding `card` to `lane` would break the card cap or the stamina budget.
   // laneStamina re-derives the whole lane (star-core discount included), so this stays exact.
   const wouldExceedBudget = useCallback(
@@ -466,6 +480,36 @@ export function MatchBoard({
   const showReport = revealStep >= 5
   const CLASH_MS = 1100
   const GOAL_HOLD = 1900
+
+  // During the reveal, animate each meter from its pre-round value, ONE SIDE AT A TIME, so you
+  // never see the opponent's outcome before their goal/save beat plays. Your bar fills at step 1
+  // and resolves (goal empties / save drops) at step 2; theirs fills at step 3, resolves at step 4.
+  // Outside the reveal it just shows the live pressure. v11 §14.
+  const meterValue = (side: 'you' | 'them'): number => {
+    const live = Math.min(1, (side === 'you' ? p0 : p1).xg)
+    if (!isReveal || !roundReport) return live
+    const r = side === 'you' ? roundReport.you : roundReport.them
+    const postFill = Math.min(1, r.pressureBefore + r.xg)
+    if (side === 'you') {
+      if (revealStep < 1) return r.pressureBefore
+      if (revealStep === 1) return postFill
+      return r.pressureAfter
+    }
+    if (revealStep < 3) return r.pressureBefore
+    if (revealStep === 3) return postFill
+    return r.pressureAfter
+  }
+
+  // Same sequencing for the SCORE numbers (scoreboard + meters): your goal ticks up at step 2,
+  // theirs at step 4 — so the scoreline never reveals the opponent's goal before its beat.
+  const goalsValue = (side: 'you' | 'them'): number => {
+    const live = (side === 'you' ? p0 : p1).goals
+    if (!isReveal || !roundReport) return live
+    if (side === 'you') {
+      return revealStep < 2 ? roundReport.youGoalsTotal - roundReport.youGoalsThisRound : roundReport.youGoalsTotal
+    }
+    return revealStep < 4 ? roundReport.themGoalsTotal - roundReport.themGoalsThisRound : roundReport.themGoalsTotal
+  }
 
   // Each step schedules the next; cleanup clears the pending timer. Goal steps (2,4) can be
   // advanced early by clicking the overlay (setRevealStep below).
@@ -811,8 +855,8 @@ export function MatchBoard({
 
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <Scoreboard
-              them={p1.goals}
-              you={p0.goals}
+              them={goalsValue('them')}
+              you={goalsValue('you')}
               code={match.opponent.nation}
               nation={match.opponent.nation}
               minute={minute}
@@ -826,15 +870,15 @@ export function MatchBoard({
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
             <div className="board-meters">
               <XGMeter
-                goals={p1.goals}
-                xg={Math.min(1, p1.xg)}
+                goals={goalsValue('them')}
+                xg={meterValue('them')}
                 heat={fatigueHeat(p1.fatigue)}
                 label={match.opponent.name}
                 conversion={previewConversion({ ...p1, xg: PRESSURE_FULL })}
               />
               <XGMeter
-                goals={p0.goals}
-                xg={Math.min(1, p0.xg)}
+                goals={goalsValue('you')}
+                xg={meterValue('you')}
                 heat={fatigueHeat(p0.fatigue)}
                 label={t('match.meter.you')}
                 mine
@@ -895,6 +939,7 @@ export function MatchBoard({
                         card={card}
                         isCaptain={card.id === p0.captainId}
                         onRemove={() => handleRemoveFromDefense(card)}
+                        laneMult={defLaneMult > 1 && cardLaneMult(card) === defLaneMult ? defLaneMult : undefined}
                       />
                     ))}
                   </Lane>
@@ -915,6 +960,7 @@ export function MatchBoard({
                         card={card}
                         isCaptain={card.id === p0.captainId}
                         onRemove={() => handleRemoveFromAttack(card)}
+                        laneMult={atkLaneMult > 1 && cardLaneMult(card) === atkLaneMult ? atkLaneMult : undefined}
                       />
                     ))}
                   </Lane>

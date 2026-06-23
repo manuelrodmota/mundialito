@@ -11,6 +11,13 @@ export const RARITY_MULT: Record<Rarity, number> = {
   legendary: 1.3,
 } as const satisfies Record<Rarity, number>;
 
+/**
+ * Overall at/above which a card reads as "gold" (legendary-tier colour in the UI). v11.1: a GOLD
+ * GOALKEEPER anchors its lane at the legendary multiplier (×1.3) even if its rating lands it in the
+ * epic band — elite keepers are defensive keystones. Mirrors the UI colour threshold. §4
+ */
+export const GOLD_THRESHOLD = 87;
+
 /** Per-round stamina cost to field a card (v10 gentle curve). §17 */
 export const COST_BY_RARITY: Record<Rarity, number> = {
   common: 2,

@@ -19,7 +19,8 @@ This project is **World Cup Clash**, a **Slay the Spire–style arcade roguelike
 - **Fatigue:** defending tires your back line (raises the opponent's fill-rate); attacking rests it. Cleared at halftime (R5) and at the start of ET.
 - **Card flow:** **common players cycle** (draw→discard→reshuffle, the sustain engine); **premium players are once-per-half** (lock when played, return at halftime / start of ET); **Tactical Cards are single-use** (exiled when played).
 - **Hand & tactical limits:** each round you **draw up to a 5-card minimum hand** (grays reshuffle mid-draw); you may play **≤2 Tactical Cards per half (4/match)**; the Run deck carries **~4 tacticals** (a reward past the cap becomes a swap).
-- Ramping **stamina** (8/10/12) and **per-round card cap** (4/5/6); **rarity multiplier** on stat contribution (common 1.0 → legendary 1.3).
+- Ramping **stamina** (8/10/12) and **per-round card cap** (4/5/6).
+- **v11 rarity multiplier = a LANE force-multiplier:** a star's tier mult (common 1.0 / rare 1.1 / epic 1.2 / legendary 1.3) multiplies the **whole lane's** effective stat, but **only when the lane has ≥2 cards** (alone = no boost, since it'd just inflate one card). Highest tier wins per lane. **Gold goalkeepers** (overall ≥ `GOLD_THRESHOLD` = 87) anchor at ×1.3 even if only epic-rated (`cardLaneMult`); no other position gets this. Cards contribute BASE stats to `laneStack`; the lane mult is applied on top (`effectiveStats.ts` `laneMultiplier`/`cardLaneMult` + `computeEffectiveStats`). The match board shows a `×mult` badge on the top star once its lane is paired (`MatchBoard` `BoardCard`).
 
 **Build phasing:** MVP = Quickplay end-to-end; V2 = the Arcade Run shell + full tactical set; V3 = meta/leaderboards. Engine is pure framework-agnostic TS under `src/engine/`, shared headless by both modes; React UI lives under `src/ui/`.
 

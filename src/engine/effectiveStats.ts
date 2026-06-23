@@ -20,6 +20,7 @@ import {
   FORMATIONS,
   COST_BY_RARITY,
   STAR_SYNERGY_DISCOUNT,
+  GOLD_THRESHOLD,
 } from "./constants.ts";
 import { statusMods, addStatus } from "./status.ts";
 import { applyFatiguePenalty } from "./fatigue.ts";
@@ -67,25 +68,57 @@ function reconcileInjuries(state: PlayerState): void {
 }
 
 /**
- * Raw ATK contribution of a single card in play, adjusted for rarity and status.
- * GDD §17 `atkOf`.
+ * Raw ATK contribution of a single card in play, adjusted for status (and, when `applyRarity`,
+ * its rarity multiplier). v11: the rarity multiplier is now a LANE force-multiplier (see
+ * {@link laneMultiplier}) — `computeEffectiveStats` passes `applyRarity=false` and multiplies the
+ * whole lane instead, so a lone star gets no boost. Callers that just need an ordering (Offside's
+ * highest-ATK target, Nutmeg's best forward) keep the default. GDD §17 `atkOf`.
  */
-export function atkOf(card: CardInPlay): number {
+export function atkOf(card: CardInPlay, applyRarity = true): number {
   if (card.card.type !== "player") return 0;
   const p = card.card as PlayerCard;
   const mods = statusMods(card);
-  return Math.max(0, (p.atk + mods.atkFlat) * mods.atkMult * RARITY_MULT[p.rarity]);
+  const rarity = applyRarity ? RARITY_MULT[p.rarity] : 1;
+  return Math.max(0, (p.atk + mods.atkFlat) * mods.atkMult * rarity);
 }
 
 /**
- * Raw DEF contribution of a single card in play, adjusted for rarity and status.
- * GDD §17 `defOf`.
+ * Raw DEF contribution of a single card in play, adjusted for status (and rarity when requested).
+ * See {@link atkOf} for the v11 lane-multiplier note. GDD §17 `defOf`.
  */
-export function defOf(card: CardInPlay): number {
+export function defOf(card: CardInPlay, applyRarity = true): number {
   if (card.card.type !== "player") return 0;
   const p = card.card as PlayerCard;
   const mods = statusMods(card);
-  return Math.max(0, (p.def + mods.defFlat) * mods.defMult * RARITY_MULT[p.rarity]);
+  const rarity = applyRarity ? RARITY_MULT[p.rarity] : 1;
+  return Math.max(0, (p.def + mods.defFlat) * mods.defMult * rarity);
+}
+
+/**
+ * The tier multiplier a single card brings to its lane. Normally its rarity multiplier, but a
+ * GOLD GOALKEEPER (legendary-tier colour, overall ≥ GOLD_THRESHOLD) anchors at the legendary
+ * multiplier even if its rating is only epic — elite keepers are defensive keystones (v11.1). §4
+ */
+export function cardLaneMult(card: PlayerCard): number {
+  if (card.position === "GK" && card.overall >= GOLD_THRESHOLD) return RARITY_MULT.legendary;
+  return RARITY_MULT[card.rarity];
+}
+
+/**
+ * v11 lane force-multiplier: a star's tier multiplier lifts the WHOLE lane — but only once the
+ * lane has ≥2 cards (alone it would just inflate that one card's stat, i.e. change its overall, so
+ * it does nothing). With multiple stars the highest tier wins. Returns 1 when no boost applies.
+ * GDD §4 / §7.
+ */
+export function laneMultiplier(cards: CardInPlay[]): number {
+  if (cards.length < 2) return 1;
+  let mult = 1;
+  for (const c of cards) {
+    if (c.card.type === "player") {
+      mult = Math.max(mult, cardLaneMult(c.card as PlayerCard));
+    }
+  }
+  return mult;
 }
 
 /**
@@ -143,8 +176,9 @@ export interface LaneFx {
 export function laneDecor(cards: PlayerCard[], lane: "attack" | "defense"): LaneDecor[] {
   if (cards.length === 0) return [];
 
-  const statOf = (c: PlayerCard) =>
-    (lane === "defense" ? c.def : c.atk) * RARITY_MULT[c.rarity];
+  // v11: contributions are BASE stats (the rarity boost is now a whole-lane multiplier, shown
+  // separately) — so the diminishing-returns figure reflects pure lane stacking.
+  const statOf = (c: PlayerCard) => (lane === "defense" ? c.def : c.atk);
   const contrib = cards.map(statOf);
 
   // Rank indices by contribution, high→low, stable on ties — matches laneStack's sort.
@@ -246,11 +280,13 @@ export function computeEffectiveStats(state: PlayerState): EffectiveStats {
   const defenseCards = state.board.defense;
   const allCards = [...attackCards, ...defenseCards];
 
-  const rawAtks = attackCards.map(atkOf);
-  const rawDefs = defenseCards.map(defOf);
+  // v11: cards contribute their BASE stat to the lane stack; the lane's best star then multiplies
+  // the whole line (laneMultiplier), so a star lifts its lanemates — but only when paired (≥2).
+  const rawAtks = attackCards.map((c) => atkOf(c, false));
+  const rawDefs = defenseCards.map((c) => defOf(c, false));
 
-  let atk = laneStack(rawAtks);
-  let def = laneStack(rawDefs) + saveBonus(defenseCards);
+  let atk = laneStack(rawAtks) * laneMultiplier(attackCards);
+  let def = laneStack(rawDefs) * laneMultiplier(defenseCards) + saveBonus(defenseCards);
 
   const syn = computeSynergies(allCards, state.captainId);
   atk += syn.atk;

@@ -12,7 +12,7 @@
  */
 
 import { useRef, useState, useCallback } from 'react'
-import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, computeEffectiveStats, computeSynergies, RARITY_MULT, FORMATIONS, FATIGUE_DIV, HALFTIME_ROUND, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP, laneStamina, tacticalGatePassed, previewConversion, PRESSURE_FULL } from '../../engine'
+import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, computeEffectiveStats, computeSynergies, RARITY_MULT, FORMATIONS, FATIGUE_DIV, HALFTIME_ROUND, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP, laneStamina, laneStack, atkOf, defOf, laneMultiplier, cardLaneMult, tacticalGatePassed, previewConversion, PRESSURE_FULL } from '../../engine'
 import type { MatchState, Card, Formation, Tier, CardInPlay, PlayerCard, PlayerState, ShotResult } from '../../engine/types'
 import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
@@ -48,6 +48,10 @@ export interface SideReport {
   xg: number
   /** v11 finishing: this round's shot outcome (took/scored/conversion P). */
   shot?: ShotResult
+  /** Meter pressure [0,1] at the START of the round (before this round's fill). */
+  pressureBefore: number
+  /** Meter pressure [0,1] AFTER the shot resolved (0 on a goal, dropped on a miss). */
+  pressureAfter: number
 }
 
 export interface RoundReport {
@@ -90,19 +94,12 @@ function buildSideReport(p: PlayerState, xg: number, scored: boolean): SideRepor
   const eff = computeEffectiveStats(p)
   const syn = computeSynergies([...p.board.attack, ...p.board.defense], p.captainId)
   const fm = FORMATIONS[p.formation]
-  let rarityBonus = 0
-  for (const c of p.board.attack) {
-    if (c.card.type === 'player') {
-      const pc = c.card as PlayerCard
-      rarityBonus += pc.atk * (RARITY_MULT[pc.rarity] - 1)
-    }
-  }
-  for (const c of p.board.defense) {
-    if (c.card.type === 'player') {
-      const pc = c.card as PlayerCard
-      rarityBonus += pc.def * (RARITY_MULT[pc.rarity] - 1)
-    }
-  }
+  // v11 "star quality" = the lift the lane force-multiplier adds over the base lane stack (only
+  // active when a lane has ≥2 cards), summed across both lanes.
+  const atkBase = laneStack(p.board.attack.map((c) => atkOf(c, false)))
+  const defBase = laneStack(p.board.defense.map((c) => defOf(c, false)))
+  const rarityBonus =
+    atkBase * (laneMultiplier(p.board.attack) - 1) + defBase * (laneMultiplier(p.board.defense) - 1)
   return {
     atkEff: Math.round(eff.atkEff),
     defEff: Math.round(eff.defEff),
@@ -116,6 +113,9 @@ function buildSideReport(p: PlayerState, xg: number, scored: boolean): SideRepor
     synDef: Math.round(syn.def),
     scored,
     xg,
+    // Overridden in the round-report assembly with the real pre/post-round pressure.
+    pressureBefore: 0,
+    pressureAfter: 0,
   }
 }
 
@@ -379,6 +379,10 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
 
     const beforeYouGoals = p0.goals
     const beforeThemGoals = p1.goals
+    // Pressure at the start of the round — the reveal animates each bar from here, one side at a
+    // time, so you never see the opponent's outcome before their goal/save beat plays.
+    const beforeYouXg = Math.min(1, p0.xg)
+    const beforeThemXg = Math.min(1, p1.xg)
     const currentRound = match.round
 
     // Side reports must be built from the PRE-resolve state (resolveRound clears the boards).
@@ -424,8 +428,8 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
       youGoalsTotal: p0.goals,
       themGoalsTotal: p1.goals,
       decided: match.winner !== null,
-      you: { ...youPre, xg: youXgGained, scored: youGoalsThisRound > 0, shot: p0.lastShot },
-      them: { ...themPre, xg: themXgGained, scored: themGoalsThisRound > 0, shot: p1.lastShot },
+      you: { ...youPre, xg: youXgGained, scored: youGoalsThisRound > 0, shot: p0.lastShot, pressureBefore: beforeYouXg, pressureAfter: Math.min(1, p0.xg) },
+      them: { ...themPre, xg: themXgGained, scored: themGoalsThisRound > 0, shot: p1.lastShot, pressureBefore: beforeThemXg, pressureAfter: Math.min(1, p1.xg) },
     })
     setPhase('reveal')
     syncSnapshot()
@@ -540,4 +544,4 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
   }
 }
 
-export { roundToMinute, computePhase, DIFFICULTY_TO_TIER, difficultyToTier, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, laneStamina, tacticalGatePassed, previewConversion, PRESSURE_FULL }
+export { roundToMinute, computePhase, DIFFICULTY_TO_TIER, difficultyToTier, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, laneStamina, tacticalGatePassed, previewConversion, PRESSURE_FULL, RARITY_MULT, cardLaneMult }

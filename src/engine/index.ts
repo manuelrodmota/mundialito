@@ -67,7 +67,7 @@ export { xgAdd, addPressure, takeShot, previewConversion } from "./xg.ts";
 export type { ShotOpts } from "./xg.ts";
 
 // WCC-007/008 — Effective stats + formation
-export { atkOf, defOf, laneStack, applyFormation, computeEffectiveStats, laneDecor, laneFx } from "./effectiveStats.ts";
+export { atkOf, defOf, laneStack, laneMultiplier, cardLaneMult, applyFormation, computeEffectiveStats, laneDecor, laneFx } from "./effectiveStats.ts";
 export type { EffectiveStats, LaneDecor, LaneFx } from "./effectiveStats.ts";
 
 // WCC-009 — Synergies
