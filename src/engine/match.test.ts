@@ -241,6 +241,34 @@ describe("premium once-per-half lock applies to the AI", () => {
   });
 });
 
+describe("aiStrengthMult difficulty handicap", () => {
+  it("amplifies the AI opponent's (player 1) xG", () => {
+    const run = (mult: number): number => {
+      const m = newMatch(
+        5,
+        { deck: makeDeck(10, "y"), captainId: "y0" },
+        { deck: makeDeck(10, "x"), captainId: "x0" },
+        makeOpp(),
+      );
+      const rng = makeRng(5);
+      startRound(m, rng);
+      m.aiStrengthMult = mult;
+      // p1 (AI) fields a strong attacker; p0 fields a lone weak defender.
+      m.players[1]!.board = {
+        attack: [{ card: makePlayerCard("atk", { atk: 100, def: 40, position: "FWD" }), lane: "attack", statuses: [], faceDown: true }],
+        defense: [],
+      };
+      m.players[0]!.board = {
+        attack: [],
+        defense: [{ card: makePlayerCard("def", { atk: 30, def: 50, position: "DEF" }), lane: "defense", statuses: [], faceDown: true }],
+      };
+      resolveRound(m, rng);
+      return m.players[1]!.xg + m.players[1]!.goals;
+    };
+    expect(run(1.3)).toBeGreaterThan(run(1.0));
+  });
+})
+
 describe("full headless match — end-to-end", () => {
   function runFullMatch(seed: number): MatchState {
     const rng = makeRng(seed);

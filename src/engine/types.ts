@@ -126,6 +126,11 @@ export interface MatchState {
   opponent: OpponentTeam;
   phase: "draw" | "plan" | "reveal" | "resolve" | "end";
   winner: 0 | 1 | null;
+  /**
+   * Difficulty handicap: multiplier on the AI opponent's (player index 1) effective ATK & DEF.
+   * The Arcade run sets it per ladder stage so later rounds are sharper; defaults to 1 (off).
+   */
+  aiStrengthMult?: number;
 }
 
 export interface RunState {

@@ -40,7 +40,7 @@ import type { MatchState, Card, Formation, CardInPlay, PlayerCard, PlayerState, 
 import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
 import type { RunState } from '../../engine/types'
-import { newRun, stageForIndex, advanceRun, isRunOver, isRunWon } from '../../run'
+import { newRun, stageForIndex, advanceRun, isRunOver, isRunWon, STAGE_AI_STRENGTH } from '../../run'
 import { drawOpponent, allowedTiersForStage } from '../../run'
 import { rollPlayerReward, offerTacticals, applyReward, swapTactical, removeCard, countTacticals } from '../../run'
 import { players as staticPlayerPool } from '../../data/players'
@@ -278,6 +278,8 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
         opponent,
         'run',
       )
+      // Per-stage difficulty handicap — later opponents are sharper (tuned via scripts/arcadeSim.ts).
+      match.aiStrengthMult = STAGE_AI_STRENGTH[run.stage]
 
       startRound(match, rng)
       matchRef.current = match
