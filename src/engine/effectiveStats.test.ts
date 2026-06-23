@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { atkOf, defOf, laneStack, applyFormation, computeEffectiveStats } from "./effectiveStats.ts";
+import { atkOf, defOf, laneStack, laneMultiplier, cardLaneMult, applyFormation, computeEffectiveStats } from "./effectiveStats.ts";
 import type { CardInPlay, PlayerCard, PlayerState } from "./types.ts";
 
 function makePlayerCard(overrides: Partial<PlayerCard> & Pick<PlayerCard, "id">): PlayerCard {
@@ -184,5 +184,38 @@ describe("computeEffectiveStats integration", () => {
     const { atkEff, defEff } = computeEffectiveStats(s);
     expect(atkEff).toBeCloseTo(100 * 1.18, 4);
     expect(defEff).toBeCloseTo(100 * 0.82, 4);
+  });
+});
+
+describe("v11 lane force-multiplier", () => {
+  it("a LONE star gets no multiplier (alone it would just inflate its own stat)", () => {
+    const leg = wrap(makePlayerCard({ id: "leg", atk: 90, rarity: "legendary" }));
+    expect(laneMultiplier([leg])).toBe(1);
+    const s = makeState({ board: { attack: [leg], defense: [] } });
+    expect(computeEffectiveStats(s).atkEff).toBeCloseTo(90, 4); // base, no ×1.3
+  });
+
+  it("a paired star lifts the WHOLE lane by its tier (incl. its lanemate)", () => {
+    const leg = wrap(makePlayerCard({ id: "leg", atk: 90, rarity: "legendary" }));
+    const com = wrap(makePlayerCard({ id: "com", atk: 70, rarity: "common" }));
+    expect(laneMultiplier([leg, com])).toBeCloseTo(1.3, 5);
+    const s = makeState({ board: { attack: [leg, com], defense: [] } });
+    // base lane stack (90 ×1.0 + 70 ×0.85) then ×1.3 — the common rides the legendary's boost.
+    expect(computeEffectiveStats(s).atkEff).toBeCloseTo((90 + 70 * 0.85) * 1.3, 4);
+  });
+
+  it("with multiple stars the highest tier wins", () => {
+    const epic = wrap(makePlayerCard({ id: "e", rarity: "epic" }));
+    const rare = wrap(makePlayerCard({ id: "r", rarity: "rare" }));
+    expect(laneMultiplier([epic, rare])).toBeCloseTo(1.2, 5);
+  });
+
+  it("a GOLD goalkeeper (overall ≥87) anchors at ×1.3 even in the epic band; outfielders don't", () => {
+    const goldGk = makePlayerCard({ id: "gk", position: "GK", overall: 88, rarity: "epic" });
+    const goldFwd = makePlayerCard({ id: "fw", position: "FWD", overall: 88, rarity: "epic" });
+    expect(cardLaneMult(goldGk)).toBeCloseTo(1.3, 5);
+    expect(cardLaneMult(goldFwd)).toBeCloseTo(1.2, 5);
+    // A sub-gold keeper stays on its rarity.
+    expect(cardLaneMult(makePlayerCard({ id: "gk2", position: "GK", overall: 85, rarity: "rare" }))).toBeCloseTo(1.1, 5);
   });
 });

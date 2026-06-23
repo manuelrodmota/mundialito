@@ -16,6 +16,7 @@ export type {
   PlayerState,
   MatchState,
   RunState,
+  ShotResult,
 } from "./types.ts";
 
 export {
@@ -52,16 +53,21 @@ export {
   FATIGUE_LOSS,
   COUNTER_ATTACK_XG,
   MOMENTUM_XG,
+  PRESSURE_FULL,
+  BASE_CONVERSION,
+  CONVERSION_CAP,
+  MISS_DROP_FRAC,
 } from "./constants.ts";
 
 export { makeRng } from "./rng.ts";
 export type { Rng } from "./rng.ts";
 
 // WCC-006 — xG engine
-export { xgAdd, addXg } from "./xg.ts";
+export { xgAdd, addPressure, takeShot, previewConversion } from "./xg.ts";
+export type { ShotOpts } from "./xg.ts";
 
 // WCC-007/008 — Effective stats + formation
-export { atkOf, defOf, laneStack, applyFormation, computeEffectiveStats, laneDecor, laneFx } from "./effectiveStats.ts";
+export { atkOf, defOf, laneStack, laneMultiplier, cardLaneMult, applyFormation, computeEffectiveStats, laneDecor, laneFx } from "./effectiveStats.ts";
 export type { EffectiveStats, LaneDecor, LaneFx } from "./effectiveStats.ts";
 
 // WCC-009 — Synergies
@@ -82,7 +88,7 @@ export { commitCard, revealBoards, intentOf, clearBoard } from "./board.ts";
 export type { Intent } from "./board.ts";
 
 // WCC-014 — Tactical resolution
-export { canPlayTactical, playTactical, tacticalGatePassed, resolveInstants, applyTacticalXg, applyDefensiveTacticals, applyHighPress, applyTimeWasting, resetTacticalCounters } from "./tacticals.ts";
+export { canPlayTactical, playTactical, tacticalGatePassed, resolveInstants, applyTacticalXg, applyDefensiveTacticals, applyCatenaccio, applyHighPress, applyTimeWasting, shotModifiers, resetTacticalCounters } from "./tacticals.ts";
 
 // WCC-015 — Status effects
 export { statusMods, isRedCarded, isBooked, applySecondBooking, addStatus, tickStatuses, onFormXgBonus, removeStatus } from "./status.ts";

@@ -115,7 +115,7 @@ Each player has **ATK** and **DEF**, from one `overall` + position. ATK feeds yo
 
 `cost` (per-round stamina to field), `rarity`, `slots` from the `overall` band: Common 60–79 (0 slots, **cost 2**) · Rare 80–86 (1 slot, **cost 2**) · Epic 87–91 (2 slots, **cost 3**) · Legendary 92–99 (3 slots, **cost 4**). *(The per-round field cost is the **gentle curve** from the v10 balance pass — flattened from the old 2/3/4/6 so premium decks can put 3–4 bodies on the pitch; the **slot** costs that bound deck-building are unchanged. A lane with a premium also gets the **star-core discount**, §6.)*
 
-**Rarity multiplier.** A card contributes `stat × rarityMult` to its lane each round (this is your "rarer card = more impact" lever): **common ×1.0 · rare ×1.1 · epic ×1.2 · legendary ×1.3.** So a 95-ATK legendary attacker effectively brings **123**, and a 90-DEF legendary defender brings **117** to suppress the opponent's xG. It's deliberately gentle — the **card cap** (§6) and **diminishing returns on lane stacking** (§7) are what actually fix cheap-card flooding; the multiplier is shine on top, and the easiest dial to turn back toward 1.0 if stars get too strong.
+**Rarity multiplier — a LANE force-multiplier (v11).** A star's tier multiplier (**common ×1.0 · rare ×1.1 · epic ×1.2 · legendary ×1.3**) now multiplies the **whole lane's** effective stat, **but only when the lane has ≥2 cards** — so a star *lifts its lanemates*, not just itself. **Alone, a star gets no multiplier** (multiplying a single card is just inflating its overall, which is pointless), so the lever only matters when you build a line *around* the star. With multiple stars in a lane, the **highest tier wins**. **Gold goalkeepers** (legendary-tier colour, overall ≥ `GOLD_THRESHOLD` = 87) anchor at the **×1.3** legendary multiplier even if their rating only reaches the epic band — elite keepers are defensive keystones; no other position gets this bump. The match UI shows the active **×mult badge** on the top star card the moment a 2nd card joins its lane. (Previously this was a per-card `stat × rarityMult` applied unconditionally; v11 gates it to ≥2 and applies it lane-wide so pairing a star with support is the rewarded play.) Still gentle — the **card cap** (§6) and **diminishing returns on lane stacking** (§7) remain the primary anti-flooding levers; this is shine on top and the easiest dial to turn back toward 1.0.
 
 ---
 
@@ -148,12 +148,24 @@ Each player has **ATK** and **DEF**, from one `overall` + position. ATK feeds yo
 
 ## 7. Scoring — the xG engine *(the scoring core)*
 
-There is **no HP**. Instead, each team has an **xG meter** (its accumulated expected goals). Both meters fill every round:
+There is **no HP**. Instead, each team has an **xG meter** — now a **pressure / chance gauge** — that fills every round:
 
 - **Your meter** fills from **your attack vs their defense**.
 - **Their meter** fills from **their attack vs your defense**.
-- When a meter **crosses 1.0**, that team **scores a GOAL**; the meter keeps the remainder (e.g. 1.3 → goal, 0.3 carries over).
-- **First team to 3 goals wins** the match.
+- When a meter **fills (reaches `PRESSURE_FULL` = 1.0)**, that team **takes a SHOT** — see **v11 finishing** below. It is **not** an automatic goal.
+- **Most goals at full time wins** (mercy at a 3-goal lead; level → golden-goal ET, §14).
+
+### v11 — probabilistic finishing ("Pressure → Conversion")
+
+A full meter no longer auto-scores (the old `cross 1.0 → guaranteed goal` produced a predictable "I score / you score" metronome). Instead, reaching full triggers a **shot that converts with probability `P`**:
+
+- **Conversion `P`** = `BASE_CONVERSION` (0.80 at a full meter) + **pity** (`+PITY_STEP` per consecutive miss, capped `PITY_CAP`) + **momentum** (a side on top finishes a touch better, up to `MOMENTUM_CONVERSION`), clamped to `CONVERSION_CAP` (0.95 — open play is never certain).
+- **Goal** → bank it, the meter **empties to 0**.
+- **Miss** → the meter **drops by `MISS_DROP_FRAC`** (half) — you keep some pressure and try again next round; each miss raises the next shot's pity bonus.
+- **Telegraphed:** the meter shows the conversion `P` *before* you lock in, so a missed full-meter chance is a risk you saw, not an arbitrary coin-flip.
+- **Tactical finishers** (§12): **Penalty Kick** forces a shot at ~`PENALTY_CONVERSION` (0.78) and **Hand of God** a near-certain shot (`HAND_OF_GOD_CONVERSION` 0.95, once per match) — regardless of build-up. The other attacking tacticals (Tiki-Taka, Long Ball, Counter-Attack, Nutmeg) still **fill** the meter (create the chance).
+- **Why the better deck still wins:** fill is unchanged and deterministic, so a stronger attack reaches full **more often** → takes **more shots** → scores more across the match. The roll only adds drama and desyncs the metronome; sim shows a star deck still beating a common deck ~85% (§19).
+- **Extra time** is sudden death: both sides build, the higher-pressure side shoots first, and the **first goal ends the passage** — a penalty-shootout-grade finish.
 
 **xG added per round** for a team:
 ```
@@ -205,7 +217,7 @@ Formation is a **broadcast stance** (shown via Intent); lane allocation is your 
 2. **Plan** — both privately **pick a Formation** and assign hand cards to **ATTACK / DEFENSE** (face-down), up to the **card cap** for the round (4/5/6, §6) and within stamina. **Tactical Cards are played face-up the moment they're committed — both players see them** (capped at **2 per half**, §6) and may keep adjusting their hidden lineups (and play their own Tactical Cards, e.g. VAR in response to an Offside Trap) until both **lock in**. *No separate phase — it all happens inside the planning window.*
 3. **Intent** — each side continuously sees the opponent's **formation + any Tactical Cards played + committed card-count & stamina** — **never the player identities**.
 4. **Reveal** — lineups flip simultaneously.
-5. **Resolve (strict order):** a) **Instant** Tacticals (VAR → Offside → Referee → Injury) edit the boards → b) synergies, Powers, Captain's Pride → c) **formation multipliers** → d) **fatigue** applied to defense → e) **compute xG_round for both teams** (doubled in extra time) and add to meters; any meter crossing 1.0 → **GOAL** → f) **update fatigue** from this round's attack/defense weighting → g) **cleanup:** grays → discard, spent **premium players → locked**, spent **Skills/Instants → exiled**, Powers stay active. At **round 5 (halftime)** locked players return and fatigue clears for both. Then **check the score** (§14).
+5. **Resolve (strict order):** a) **Instant** Tacticals (VAR → Offside → Referee → Injury) edit the boards → b) synergies, Powers, Captain's Pride → c) **formation multipliers** → d) **fatigue** applied to defense → e) **compute xG_round for both teams** (doubled in extra time) and add to the pressure meters; any meter that **fills triggers a SHOT** that converts with probability `P` (v11 §7) → **GOAL** (meter empties) or **SAVED** (meter drops) → f) **update fatigue** from this round's attack/defense weighting → g) **cleanup:** grays → discard, spent **premium players → locked**, spent **Skills/Instants → exiled**, Powers stay active. At **round 5 (halftime)** locked players return and fatigue clears for both. Then **check the score** (§14).
 6. **Check score** (§14) — a **3-goal lead ends it instantly**; otherwise play on to **full time (90')**, then the **leader wins** (or **golden-goal extra time** if level).
 
 **Visible Tacticals, hidden lineups:** because Tactical Cards swing games hard, telegraphing them creates a commitment/timing game (playing one first tips your hand — the chaos you want), while hidden lineups preserve the core bluff. **Debuff Tacticals auto-target by rule** (Offside = "their highest-ATK attacker") since you can't see the enemy lineup; **buff Tacticals attach to one of your matching-role players** and, by being visible, leak only that you *have* such a player.
@@ -297,7 +309,8 @@ The score is a normal **scoreboard** (e.g. "ARG 3 – 2 BRA") with the clock —
 | Match length | **10 rounds = 90'** (≈9'/round); halftime R5 (45'), full time R10 (90') |
 | Win condition | **lead by 3 → instant win**; else **most goals at full time**; level → extra time |
 | Extra time | **golden goal**, **xG ×2**, meters reset to 0, stars + fatigue refreshed; **true sudden death — both sides can't score in the same passage**; safety: higher ET xG after ~5 ET rounds |
-| xG per round | `clamp(0.05 + max(0, ATK_eff − DEF_eff)/210, 0, 0.50)` → goal at 1.0 (carry); **v10-tuned to ~5–6 goals/match** (see §7, §19) |
+| xG per round (fill) | `clamp(0.05 + max(0, ATK_eff − DEF_eff)/210, 0, 0.50)` → fills the pressure meter; a **full meter takes a SHOT** (v11 finishing, §7) — no longer an auto-goal |
+| Finishing (v11) | full meter → shot at `P` = `BASE_CONVERSION` 0.80 + pity + momentum, cap 0.95; goal empties, miss drops half; Penalty 0.78 / Hand of God 0.95 forced shots |
 | Card flow | grays cycle freely · **premium players lock → return at halftime / start of ET** (once-per-half) · **Tactical Cards single-use (exiled)** |
 | Starting XI | 11 players, slot budget **10**, + 0–1 Tactical |
 | Quickplay deck | ~16 players, slot budget **20**, + **up to 3** Tactical; pick difficulty → opponent tier |
@@ -332,7 +345,7 @@ North star: **FIFA Ultimate Team card art on a Slay-the-Spire run.** Stadium-at-
 4. **Locker Room** *(Arcade Run only)* — reward player reveal, **choose-1-of-3 Tactical**, set Captain, deck list, next-opponent preview.
 5. **Match Board (centerpiece):**
    - **Scoreboard + match clock:** a normal **numeric scoreboard** ("ARG 2 – 1 BRA") and a **running clock** — kickoff → **45' HALFTIME** (round 5) → **90' FULL TIME** (round 10) → **ET** if level. A subtle **"–3 to win"** marker hints at the mercy threshold.
-   - **xG meter** per team — **always visible**, shown as a **filling bar (not a precise decimal)** so it reads as football. The round's gain **animates in on reveal**, and a **fatigue "heat" glow** shows when that side's defense is tiring (§8). Both bars on screen at all times is load-bearing — it's how you make the attack-vs-defend call, and watching the opponent's bar **flatline against your wall** is the payoff for defending. A bar crossing 1.0 → **full-screen "GOAL!!!"**, crowd roar, net-ripple.
+   - **xG meter** per team — **always visible**, shown as a **filling bar (not a precise decimal)** so it reads as football. The round's gain **animates in on reveal**, and a **fatigue "heat" glow** shows when that side's defense is tiring (§8). Both bars on screen at all times is load-bearing — it's how you make the attack-vs-defend call, and watching the opponent's bar **flatline against your wall** is the payoff for defending. A **full bar takes a SHOT** (the bar shows the conversion % beforehand) → **full-screen "GOAL!!!"** (crowd roar, net-ripple) **or "SAVED!"** if the keeper wins it.
    - **Three card zones** beside your hand: the **draw/discard** count (grays cycling), a **bench/locked pile** for spent **premium players** (with a "returns at halftime" cue), and an **exiled** sliver for spent **Tactical Cards**.
    - **Formation selector** (3 shapes) for the round; **ATTACK / DEFENSE** lanes to drag face-down cards into (up to the card cap).
    - **Tactical Cards play face-up in a prominent center slot** with a clear callout ("⚠ OFFSIDE TRAP", "PENALTY!") — visible to both, and they visibly **burn/exile** after resolving. Lineups stay face-down until reveal.
@@ -511,7 +524,8 @@ function resolveRound(m):
 
     if not m.extraTime:                            // REGULATION: both meters add; simultaneous goals count (mercy handles it)
         for scorer in [0,1]:
-            addXg(m, scorer, xgAddFor(scorer))     // crossing 1.0 => goal++ (record scoredFirstAt), carry remainder
+            addPressure(scorer, xgAddFor(scorer))  // fill the meter [0,1]
+            takeShot(scorer)                       // if full/forced: roll P → goal++ (empty) or miss (drop) — v11 §7
     else:                                          // EXTRA TIME: true sudden death — only the better passage can score
         m.etRound += 1
         a0 = xgAddFor(0); a1 = xgAddFor(1)

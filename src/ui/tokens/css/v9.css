@@ -226,8 +226,8 @@
 /* While dragging, dnd-kit drives the outer node directly — keep the inner card upright. */
 .fan2 .hcard.dragging .hcard-arc { transform: none; transition: none; }
 .fan2 .hcard.dim { filter: saturate(0.45) brightness(0.78) contrast(0.95); }
-.fan2 .hcard.dim .hcard-arc::after {
-  content: "NEEDS " attr(data-need) " ⚡";
+.fan2 .hcard.dim .hcard-arc[data-block]::after {
+  content: attr(data-block);
   position: absolute; left: 33%; top: 55%; transform: translate(-50%, -50%) rotate(-8deg);
   z-index: 14; pointer-events: none;
   font-size: 11px; font-weight: 800; letter-spacing: 0.08em; white-space: nowrap;
@@ -514,6 +514,9 @@
 /* opponent identity in match strip */
 .opp-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: none; }
 .opp-id .nm { font-weight: 800; font-size: 14px; white-space: nowrap; }
+/* v11: the opponent intent (formation · cards · stamina) now lives in the opponent header. */
+.opp-id .opp-intent { font-size: 11px; font-weight: 600; color: var(--txt-dim); letter-spacing: 0.02em; white-space: nowrap; }
+.opp-id .opp-intent b { color: var(--txt); font-weight: 800; }
 .opp-id .sub3 { display: flex; gap: 8px; align-items: center; font-size: 10.5px; color: var(--txt-dim); font-weight: 600; }
 
 /* keep the strips tidy when chips pile up */
@@ -753,6 +756,46 @@
 }
 .heat-tag { color: #ff9e50; }
 .xgm4[data-heat="3"] .heat-tag { color: #ff6a3c; }
+
+/* v11 Pressure → goal-chance bands: the bar fill colours by level; "high" (≥60%) glows. */
+.xgm4.chance-med .xgm-bar i { background: linear-gradient(90deg, #e0b14e, #f0d27a); }
+.xgm4.chance-high .xgm-bar i { background: linear-gradient(90deg, #ffd34d, #ff7a3c); }
+.xgm4.chance-high.mine .xgm-bar i { background: linear-gradient(90deg, #ffe78a, #f4c24a); }
+.xgm4.chance-high .xgm-bar { animation: chanceHighPulse 0.9s ease-in-out infinite; }
+.xgm4.chance-high .xgm-val { color: #fff; text-shadow: 0 0 8px rgba(255, 190, 80, 0.9), 0 1px 3px rgba(0,0,0,0.7); }
+@keyframes chanceHighPulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 200, 80, 0.45); }
+  50% { box-shadow: 0 0 22px rgba(255, 180, 60, 0.8); }
+}
+/* v11 missed-shot reveal card */
+.shot-miss { text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6); }
+.shot-miss .saved { color: #ff7a6a; }
+
+/* v11 lane force-multiplier badge — a corner circle mirroring the cost badge (top-left), placed
+   top-right. Filled in the card's own tier colour. Shows only when the lane has ≥2 cards (so the
+   star lifts the whole line). */
+.wcard .lane-mult2 {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: calc(var(--cw, 168px) * 0.21);
+  height: calc(var(--cw, 168px) * 0.21);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: calc(var(--cw, 168px) * 0.085);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  z-index: 4;
+  pointer-events: none;
+}
+.wcard .lane-mult2[data-rar="rare"] { background: radial-gradient(circle at 35% 30%, #8cc2f5, #2f72c8 72%); color: #fff; }
+.wcard .lane-mult2[data-rar="epic"] { background: radial-gradient(circle at 35% 30%, #c79bf0, #7b3fc8 72%); color: #fff; }
+.wcard .lane-mult2[data-rar="legendary"],
+.wcard .lane-mult2[data-rar="icon"] { background: radial-gradient(circle at 35% 30%, #ffe27a, #d99a06 72%); color: #4a3300; }
 
 /* ---- xG gain float on the pitch ---- */
 .xg-float4 {
@@ -1734,7 +1777,8 @@
 /* The label cluster floats at the top of the lane. */
 .lane4 .lane-fx4 {
   position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
-  z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  z-index: 4; display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: center;
+  align-items: center; gap: 4px;
   pointer-events: none;
 }
 .lane4 .fx-pill {

@@ -7,6 +7,13 @@
  * Instant order: VAR → Offside → Referee → Injury. GDD §10 line 208, §12.
  * xG modifiers fold last, after formation + fatigue. GDD §17 line 508.
  * Single-use: skills/instants → exiled; powers persist in PlayerState.powers.
+ *
+ * Where each effect lives:
+ *   - Stat-fold powers (Talisman, Total Football) fold into computeEffectiveStats.
+ *   - Persistent DEF (Fortress) folds in applyDefensiveTacticals.
+ *   - Catenaccio multiplies the opponent's final round xG (applyCatenaccio).
+ *   - Per-round xG skills/powers (Tiki-Taka, Long Ball, Penalty, Counter, Nutmeg,
+ *     Hand of God, On Form) fold in applyTacticalXg.
  */
 
 import type {
@@ -20,9 +27,22 @@ import {
   TACTICALS_PER_HALF,
   COUNTER_ATTACK_XG,
   MOMENTUM_XG,
+  XG_SLOPE,
+  DEF_COEFF,
+  FATIGUE_MAX,
+  PRESSED_DEF,
+  HIGH_PRESS_FATIGUE,
+  SUBSTITUTION_FATIGUE,
+  SUBSTITUTION_DRAW,
+  TEAM_TALK_DRAW,
+  PENALTY_CONVERSION,
+  HAND_OF_GOD_CONVERSION,
 } from "./constants.ts";
 import { addStatus, applySecondBooking, isBooked, removeStatus } from "./status.ts";
 import { resetFatigue } from "./fatigue.ts";
+import { drawExtra } from "./cards.ts";
+import { atkOf } from "./effectiveStats.ts";
+import type { Rng } from "./rng.ts";
 
 /** Returns the opponent's player-index for a given player index. */
 function opponent(idx: 0 | 1): 0 | 1 {
@@ -72,10 +92,11 @@ export function tacticalGatePassed(state: PlayerState, effect: TacticalEffect): 
 }
 
 /**
- * Resolves Instant tactical effects in strict order: VAR → Offside → Referee → Injury.
- * Edits boards before stat calculation. GDD §10 line 208, §12.
+ * Resolves Instant + Skill tactical effects in strict order:
+ *   VAR → Offside → Referee → Injury → Water Break → Substitution → Team Talk.
+ * Edits boards / fatigue / hands before stat calculation. GDD §10 line 208, §12.
  */
-export function resolveInstants(m: MatchState): void {
+export function resolveInstants(m: MatchState, rng: Rng): void {
   const instants = collectInstants(m);
 
   const order: TacticalEffect["kind"][] = [
@@ -95,7 +116,7 @@ export function resolveInstants(m: MatchState): void {
       const self = m.players[playerIdx]!;
       const opp = m.players[opponent(playerIdx)]!;
 
-      applyInstantEffect(m, self, opp, card.effect);
+      applyInstantEffect(self, opp, card.effect, rng);
     }
   }
 }
@@ -121,10 +142,10 @@ function collectInstants(m: MatchState): InstantEntry[] {
 }
 
 function applyInstantEffect(
-  m: MatchState,
   self: PlayerState,
   opp: PlayerState,
   effect: TacticalEffect,
+  rng: Rng,
 ): void {
   switch (effect.kind) {
     case "var": {
@@ -132,10 +153,11 @@ function applyInstantEffect(
       break;
     }
     case "offsideTrap": {
-      const fwd = getFirstFwd(opp.board.attack);
-      if (fwd) {
-        opp.board.attack = opp.board.attack.filter((c) => c !== fwd);
-        opp.exiled.push(fwd.card);
+      // The opponent's highest-ATK attacker contributes 0 to their xG this round (GDD §12).
+      // We don't exile it — it returns to its pile normally; it's just silenced for the round.
+      const target = getHighestAtkAttacker(opp.board.attack);
+      if (target) {
+        addStatus(target, { kind: "offside", duration: 1 });
       }
       break;
     }
@@ -156,27 +178,42 @@ function applyInstantEffect(
       const target = getRandomPlayerOnBoard(opp);
       if (target) {
         addStatus(target, { kind: "injured", amount: effect.amount ?? 15 });
+        // Persist the injury for the rest of the match — statuses on the per-round CardInPlay are
+        // lost when the card cycles out, so the registry re-stamps it each round it's fielded. §11.
+        (opp.injured ??= []).push(target.card.id);
       }
       break;
     }
     case "waterBreak": {
+      // Fatigue reset lands THIS round (resolveInstants runs before computeEffectiveStats). The
+      // +2 stamina is a planning-phase budget lever applied in the match board UI when the card is
+      // staged (so you can field an extra player the round you play it); it is intentionally NOT
+      // added to next round's stamina here — that was the old one-round-late bug. §12.
       resetFatigue(self);
-      self.tacticBonus += effect.amount ?? 2;
       break;
     }
     case "substitution": {
-      self.tacticBonus += effect.amount ?? 8;
+      // Fresh legs: reduce fatigue and cycle a card. §12.
+      self.fatigue = Math.max(0, self.fatigue - (effect.amount ?? SUBSTITUTION_FATIGUE));
+      drawExtra(self, SUBSTITUTION_DRAW, rng);
       break;
     }
     case "teamTalk": {
-      self.fatigue = Math.max(0, Math.floor(self.fatigue / 2));
-      self.tacticBonus += effect.amount ?? 5;
+      // Remove all debuffs from your fielded cards, clear fatigue, draw 2. §12.
+      for (const cip of [...self.board.attack, ...self.board.defense]) {
+        removeStatus(cip, "pressed");
+        removeStatus(cip, "injured");
+        removeStatus(cip, "booked");
+        removeStatus(cip, "offside");
+      }
+      self.injured = [];
+      resetFatigue(self);
+      drawExtra(self, TEAM_TALK_DRAW, rng);
       break;
     }
     default:
       break;
   }
-  void m;
 }
 
 function cancelOpponentTactical(opp: PlayerState): void {
@@ -191,8 +228,14 @@ function cancelOpponentTactical(opp: PlayerState): void {
   }
 }
 
-function getFirstFwd(lane: CardInPlay[]): CardInPlay | undefined {
-  return lane.find((c) => c.card.type === "player" && c.card.position === "FWD");
+/** The opponent's strongest attacker by raw ATK contribution (rarity-adjusted). */
+function getHighestAtkAttacker(lane: CardInPlay[]): CardInPlay | undefined {
+  let best: CardInPlay | undefined;
+  for (const c of lane) {
+    if (c.card.type !== "player") continue;
+    if (!best || atkOf(c) > atkOf(best)) best = c;
+  }
+  return best;
 }
 
 function getFirstBookedOnBoard(state: PlayerState): CardInPlay | undefined {
@@ -219,9 +262,13 @@ function getRandomPlayerOnBoard(state: PlayerState): CardInPlay | undefined {
 }
 
 /**
- * Computes the xG bonus from active tactical/power effects for the given player.
+ * Computes the per-round xG bonus from active tactical/power effects for the given player.
  * Applied after formation and fatigue, folding last into the xG pipeline.
  * GDD §12 table lines 235-253, §17 line 508.
+ *
+ * @param oppDefEff opponent's effective DEF (pre-DEF_COEFF) — used by Nutmeg.
+ * @param ownDefEff scorer's own effective DEF — used by Counter-Attack's trigger.
+ * @param oppAtkEff opponent's effective ATK — used by Counter-Attack's trigger.
  */
 export function applyTacticalXg(
   m: MatchState,
@@ -229,12 +276,14 @@ export function applyTacticalXg(
   baseXg: number,
   oppDefEff: number,
   ownAtkEff: number,
+  ownDefEff = 0,
+  oppAtkEff = 0,
 ): number {
+  void ownAtkEff;
   const self = m.players[scorerIdx]!;
   const allCards = [...self.board.attack, ...self.board.defense];
 
   let bonus = 0;
-  let longBallActive = false;
   let nutmegActive = false;
 
   for (const cip of allCards) {
@@ -246,43 +295,37 @@ export function applyTacticalXg(
         bonus += t.effect.amount ?? 0.2;
         break;
       case "longBall":
-        longBallActive = true;
+        // A direct chance that bypasses the back line — a flat add, unaffected by opp DEF. §12.
+        bonus += t.effect.amount ?? 0.45;
         break;
-      case "penalty":
-        bonus += t.effect.amount ?? 0.85;
-        break;
+      // penalty is no longer a fill bonus — it forces a high-conversion SHOT (see shotModifiers).
       case "counterAttack":
-        if (oppDefEff >= ownAtkEff) {
+        // GDD §12: if YOUR DEF_eff ≥ THEIR ATK_eff this round, add +0.40 (capped) on the break.
+        if (ownDefEff >= oppAtkEff) {
           bonus += Math.min(t.effect.amount ?? COUNTER_ATTACK_XG, COUNTER_ATTACK_XG);
         }
         break;
       case "nutmeg":
         nutmegActive = true;
         break;
-      case "handOfGod":
-        if (!self.handOfGodUsed) {
-          bonus += t.effect.amount ?? 1.0;
-          self.handOfGodUsed = true;
-        }
-        break;
       default:
         break;
     }
   }
 
-  for (const power of self.powers) {
-    switch (power.effect.kind) {
-      case "talisman":
-        bonus += power.effect.amount ?? 0;
-        break;
-      case "totalFootball":
-        bonus += 0.1;
-        break;
-      default:
-        break;
+  // Hand of God (Power) is no longer a flat xG add — it forces a near-certain SHOT once per match
+  // (see shotModifiers + takeShot). §12.
+
+  // Nutmeg: your best forward ignores the opponent's defense — give back the xG that the back line
+  // was suppressing on that one forward (capped at its own ATK). §12.
+  if (nutmegActive) {
+    const bestFwd = getHighestAtkAttacker(self.board.attack);
+    if (bestFwd) {
+      bonus += Math.min(atkOf(bestFwd), oppDefEff * DEF_COEFF) / XG_SLOPE;
     }
   }
 
+  // On Form (momentum) bonus from a fielded player, consumed on use. §11 / §16.
   for (const cip of allCards) {
     if (cip.card.type === "player") {
       const onFormBonus = cip.statuses.find((s) => s.kind === "onform");
@@ -293,20 +336,45 @@ export function applyTacticalXg(
     }
   }
 
-  if (longBallActive) {
-    return baseXg + bonus + (0.45);
-  }
-
-  if (nutmegActive) {
-    return baseXg + bonus;
-  }
-
   return baseXg + bonus;
 }
 
 /**
- * Applies Catenaccio and Fortress defensive power effects.
- * These modify the opponent's ATK or the player's DEF.
+ * Reads the player's board + powers for shot-forcing tacticals (v11 finishing). Penalty Kick and
+ * Hand of God no longer fill the meter — they force a SHOT this round at a high conversion floor,
+ * regardless of build-up. Hand of God is once per match (gated on handOfGodUsed; the caller marks
+ * it used when the shot is actually taken). GDD §12 / §14.
+ */
+export function shotModifiers(
+  state: PlayerState,
+): { forceShot: boolean; convFloor: number; handOfGod: boolean } {
+  let forceShot = false;
+  let convFloor = 0;
+  let handOfGod = false;
+
+  for (const cip of [...state.board.attack, ...state.board.defense]) {
+    if (cip.card.type !== "tactical") continue;
+    const t = cip.card as TacticalCard;
+    if (t.effect.kind === "penalty") {
+      forceShot = true;
+      convFloor = Math.max(convFloor, t.effect.amount ?? PENALTY_CONVERSION);
+    }
+  }
+
+  for (const power of state.powers) {
+    if (power.effect.kind === "handOfGod" && !state.handOfGodUsed) {
+      forceShot = true;
+      handOfGod = true;
+      convFloor = Math.max(convFloor, power.effect.amount ?? HAND_OF_GOD_CONVERSION);
+    }
+  }
+
+  return { forceShot, convFloor, handOfGod };
+}
+
+/**
+ * Applies the Fortress Power to the player's DEF_eff (persistent +amount every round).
+ * Catenaccio is no longer a DEF buff — it multiplies the opponent's xG (see applyCatenaccio). §12.
  */
 export function applyDefensiveTacticals(
   m: MatchState,
@@ -314,16 +382,7 @@ export function applyDefensiveTacticals(
   defEff: number,
 ): number {
   const self = m.players[defenderIdx]!;
-  const allCards = [...self.board.attack, ...self.board.defense];
   let bonus = 0;
-
-  for (const cip of allCards) {
-    if (cip.card.type !== "tactical") continue;
-    const t = cip.card as TacticalCard;
-    if (t.effect.kind === "catenaccio") {
-      bonus += 10;
-    }
-  }
 
   for (const power of self.powers) {
     if (power.effect.kind === "fortress") {
@@ -335,7 +394,26 @@ export function applyDefensiveTacticals(
 }
 
 /**
- * Applies High Press: targets the opponent's DEF, adding Pressed status.
+ * Catenaccio: halve (×amount) the opponent's xG against you this round. The defender holds the
+ * skill on their board; it scales the attacker's final round xG. GDD §12.
+ */
+export function applyCatenaccio(m: MatchState, defenderIdx: 0 | 1, oppXg: number): number {
+  const self = m.players[defenderIdx]!;
+  const allCards = [...self.board.attack, ...self.board.defense];
+  let xg = oppXg;
+  for (const cip of allCards) {
+    if (cip.card.type !== "tactical") continue;
+    const t = cip.card as TacticalCard;
+    if (t.effect.kind === "catenaccio") {
+      xg *= t.effect.amount ?? 0.5;
+    }
+  }
+  return xg;
+}
+
+/**
+ * Applies High Press: the opponent's lead defender is Pressed (DEF −PRESSED_DEF this round) and the
+ * opponent gains fatigue that carries into the next round. GDD §11 / §12.
  */
 export function applyHighPress(m: MatchState, attackerIdx: 0 | 1): void {
   const self = m.players[attackerIdx]!;
@@ -348,14 +426,16 @@ export function applyHighPress(m: MatchState, attackerIdx: 0 | 1): void {
     if (t.effect.kind === "highPress") {
       const targetDefCard = opp.board.defense[0];
       if (targetDefCard) {
-        addStatus(targetDefCard, { kind: "pressed", amount: 10, duration: 1 });
+        addStatus(targetDefCard, { kind: "pressed", amount: PRESSED_DEF, duration: 1 });
       }
+      opp.fatigue = Math.min(FATIGUE_MAX, opp.fatigue + HIGH_PRESS_FATIGUE);
     }
   }
 }
 
 /**
- * Applies Time Wasting: reduces the opponent's effective fatigue recovery (adds fatigue).
+ * Applies Time Wasting: the opponent's xG floor drops to 0 for their NEXT round — no open-play
+ * baseline, so an idle attack generates nothing. The flag is consumed at the top of resolveRound. §12.
  */
 export function applyTimeWasting(m: MatchState, attackerIdx: 0 | 1): void {
   const opp = m.players[opponent(attackerIdx)]!;
@@ -366,7 +446,7 @@ export function applyTimeWasting(m: MatchState, attackerIdx: 0 | 1): void {
     if (cip.card.type !== "tactical") continue;
     const t = cip.card as TacticalCard;
     if (t.effect.kind === "timeWasting") {
-      opp.fatigue = Math.min(30, opp.fatigue + 3);
+      opp.xgFloorSuppressed = true;
     }
   }
 }

@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { laneDecor, laneFx, laneStack } from "./effectiveStats.ts";
 import { laneStamina } from "./validateLineup.ts";
-import { RARITY_MULT } from "./constants.ts";
 import type { PlayerCard } from "./types.ts";
 
 function makePlayerCard(
@@ -104,14 +103,14 @@ describe("laneDecor", () => {
     expect(decorTotal).toBe(laneStamina(cards));
   });
 
-  it("effContrib sum matches laneStack (no drift from resolution)", () => {
+  it("effContrib sum matches laneStack on BASE stats (v11: rarity is a separate lane multiplier)", () => {
     const cards = [
       makePlayerCard({ id: "a", rarity: "epic", atk: 88 }),
       makePlayerCard({ id: "b", rarity: "rare", atk: 75 }),
       makePlayerCard({ id: "c", rarity: "common", atk: 70 }),
     ];
     const decorEff = laneDecor(cards, "attack").reduce((s, d) => s + d.effContrib, 0);
-    const raw = cards.map((c) => c.atk * RARITY_MULT[c.rarity]);
+    const raw = cards.map((c) => c.atk);
     expect(decorEff).toBeCloseTo(laneStack(raw), 6);
   });
 });

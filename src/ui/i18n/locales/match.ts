@@ -79,6 +79,17 @@ export const en = {
 
   // Meter labels
   'match.meter.you': 'YOU',
+  // v11 Pressure → Conversion meter. The bar fills as you attack; the label reads the goal chance
+  // qualitatively (a full bar is a high chance, not a sure goal). Fatigue ("FRESH") is a separate line.
+  'match.meter.chanceLow': 'Low goal chance ⚽',
+  'match.meter.chanceMed': 'Med goal chance ⚽',
+  'match.meter.chanceHigh': 'High goal chance ⚽',
+  'match.meter.tip': 'The bar fills as you attack — the fuller it is, the better your chance to score when you take the shot. A goal empties the meter; a miss knocks a chunk off so you keep trying. The tag below (FRESH/HOT) is your fatigue.',
+  // v11 shot reveal
+  'match.shot.saved': 'SAVED!',
+  'match.shot.youMissed': "Your chance goes begging — the keeper wins it.",
+  'match.shot.theyMissed': '{opp} blow their chance.',
+  'match.shot.atChance': 'shot taken at {pct}%',
 
   // Action dock — stamina readout + active powers shelf
   'match.dock.stamina': 'Stamina',
@@ -97,7 +108,13 @@ export const en = {
   'match.tactic.needs': 'Needs {req} in your lineup to play.',
   'match.tactic.needsEnergy': 'Needs {n}⚡ — not enough stamina left this round.',
   'match.tactic.activePower': 'Power — active for the rest of the match.',
+  'match.tactic.played': 'Played this round.',
+  'match.tactic.tapToInspect': 'Tap to see what it does',
   'match.tactic.reqPos': '≥{n} {pos}',
+  // Hand-card block badges (shown on a dimmed/undroppable card)
+  'match.card.pitchFull': 'PITCH FULL',
+  'match.card.needsEnergy': 'NEEDS ⚡',
+  'match.card.tacticsUsed': 'TACTICS USED',
   'match.tactic.reqFwdMid': '≥{n} FWD or MID',
 
   // Round report panel
@@ -154,7 +171,7 @@ export const en = {
   // Coach-mark steps
   'match.coach.score.title': 'Score with xG',
   'match.coach.score.body':
-    'No health bars here. Each round both teams build expected goals. When a bar fills a whole goal, you SCORE — most goals at full time wins.',
+    'No health bars here. Each round you attack to fill your chance meter. When it fills you take a SHOT — at the % shown — so a full meter is a great chance, not a sure goal. A goal empties it; a miss leaves some pressure to try again. Most goals at full time wins.',
   'match.coach.squad.title': 'Your squad this round',
   'match.coach.squad.body':
     'These are the players in your hand. Drag them onto the pitch — you can field a few each round, limited by your stamina.',
@@ -255,6 +272,17 @@ export const es: typeof en = {
 
   // Meter labels
   'match.meter.you': 'TÚ',
+  // v11 medidor Presión → Conversión. La barra se llena al atacar; la etiqueta indica la ocasión de
+  // gol de forma cualitativa (barra llena = gran ocasión, no gol seguro). La fatiga ("FRESH") va aparte.
+  'match.meter.chanceLow': 'Ocasión baja ⚽',
+  'match.meter.chanceMed': 'Ocasión media ⚽',
+  'match.meter.chanceHigh': 'Ocasión alta ⚽',
+  'match.meter.tip': 'La barra se llena al atacar — cuanto más llena, mejor tu ocasión de marcar al rematar. Un gol vacía el medidor; un fallo le quita una parte para seguir intentándolo. La etiqueta de abajo (FRESH/HOT) es tu fatiga.',
+  // v11 revelación del remate
+  'match.shot.saved': '¡ATAJADA!',
+  'match.shot.youMissed': 'Tu ocasión se esfuma — el portero la gana.',
+  'match.shot.theyMissed': '{opp} desperdician su ocasión.',
+  'match.shot.atChance': 'remate al {pct}%',
 
   // Action dock — stamina readout + active powers shelf
   'match.dock.stamina': 'Resistencia',
@@ -273,8 +301,14 @@ export const es: typeof en = {
   'match.tactic.needs': 'Necesita {req} en tu alineación para jugarse.',
   'match.tactic.needsEnergy': 'Necesita {n}⚡ — no queda resistencia esta ronda.',
   'match.tactic.activePower': 'Poder — activo el resto del partido.',
+  'match.tactic.played': 'Jugada esta ronda.',
+  'match.tactic.tapToInspect': 'Toca para ver qué hace',
   'match.tactic.reqPos': '≥{n} {pos}',
   'match.tactic.reqFwdMid': '≥{n} DEL o MED',
+  // Insignias de bloqueo en cartas de la mano
+  'match.card.pitchFull': 'CANCHA LLENA',
+  'match.card.needsEnergy': 'NECESITA ⚡',
+  'match.card.tacticsUsed': 'TÁCTICAS USADAS',
 
   // Round report panel
   'match.report.extraTime': "Tiempo extra +{n}'",
@@ -330,7 +364,7 @@ export const es: typeof en = {
   // Coach-mark steps
   'match.coach.score.title': 'Marca con xG',
   'match.coach.score.body':
-    'Aquí no hay barras de vida. Cada ronda ambos equipos acumulan goles esperados. Cuando una barra completa un gol entero, MARCAS — gana quien tenga más goles al final del partido.',
+    'Aquí no hay barras de vida. Cada ronda atacas para llenar tu medidor de ocasión. Al llenarse REMATAS — al % indicado — así que un medidor lleno es una gran ocasión, no un gol seguro. Un gol lo vacía; un fallo deja algo de presión para reintentar. Gana quien tenga más goles al final.',
   'match.coach.squad.title': 'Tu plantilla esta ronda',
   'match.coach.squad.body':
     'Estos son los jugadores en tu mano. Arrástralos al campo — puedes alinear a unos cuantos cada ronda, según tu resistencia.',

@@ -92,11 +92,12 @@ export const tacticals: TacticalCard[] = [
     id: "tac-catenaccio",
     type: "tactical",
     name: "Catenaccio",
+    // amount is the multiplier applied to the opponent's xG against you this round (0.5 = halve). §12
     category: "skill",
     cost: 2,
     slots: 1,
     rarity: "epic",
-    effect: { kind: "catenaccio", requiresPosition: "DEF", requiresCount: 2 },
+    effect: { kind: "catenaccio", amount: 0.5, requiresPosition: "DEF", requiresCount: 2 },
   },
   {
     id: "tac-counter-attack",
@@ -149,7 +150,9 @@ export const tacticals: TacticalCard[] = [
     cost: 2,
     slots: 1,
     rarity: "epic",
-    effect: { kind: "penalty", amount: 0.85, requiresPosition: "FWD", requiresCount: 1 },
+    // v11: penalty no longer fills the meter — it forces a SHOT this round whose conversion is
+    // `amount` (≈ a real penalty, ~78%). Not a guaranteed goal. §12 / §14.
+    effect: { kind: "penalty", amount: 0.78, requiresPosition: "FWD", requiresCount: 1 },
   },
   {
     id: "tac-team-talk",
@@ -182,7 +185,9 @@ export const tacticals: TacticalCard[] = [
     cost: 3,
     slots: 2,
     rarity: "legendary",
-    effect: { kind: "handOfGod", amount: 1.0, requiresPosition: "FWD", requiresCount: 1 },
+    // v11: forces a near-certain SHOT once per match — conversion `amount` (~95%). No longer an
+    // automatic goal, but as close as the game gets. §12 / §14.
+    effect: { kind: "handOfGod", amount: 0.95, requiresPosition: "FWD", requiresCount: 1 },
   },
   {
     id: "tac-fortress",
@@ -212,6 +217,8 @@ export const tacticals: TacticalCard[] = [
     cost: 3,
     slots: 2,
     rarity: "legendary",
-    effect: { kind: "totalFootball" },
+    // amount is the cross-lane fraction: each player also contributes this share of its OTHER
+    // stat to the opposite lane (0.5 = 50%). §12
+    effect: { kind: "totalFootball", amount: 0.5 },
   },
 ] satisfies TacticalCard[];

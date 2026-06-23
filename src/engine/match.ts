@@ -13,13 +13,14 @@
 import type { Card, MatchState, OpponentTeam, PlayerState } from "./types.ts";
 import type { Rng } from "./rng.ts";
 import { makeRng } from "./rng.ts";
-import { HALFTIME_ROUND, ET_XG_MULT, STAMINA, DEF_COEFF } from "./constants.ts";
+import { HALFTIME_ROUND, ET_XG_MULT, STAMINA, DEF_COEFF, XG_FLOOR } from "./constants.ts";
+import type { ShotResult } from "./types.ts";
 import { buildOpeningHand, drawToHand, returnLockedToDrawPile, routeCard } from "./cards.ts";
-import { xgAdd, addXg } from "./xg.ts";
+import { xgAdd, addPressure, takeShot } from "./xg.ts";
 import { computeEffectiveStats } from "./effectiveStats.ts";
 import { updateFatigue, resetFatigue } from "./fatigue.ts";
 import { checkWin } from "./checkWin.ts";
-import { resolveInstants, resetTacticalCounters, applyTacticalXg, applyDefensiveTacticals, applyHighPress, applyTimeWasting } from "./tacticals.ts";
+import { resolveInstants, resetTacticalCounters, applyTacticalXg, applyDefensiveTacticals, applyCatenaccio, applyHighPress, applyTimeWasting, shotModifiers } from "./tacticals.ts";
 import { tickStatuses } from "./status.ts";
 import { updateMomentum, resetMomentum } from "./momentum.ts";
 
@@ -76,6 +77,7 @@ function buildPlayerState(input: NewMatchInput, rng: Rng): PlayerState {
     tacticalsThisHalf: 0,
     tacticSpent: 0,
     tacticBonus: 0,
+    injured: [],
     board: { attack: [], defense: [] },
     formation: "balanced",
     powers: [],
@@ -134,13 +136,52 @@ export function cleanupBoards(m: MatchState): void {
 }
 
 /**
+ * Adds this round's fill xG to a side's pressure meter (or records 0 fill when it can't threaten).
+ * Stores the fill on `lastFill` for the report UI. v11 §14.
+ */
+function fillPressure(m: MatchState, idx: 0 | 1, fillXg: number, hasAtk: boolean): void {
+  const pl = m.players[idx]!;
+  pl.lastFill = hasAtk ? fillXg : 0;
+  if (hasAtk) addPressure(pl, fillXg);
+}
+
+/**
+ * Resolves one side's shot for the round: rolls conversion if the meter is full (or a tactical
+ * forces it), consumes Hand of God, and records the outcome on `lastShot`. v11 §14.
+ */
+function resolveSideShot(m: MatchState, idx: 0 | 1, hasAtk: boolean, rng: Rng): ShotResult {
+  const pl = m.players[idx]!;
+  if (!hasAtk) {
+    pl.lastShot = { took: false, scored: false, p: 0 };
+    return pl.lastShot;
+  }
+  const mods = shotModifiers(pl);
+  const shot = takeShot(pl, {
+    round: m.round,
+    rng,
+    forceShot: mods.forceShot,
+    convFloor: mods.convFloor,
+  });
+  if (shot.took && mods.handOfGod) pl.handOfGodUsed = true;
+  pl.lastShot = shot;
+  return shot;
+}
+
+/**
  * Full round resolution pipeline in strict v10 order. GDD §10 line 208, §17 lines 488-526.
  * Returns the updated MatchState (mutated in place; returned for convenience).
  */
 export function resolveRound(m: MatchState, rng: Rng): MatchState {
   m.phase = "resolve";
 
-  resolveInstants(m);
+  // Consume any Time Wasting floor-suppression set last round (cleared before this round can set a
+  // new one for next round). A suppressed side has no open-play xG floor this round. §12.
+  const floor0 = m.players[0]!.xgFloorSuppressed ? 0 : XG_FLOOR;
+  const floor1 = m.players[1]!.xgFloorSuppressed ? 0 : XG_FLOOR;
+  m.players[0]!.xgFloorSuppressed = false;
+  m.players[1]!.xgFloorSuppressed = false;
+
+  resolveInstants(m, rng);
   applyHighPress(m, 0);
   applyHighPress(m, 1);
   applyTimeWasting(m, 0);
@@ -168,50 +209,56 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
 
   // v10.1: DEF_COEFF (<1) keeps a stacked back line from out-suppressing attack
   // into a 0–0 grind — defense still suppresses, just not to a standstill (§7/§19.9).
-  let xg0 = xgAdd(stats0.atkEff, defEff1 * DEF_COEFF);
-  let xg1 = xgAdd(stats1.atkEff, defEff0 * DEF_COEFF);
+  let xg0 = xgAdd(stats0.atkEff, defEff1 * DEF_COEFF, floor0);
+  let xg1 = xgAdd(stats1.atkEff, defEff0 * DEF_COEFF, floor1);
 
   if (m.extraTime) {
     xg0 *= ET_XG_MULT;
     xg1 *= ET_XG_MULT;
   }
 
-  xg0 = applyTacticalXg(m, 0, xg0, defEff1, stats0.atkEff);
-  xg1 = applyTacticalXg(m, 1, xg1, defEff0, stats1.atkEff);
+  // Counter-Attack's trigger compares your own DEF_eff against the opponent's ATK_eff, so both are
+  // threaded in alongside the opponent DEF that Nutmeg needs. §12.
+  xg0 = applyTacticalXg(m, 0, xg0, defEff1, stats0.atkEff, defEff0, stats1.atkEff);
+  xg1 = applyTacticalXg(m, 1, xg1, defEff0, stats1.atkEff, defEff1, stats0.atkEff);
+
+  // Catenaccio: a defender holding it halves the attacker's final round xG. §12.
+  xg0 = applyCatenaccio(m, 1, xg0);
+  xg1 = applyCatenaccio(m, 0, xg1);
 
   // An empty attack lane generates no xG at all — no open-play floor, no bonuses.
   if (!hasAtk0) xg0 = 0;
   if (!hasAtk1) xg1 = 0;
 
   if (m.extraTime) {
-    const lead = xg0 >= xg1 ? 0 : 1;
-    const goalsBefore0 = m.players[0]!.goals;
-    const goalsBefore1 = m.players[1]!.goals;
+    // Sudden death: both sides build pressure, then the higher-pressure side shoots first; the
+    // first goal ends the passage (only one side can score per ET round). §14.
+    fillPressure(m, 0, xg0, hasAtk0);
+    fillPressure(m, 1, xg1, hasAtk1);
 
-    addXg(m.players[lead]!, lead === 0 ? xg0 : xg1, m.round);
+    const order: (0 | 1)[] = m.players[0]!.xg >= m.players[1]!.xg ? [0, 1] : [1, 0];
+    for (const idx of order) {
+      const hasAtk = idx === 0 ? hasAtk0 : hasAtk1;
+      const shot = resolveSideShot(m, idx, hasAtk, rng);
+      if (shot.scored) break;
+    }
 
-    const scored0 = m.players[0]!.goals > goalsBefore0;
-    const scored1 = m.players[1]!.goals > goalsBefore1;
-
-    updateMomentum(m.players[0]!, scored0);
-    updateMomentum(m.players[1]!, scored1);
+    updateMomentum(m.players[0]!, m.players[0]!.lastShot?.scored ?? false);
+    updateMomentum(m.players[1]!, m.players[1]!.lastShot?.scored ?? false);
 
     updateFatigue(m.players[0]!);
     updateFatigue(m.players[1]!);
 
     m.etRound += 1;
   } else {
-    const goalsBefore0 = m.players[0]!.goals;
-    const goalsBefore1 = m.players[1]!.goals;
+    fillPressure(m, 0, xg0, hasAtk0);
+    fillPressure(m, 1, xg1, hasAtk1);
 
-    addXg(m.players[0]!, xg0, m.round);
-    addXg(m.players[1]!, xg1, m.round);
+    const shot0 = resolveSideShot(m, 0, hasAtk0, rng);
+    const shot1 = resolveSideShot(m, 1, hasAtk1, rng);
 
-    const scored0 = m.players[0]!.goals > goalsBefore0;
-    const scored1 = m.players[1]!.goals > goalsBefore1;
-
-    updateMomentum(m.players[0]!, scored0);
-    updateMomentum(m.players[1]!, scored1);
+    updateMomentum(m.players[0]!, shot0.scored);
+    updateMomentum(m.players[1]!, shot1.scored);
 
     updateFatigue(m.players[0]!);
     updateFatigue(m.players[1]!);

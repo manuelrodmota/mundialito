@@ -26,7 +26,7 @@ export function StaminaMeter({ current, max, rampLabel }: StaminaMeterProps) {
 interface XGMeterProps {
   /** Goals scored. */
   goals: number
-  /** Current xG fill 0–1. */
+  /** Current pressure fill 0–1 (the chance built toward a shot). */
   xg: number
   /** Fatigue heat level 0–3. */
   heat: 0 | 1 | 2 | 3
@@ -37,17 +37,27 @@ interface XGMeterProps {
 
 const HEAT_KEYS = ['match.heat.fresh', 'match.heat.warm', 'match.heat.hot', 'match.heat.gassed'] as const
 
-/** xG progress meter with fatigue heat colouring (data-heat 0–3). */
+/**
+ * Pressure → shot meter with fatigue heat colouring (data-heat 0–3). The bar fills as you attack;
+ * the label reads the goal chance qualitatively (low / med / high) rather than a raw % — a full bar
+ * is a high chance, not a sure thing. The "high" band glows. Fatigue ("FRESH") sits on its own line.
+ * v11 §14.
+ */
 export function XGMeter({ goals, xg, heat, label, mine = false }: XGMeterProps) {
   const { t } = useLang()
   const pct = Math.min(100, Math.round(xg * 100))
+  const level: 'low' | 'med' | 'high' = pct >= 60 ? 'high' : pct >= 30 ? 'med' : 'low'
+  const barText = t(
+    level === 'high' ? 'match.meter.chanceHigh' : level === 'med' ? 'match.meter.chanceMed' : 'match.meter.chanceLow',
+  )
+  const tip = t('match.meter.tip')
   return (
-    <div className={`xgm4${mine ? ' mine' : ''}`} data-heat={heat}>
+    <div className={`xgm4${mine ? ' mine' : ''} chance-${level}`} data-heat={heat} title={tip}>
       <div className="xgm-row">
         <span className="xgm-goals">{goals}</span>
-        <div className="xgm-bar">
+        <div className="xgm-bar" title={tip}>
           <i style={{ width: pct + '%' }} />
-          <span className="xgm-val">{xg.toFixed(2)} xG</span>
+          <span className="xgm-val">{barText}</span>
         </div>
       </div>
       <div className="xgm-sub">

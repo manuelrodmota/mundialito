@@ -289,8 +289,15 @@ function commitAiCards(
     if (handIdx === -1) continue;
     const [removed] = state.hand.splice(handIdx, 1);
     if (removed) {
-      const cip: CardInPlay = { card: removed, lane: "attack", statuses: [], faceDown: false };
-      state.board.attack.push(cip);
+      const tcard = removed as TacticalCard;
+      if (tcard.category === "power") {
+        // Powers persist for the match — route to the powers shelf, never the pitch, exactly like
+        // the human commit path. The resolver reads all power effects from powers[]. §12.
+        state.powers.push(tcard);
+      } else {
+        const cip: CardInPlay = { card: removed, lane: "attack", statuses: [], faceDown: false };
+        state.board.attack.push(cip);
+      }
       state.tacticalsThisHalf += 1;
     }
   }

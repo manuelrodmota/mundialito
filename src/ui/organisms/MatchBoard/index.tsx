@@ -8,7 +8,7 @@ import type { MatchState, PlayerCard, TacticalCard, Formation, Card, CardInPlay,
 import type { Intent } from '../../../engine/board'
 import type { LaneFx } from '../../../engine/effectiveStats'
 import type { RevealBoards, RoundReport, SideReport } from '../../quickplay/useQuickplayMatch'
-import { TACTICALS_PER_HALF, CARD_CAP, laneStamina, tacticalGatePassed } from '../../quickplay/useQuickplayMatch'
+import { TACTICALS_PER_HALF, CARD_CAP, laneStamina, tacticalGatePassed, cardLaneMult } from '../../quickplay/useQuickplayMatch'
 import { Scoreboard } from '../Scoreboard'
 import { ExtraTimeBanner } from '../ExtraTime'
 import { Lane } from '../Lanes'
@@ -161,6 +161,7 @@ function DraggableCard({
   index,
   count,
   affordable = true,
+  blockLabel,
 }: {
   card: Card
   isCaptain: boolean
@@ -170,6 +171,8 @@ function DraggableCard({
   count: number
   /** Player cards that can't fit any lane within the cap/stamina budget are dimmed + not selectable. */
   affordable?: boolean
+  /** Why the card is blocked, shown as a badge on the dimmed card (e.g. "PITCH FULL", "NEEDS ⚡"). */
+  blockLabel?: string
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: card.id })
   const dragging = transform != null
@@ -212,7 +215,11 @@ function DraggableCard({
       className={`hcard${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}${dealing ? ' dealing' : ''}${affordable ? '' : ' dim'}`}
       onClick={handleClick}
     >
-      <div className="hcard-arc" style={dealing ? { animationDelay: `${dealDelay}ms` } : undefined}>
+      <div
+        className="hcard-arc"
+        data-block={!affordable ? blockLabel : undefined}
+        style={dealing ? { animationDelay: `${dealDelay}ms` } : undefined}
+      >
         {card.type === 'player' ? (
           <PlayerCardComponent card={card as PlayerCard} size={HAND_CARD_SIZE} isCaptain={isCaptain} />
         ) : (
@@ -236,10 +243,13 @@ function BoardCard({
   card,
   isCaptain,
   onRemove,
+  laneMult,
 }: {
   card: PlayerCard
   isCaptain: boolean
   onRemove: () => void
+  /** v11 lane force-multiplier this card is providing (>1) — shows a ×mult badge on top. */
+  laneMult?: number
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: card.id })
   const style: React.CSSProperties = {
@@ -249,7 +259,7 @@ function BoardCard({
   }
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={onRemove}>
-      <PlayerCardComponent card={card} size={128} isCaptain={isCaptain} />
+      <PlayerCardComponent card={card} size={128} isCaptain={isCaptain} laneMult={laneMult} />
     </div>
   )
 }
@@ -274,6 +284,23 @@ function FaceDownCard({ size = 96 }: { size?: number }) {
       }}
     >
       ?
+    </div>
+  )
+}
+
+/** v11: a missed shot — the meter was full (or a forced tactical fired) but the keeper won. */
+function ShotMiss({ p, mine, scorer }: { p: number; mine: boolean; scorer?: string }) {
+  const { t } = useLang()
+  return (
+    <div
+      className={`shot-miss${mine ? ' mine' : ''}`}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#dfe7f5' }}
+    >
+      <div style={{ fontSize: 40, fontWeight: 900, letterSpacing: 1 }}>{t('match.shot.saved')}</div>
+      <div style={{ fontSize: 15, opacity: 0.85 }}>
+        {mine ? t('match.shot.youMissed') : t('match.shot.theyMissed', { opp: scorer ?? '' })}
+      </div>
+      <div style={{ fontSize: 13, opacity: 0.6 }}>{t('match.shot.atChance', { pct: Math.round(p * 100) })}</div>
     </div>
   )
 }
@@ -377,9 +404,22 @@ export function MatchBoard({
   // Staged tacticals also draw on the same stamina pool (their own `cost`), so a played card
   // and a played tactical compete for the round's energy.
   const playerCap = CARD_CAP(match.round)
-  const staminaMax = p0.maxStamina
+  // Water Break grants its stamina THIS round: staging it lifts the planning budget immediately so
+  // you can field an extra player the round you play it (the engine no longer defers it). §12.
+  const waterBreakBonus = tacticalCards
+    .filter((tac) => tac.effect.kind === 'waterBreak')
+    .reduce((sum, tac) => sum + (tac.effect.amount ?? 2), 0)
+  const staminaMax = p0.maxStamina + waterBreakBonus
   const tacticalCost = tacticalCards.reduce((sum, t) => sum + t.cost, 0)
   const staminaLeft = staminaMax - laneStamina(attackCards) - laneStamina(defenseCards) - tacticalCost
+  // When the player cap is hit, no further player fits regardless of stamina — the blocker is the
+  // full pitch, not energy, so the hand badge must say "PITCH FULL" rather than "NEEDS ⚡".
+  const capReached = attackCards.length + defenseCards.length >= playerCap
+
+  // v11 lane force-multiplier: the best star's tier multiplier lifts the whole lane, but only once
+  // the lane has ≥2 cards. The ×mult badge rides the top-tier card that's providing it.
+  const atkLaneMult = attackCards.length >= 2 ? Math.max(1, ...attackCards.map(cardLaneMult)) : 1
+  const defLaneMult = defenseCards.length >= 2 ? Math.max(1, ...defenseCards.map(cardLaneMult)) : 1
 
   // True when adding `card` to `lane` would break the card cap or the stamina budget.
   // laneStamina re-derives the whole lane (star-core discount included), so this stays exact.
@@ -418,8 +458,14 @@ export function MatchBoard({
   // Goal steps hold the GOAL blast (auto-advance after GOAL_HOLD, or click-to-dismiss),
   // so the opponent's attack only plays after your goal and the report only after theirs.
   const [revealStep, setRevealStep] = useState(0)
-  const youScored = (roundReport?.youGoalsThisRound ?? 0) > 0
-  const theyScored = (roundReport?.themGoalsThisRound ?? 0) > 0
+  // v11: a shot beat plays whenever a side TOOK a shot (meter full or a forced tactical) — it
+  // resolves to GOAL or SAVED. Build the beat on shot.took, not just on whether a goal landed.
+  const youShot = roundReport?.you.shot
+  const theyShot = roundReport?.them.shot
+  const youTookShot = youShot?.took ?? false
+  const theyTookShot = theyShot?.took ?? false
+  const youScored = youShot?.scored ?? false
+  const theyScored = theyShot?.scored ?? false
   const duel: 'A' | 'B' | null = revealStep === 1 ? 'A' : revealStep === 3 ? 'B' : null
   const showYouXg = revealStep >= 1
   const showThemXg = revealStep >= 3
@@ -429,18 +475,48 @@ export function MatchBoard({
   const CLASH_MS = 1100
   const GOAL_HOLD = 1900
 
+  // During the reveal, animate each meter from its pre-round value, ONE SIDE AT A TIME, so you
+  // never see the opponent's outcome before their goal/save beat plays. Your bar fills at step 1
+  // and resolves (goal empties / save drops) at step 2; theirs fills at step 3, resolves at step 4.
+  // Outside the reveal it just shows the live pressure. v11 §14.
+  const meterValue = (side: 'you' | 'them'): number => {
+    const live = Math.min(1, (side === 'you' ? p0 : p1).xg)
+    if (!isReveal || !roundReport) return live
+    const r = side === 'you' ? roundReport.you : roundReport.them
+    const postFill = Math.min(1, r.pressureBefore + r.xg)
+    if (side === 'you') {
+      if (revealStep < 1) return r.pressureBefore
+      if (revealStep === 1) return postFill
+      return r.pressureAfter
+    }
+    if (revealStep < 3) return r.pressureBefore
+    if (revealStep === 3) return postFill
+    return r.pressureAfter
+  }
+
+  // Same sequencing for the SCORE numbers (scoreboard + meters): your goal ticks up at step 2,
+  // theirs at step 4 — so the scoreline never reveals the opponent's goal before its beat.
+  const goalsValue = (side: 'you' | 'them'): number => {
+    const live = (side === 'you' ? p0 : p1).goals
+    if (!isReveal || !roundReport) return live
+    if (side === 'you') {
+      return revealStep < 2 ? roundReport.youGoalsTotal - roundReport.youGoalsThisRound : roundReport.youGoalsTotal
+    }
+    return revealStep < 4 ? roundReport.themGoalsTotal - roundReport.themGoalsThisRound : roundReport.themGoalsTotal
+  }
+
   // Each step schedules the next; cleanup clears the pending timer. Goal steps (2,4) can be
   // advanced early by clicking the overlay (setRevealStep below).
   useEffect(() => {
     if (!isReveal) return
     let t: ReturnType<typeof setTimeout> | undefined
     if (revealStep === 0) t = setTimeout(() => setRevealStep(1), 40)
-    else if (revealStep === 1) t = setTimeout(() => setRevealStep(youScored ? 2 : 3), CLASH_MS)
+    else if (revealStep === 1) t = setTimeout(() => setRevealStep(youTookShot ? 2 : 3), CLASH_MS)
     else if (revealStep === 2) t = setTimeout(() => setRevealStep(3), GOAL_HOLD)
-    else if (revealStep === 3) t = setTimeout(() => setRevealStep(theyScored ? 4 : 5), CLASH_MS)
+    else if (revealStep === 3) t = setTimeout(() => setRevealStep(theyTookShot ? 4 : 5), CLASH_MS)
     else if (revealStep === 4) t = setTimeout(() => setRevealStep(5), GOAL_HOLD)
     return () => { if (t) clearTimeout(t) }
-  }, [isReveal, revealStep, youScored, theyScored])
+  }, [isReveal, revealStep, youTookShot, theyTookShot])
 
   // Reset to plan when leaving reveal, so the next round starts the cinematic clean.
   // Deferred via a timer so the reset is not a synchronous setState in the effect body.
@@ -627,7 +703,8 @@ export function MatchBoard({
   // Explain the modal's state: an active Power, or why a tactical can't be played right now.
   let detailNote: string | undefined
   if (detailInspectOnly) {
-    detailNote = t('match.tactic.activePower')
+    // A persistent Power vs a one-shot Skill/Instant played this round (e.g. the opponent's card).
+    detailNote = detailTac?.category === 'power' ? t('match.tactic.activePower') : t('match.tactic.played')
   } else if (detailTac && !detailStaged) {
     if (!canStageMoreTacticals) detailNote = t('match.tactic.noPlaysLeft', { n: TACTICALS_PER_HALF })
     else if (!detailGateMet && detailReqLabel) detailNote = t('match.tactic.needs', { req: detailReqLabel })
@@ -722,7 +799,14 @@ export function MatchBoard({
             isCaptain={cip.card.id === p0.captainId}
           />
         ) : (
-          <TacticCard key={cip.card.id} card={cip.card as TacticalCard} size={128} />
+          <div
+            key={cip.card.id}
+            style={{ cursor: 'pointer' }}
+            onClick={() => { setDetailTac(cip.card as TacticalCard); setDetailInspectOnly(true) }}
+            title={t('match.tactic.tapToInspect')}
+          >
+            <TacticCard card={cip.card as TacticalCard} size={128} />
+          </div>
         ),
       )}
     </Lane>
@@ -756,6 +840,11 @@ export function MatchBoard({
             ) : null}
             <span className="nm">{match.opponent.name}</span>
             <TierStars tier={match.opponent.tier} />
+            {!isReveal && opponentIntent && intentMeta && (
+              <div className="opp-intent">
+                <b>{intentMeta.label} {t(intentMeta.shapeKey)}</b> · <b>{opponentIntent.cardCount}</b> {opponentIntent.cardCount === 1 ? t('match.intent.cardOne') : t('match.intent.cardMany')} · <b>{opponentIntent.staminaSpent}</b> {t('match.intent.stamina')}
+              </div>
+            )}
             {oppActiveTacticals.length > 0 && (
               <div className="opp-tactics" aria-label={t('match.oppTactics.label')}>
                 {oppActiveTacticals.map((tac) => (
@@ -773,8 +862,8 @@ export function MatchBoard({
 
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <Scoreboard
-              them={p1.goals}
-              you={p0.goals}
+              them={goalsValue('them')}
+              you={goalsValue('you')}
               code={match.opponent.nation}
               nation={match.opponent.nation}
               minute={minute}
@@ -788,14 +877,14 @@ export function MatchBoard({
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
             <div className="board-meters">
               <XGMeter
-                goals={p1.goals}
-                xg={p1.xg % 1}
+                goals={goalsValue('them')}
+                xg={meterValue('them')}
                 heat={fatigueHeat(p1.fatigue)}
                 label={match.opponent.name}
               />
               <XGMeter
-                goals={p0.goals}
-                xg={p0.xg % 1}
+                goals={goalsValue('you')}
+                xg={meterValue('you')}
                 heat={fatigueHeat(p0.fatigue)}
                 label={t('match.meter.you')}
                 mine
@@ -821,12 +910,6 @@ export function MatchBoard({
             <div className="dirhint4 r">
               <span className="who4">{t('match.dir.theyAttack')}</span>
             </div>
-
-            {!isReveal && opponentIntent && intentMeta && (
-              <div className="intent">
-                {t('match.intent.label')} <b>{intentMeta.label} {t(intentMeta.shapeKey)}</b> · <b>{opponentIntent.cardCount}</b> {opponentIntent.cardCount === 1 ? t('match.intent.cardOne') : t('match.intent.cardMany')} · <b>{opponentIntent.staminaSpent}</b> {t('match.intent.stamina')}
-              </div>
-            )}
 
             <div className="p4-grid">
               {isReveal && revealBoards ? (
@@ -855,6 +938,7 @@ export function MatchBoard({
                         card={card}
                         isCaptain={card.id === p0.captainId}
                         onRemove={() => handleRemoveFromDefense(card)}
+                        laneMult={defLaneMult > 1 && cardLaneMult(card) === defLaneMult ? defLaneMult : undefined}
                       />
                     ))}
                   </Lane>
@@ -875,6 +959,7 @@ export function MatchBoard({
                         card={card}
                         isCaptain={card.id === p0.captainId}
                         onRemove={() => handleRemoveFromAttack(card)}
+                        laneMult={atkLaneMult > 1 && cardLaneMult(card) === atkLaneMult ? atkLaneMult : undefined}
                       />
                     ))}
                   </Lane>
@@ -913,16 +998,21 @@ export function MatchBoard({
           </div>
         </div>
 
-        {/* GOAL blast — your goal plays after your clash; theirs after their clash.
+        {/* SHOT beat — plays after each side's clash when a shot was taken. A converted shot is the
+            GOAL blast; a missed one is a SAVED card (the v11 drama: a full meter is not a sure goal).
             Click (or auto-advance) continues the cinematic to the next beat. */}
         {showGoalYou && roundReport && (
           <Overlay open onClick={() => setRevealStep(3)}>
-            <Goal isYou score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal - (theyScored ? 1 : 0)]} />
+            {youScored
+              ? <Goal isYou score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal - (theyScored ? 1 : 0)]} />
+              : <ShotMiss p={youShot?.p ?? 0} mine />}
           </Overlay>
         )}
         {showGoalThem && roundReport && (
           <Overlay open onClick={() => setRevealStep(5)}>
-            <Goal isYou={false} scorer={match.opponent.name} score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal]} />
+            {theyScored
+              ? <Goal isYou={false} scorer={match.opponent.name} score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal]} />
+              : <ShotMiss p={theyShot?.p ?? 0} mine={false} scorer={match.opponent.name} />}
           </Overlay>
         )}
 
@@ -1131,6 +1221,21 @@ export function MatchBoard({
                     : card.type === 'player'
                       ? canAfford(card as PlayerCard)
                       : canStageMoreTacticals && staminaLeft >= (card as TacticalCard).cost
+                }
+                blockLabel={
+                  isReveal
+                    ? undefined
+                    : card.type === 'player'
+                      ? (canAfford(card as PlayerCard)
+                          ? undefined
+                          : capReached
+                            ? t('match.card.pitchFull')
+                            : t('match.card.needsEnergy'))
+                      : (canStageMoreTacticals && staminaLeft >= (card as TacticalCard).cost)
+                        ? undefined
+                        : !canStageMoreTacticals
+                          ? t('match.card.tacticsUsed')
+                          : t('match.card.needsEnergy')
                 }
               />
             ))}
