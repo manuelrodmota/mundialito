@@ -22,10 +22,11 @@ a bet, and losing your star striker to permadeath actually hurts.
 ## What we built
 
 **World Cup Clash** — a complete, playable arcade roguelike. There's no health bar. Each match
-is 90 minutes compressed into 10 rounds, and both teams fill an **expected-goals (xG) meter**;
-every time a meter crosses 1.0, it's a goal. Each round you pick a formation, secretly field a
-capped lineup across attack and defense lanes, and play single-use Tactical Cards your opponent
-can see coming. Your star players are once-per-half trumps; fatigue means you can't park the bus
+is 90 minutes compressed into 10 rounds, and both teams fill an **expected-goals (xG) meter** by
+attacking; a full meter takes a **shot** that converts on a probability (a strong chance, not an
+automatic goal — a miss leaves some pressure to try again). Each round you pick a formation,
+secretly field a capped lineup across attack and defense lanes, and play single-use Tactical Cards
+your opponent can see coming. Your star players are once-per-half trumps; fatigue means you can't park the bus
 forever; a three-goal lead ends it on the mercy rule, and a draw goes to golden-goal extra time.
 
 It ships with **two modes in one engine**: a 7-match **Arcade Run** (Group → Final, with
@@ -59,7 +60,9 @@ AI was the entire *toolchain* we built it with.
   The fixes — **diminishing returns on lane stacking, a star-core stamina discount, a retuned xG
   curve** — emerged from iterating with Claude against thousands of simulated matches. The "**v10**"
   in our build name is literal: it took ten balance passes before a star-led squad reliably beat a
-  wall of commons while goals stayed in a believable ~5–6 per match.
+  wall of commons while goals stayed in a believable ~4–6 per match. A later **v11** pass made
+  finishing **probabilistic** — a full meter now takes a *shot* rather than auto-scoring — which
+  killed the deterministic "I score / you score" metronome without surrendering the better deck's edge.
 
 - **We deliberately rebuilt the engine from the rules, not from the prototype.** We had a working
   HTML/JS prototype, but rather than porting its engine we had Claude write a fresh, pure-TypeScript
