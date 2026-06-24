@@ -767,9 +767,8 @@
   0%, 100% { box-shadow: 0 0 10px rgba(255, 200, 80, 0.45); }
   50% { box-shadow: 0 0 22px rgba(255, 180, 60, 0.8); }
 }
-/* v11 missed-shot reveal card */
-.shot-miss { text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6); }
-.shot-miss .saved { color: #ff7a6a; }
+/* The v11 text-only missed-shot card was replaced by the full SAVE cinematic (.save-blast),
+   defined alongside the GOAL blast in the "GOAL & SAVE match-reveal cinematics" block below. */
 
 /* v11 lane force-multiplier badge — a corner circle mirroring the cost badge (top-left), placed
    top-right. Filled in the card's own tier colour. Shows only when the lane has ≥2 cards (so the
@@ -807,32 +806,99 @@
 .xg-float4 .amt { font-size: 22px; font-weight: 800; color: #c9a3f5; font-variant-numeric: tabular-nums; }
 .xg-float4 .pt { font-size: 10.5px; font-weight: 600; color: var(--txt-dim); }
 
-/* ---- GOAL blast — the money moment (GDD §16) ---- */
-.goal-blast {
-  position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 10px; pointer-events: none;
-  background: radial-gradient(80% 60% at 50% 50%, rgba(10, 13, 21, 0.75), rgba(10, 13, 21, 0.92));
+/* ============================================================
+   GOAL & SAVE match-reveal cinematics (design hand-off 2026-06).
+   A boot strikes → the ball flies to the top-right corner → the keeper
+   dives that way. GOAL = keeper a beat late, ball in the net. SAVE =
+   keeper connects, ball tipped wide. The italic wordmark + scoreline
+   then slam in. Motion is CSS-driven (no Framer) so one layer owns it;
+   the @media(reduced-motion) block snaps actors to the resolved frame.
+   Mounted inside the full-bleed <Overlay> → root is absolute and
+   pointer-events:none so clicks fall through to the veil to dismiss.
+   Single authoritative block (the old duplicate further down the cascade
+   was removed). Shared scene actors: src/ui/organisms/Goal/scene.tsx.
+   ============================================================ */
+.goal-blast, .save-blast {
+  position: absolute; inset: 0; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
   animation: gbVeil 220ms ease-out both;
 }
-.goal-blast .gb-net {
-  position: absolute; inset: 0; opacity: 0.14;
-  background:
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.7) 0 1px, transparent 1px 26px),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.7) 0 1px, transparent 1px 26px);
-  animation: gbRipple 900ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+.goal-blast { background: radial-gradient(80% 60% at 50% 50%, rgba(10, 13, 21, 0.75), rgba(10, 13, 21, 0.92)); }
+.save-blast { background: radial-gradient(80% 60% at 50% 50%, rgba(8, 14, 22, 0.78), rgba(8, 12, 20, 0.93)); }
+
+/* The arch illustration carries the net, so the legacy ambient mesh stays hidden. */
+.goal-blast .gb-net, .save-blast .gb-net { display: none; }
+
+/* Fixed-size stage: the px-based ball/glove/boot trajectories are tuned to this exact box, so the
+   ball always lands in the top-right corner. Do NOT make the height viewport-relative — wrap the
+   stage in a transform: scale() container if it must flex. */
+.gb-pitch, .sb-pitch { position: relative; width: min(540px, 88vw); height: 300px; margin-bottom: 4px; }
+
+/* Goal mouth (illustration) — width-driven so it keeps the arch aspect. */
+.gm4-img {
+  position: absolute; left: 50%; top: 1%; transform: translateX(-50%);
+  width: 92%; height: auto; display: block;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.12));
+  animation: gmPop 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+@keyframes gmPop { from { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.97); } }
+
+/* The football glyph (traced soccer-ball icon, inline SVG). */
+.blast-ball { width: 100%; height: 100%; display: block; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55)); }
+.blast-ball .bk-body { fill: #f6f8fb; }
+.blast-ball .bk-panel { fill: #14181f; }
+
+/* ---- shared: the boot swings up, strikes at launch, then clears the frame ---- */
+.gb-boot {
+  position: absolute; left: 50%; bottom: -14px; width: 101px; height: 91px;
+  margin-left: -126px; transform-origin: 32% 30%;
+  animation: gbBoot 440ms cubic-bezier(0.3, 0.9, 0.4, 1) both;
+}
+.gb-boot .boot-img { width: 100%; height: 100%; display: block; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.55)); }
+@keyframes gbBoot {
+  0%   { opacity: 0; transform: rotate(34deg) translate(-12px, 24px); }
+  18%  { opacity: 1; transform: rotate(14deg) translate(-5px, 9px); }
+  34%  { opacity: 1; transform: rotate(-26deg) translate(2px, -2px); }
+  64%  { opacity: 0.5; transform: rotate(-34deg) translate(-16px, -10px); }
+  100% { opacity: 0; transform: rotate(-40deg) translate(-38px, -20px); }
+}
+
+/* ---- shared: keeper glove base (the GOAL/SAVE keyframes differ in timing) ---- */
+.gb-glove, .sb-glove {
+  position: absolute; left: 50%; top: 4%; width: 74px; height: 106px; margin-left: -37px;
+  transform-origin: 50% 100%;
+}
+.gb-glove .glove-img, .sb-glove .glove-img {
+  width: 100%; height: 100%; display: block; object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+}
+
+/* ---- wordmark + subtitle (color per state/side; "SAVED" is longer, so a touch smaller) ---- */
 .goal-blast .gb-text {
   font-size: clamp(90px, 14vw, 190px); font-weight: 900; font-style: italic;
-  letter-spacing: -0.02em; line-height: 1;
-  animation: gbSlam 480ms cubic-bezier(0.16, 1.2, 0.3, 1) both;
-  text-shadow: 0 6px 50px rgba(0, 0, 0, 0.8);
+  letter-spacing: -0.02em; line-height: 1; text-shadow: 0 6px 50px rgba(0, 0, 0, 0.8);
+  animation: gbSlam 460ms 540ms cubic-bezier(0.16, 1.2, 0.3, 1) both;
+}
+.save-blast .sb-text {
+  font-size: clamp(78px, 12vw, 168px); font-weight: 900; font-style: italic;
+  letter-spacing: -0.02em; line-height: 1; text-shadow: 0 6px 50px rgba(0, 0, 0, 0.8);
+  animation: gbSlam 460ms 470ms cubic-bezier(0.16, 1.2, 0.3, 1) both;
 }
 .goal-blast.you .gb-text { color: #e8c873; }
 .goal-blast.them .gb-text { color: #ff6a5c; }
-.goal-blast .gb-sub {
+.save-blast.you .sb-text { color: #66d98a; }
+.save-blast.them .sb-text { color: #ff6a5c; }
+.goal-blast .gb-sub, .save-blast .sb-sub {
   font-size: clamp(15px, 1.6vw, 22px); font-weight: 800; letter-spacing: 0.3em;
-  color: rgba(255, 255, 255, 0.85); white-space: nowrap;
-  animation: gbSub 420ms 180ms ease-out both;
+  color: rgba(255, 255, 255, 0.85); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.goal-blast .gb-sub { animation: gbSub 420ms 760ms ease-out both; }
+.save-blast .sb-sub { animation: gbSub 420ms 720ms ease-out both; }
+/* quiet "shot taken at X%" caption under the SAVE subtitle */
+.save-blast .sb-chance {
+  font-size: clamp(11px, 1.05vw, 13px); font-weight: 600; letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.55); font-variant-numeric: tabular-nums;
+  margin-top: 2px; animation: gbSub 420ms 820ms ease-out both;
 }
 @keyframes gbVeil { from { opacity: 0; } to { opacity: 1; } }
 @keyframes gbSlam {
@@ -841,7 +907,99 @@
   100% { transform: scale(1); }
 }
 @keyframes gbSub { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes gbRipple { from { transform: scale(1.16); opacity: 0; } to { transform: scale(1); opacity: 0.14; } }
+
+/* ============================ GOAL — ball in, keeper a beat late ============================ */
+.gb-ball {
+  position: absolute; left: 50%; bottom: 0; width: 72px; height: 72px; margin-left: -36px;
+  animation: gbBallFly 1000ms cubic-bezier(0.22, 0.7, 0.3, 1) both;
+}
+@keyframes gbBallFly {
+  0%   { opacity: 0; transform: translate(0, 58px) scale(1.38); }
+  12%  { opacity: 1; transform: translate(8px, 44px) scale(1.3); }
+  50%  { opacity: 1; transform: translate(180px, -212px) scale(0.52); }
+  58%  { transform: translate(176px, -205px) scale(0.57); }
+  100% { opacity: 1; transform: translate(178px, -209px) scale(0.54); }
+}
+.gb-glove-miss { animation: gbGloveMiss 1000ms cubic-bezier(0.25, 0.7, 0.4, 1) both; }
+@keyframes gbGloveMiss {
+  0%   { opacity: 0; transform: translate(-26px, 162px) rotate(-16deg) scale(0.82); }
+  24%  { opacity: 1; transform: translate(-6px, 120px) rotate(-10deg) scale(0.95); }
+  66%  { opacity: 1; transform: translate(150px, 26px) rotate(22deg) scale(1); }
+  100% { opacity: 1; transform: translate(160px, 36px) rotate(26deg) scale(1); }
+}
+.gb-bulge {
+  position: absolute; left: 50%; top: 8%; width: 200px; height: 120px; margin: -36px 0 0 88px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 72%);
+  opacity: 0; pointer-events: none;
+  animation: gbBulge 1000ms cubic-bezier(0.22, 0.7, 0.3, 1) both;
+}
+.goal-blast.you .gb-bulge { background: radial-gradient(closest-side, rgba(232, 200, 115, 0.45), rgba(232, 200, 115, 0) 72%); }
+.goal-blast.them .gb-bulge { background: radial-gradient(closest-side, rgba(255, 106, 92, 0.42), rgba(255, 106, 92, 0) 72%); }
+@keyframes gbBulge {
+  0%, 46% { opacity: 0; transform: scale(0.2); }
+  58%     { opacity: 0.9; transform: scale(1.18); }
+  100%    { opacity: 0; transform: scale(0.95); }
+}
+.gb-burst { position: absolute; left: 50%; top: 17%; width: 0; height: 0; margin-left: 180px; }
+.gb-burst i {
+  position: absolute; left: 0; top: 0; width: 4px; height: 36px; margin: -18px 0 0 -2px;
+  border-radius: 3px; background: linear-gradient(rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
+  transform: rotate(var(--a)) translateY(0) scaleY(0);
+  animation: gbBurst 620ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.goal-blast.you .gb-burst i { background: linear-gradient(#ffe2a6, rgba(255, 226, 166, 0)); }
+.goal-blast.them .gb-burst i { background: linear-gradient(#ffb0a8, rgba(255, 176, 168, 0)); }
+@keyframes gbBurst {
+  0%, 46% { opacity: 0; transform: rotate(var(--a)) translateY(0) scaleY(0.2); }
+  58%     { opacity: 1; transform: rotate(var(--a)) translateY(-26px) scaleY(1); }
+  100%    { opacity: 0; transform: rotate(var(--a)) translateY(-56px) scaleY(0.6); }
+}
+
+/* ============================ SAVE — keeper connects, ball ricochets wide ============================ */
+.sb-ball {
+  position: absolute; left: 50%; bottom: 0; width: 72px; height: 72px; margin-left: -36px;
+  animation: sbBall 1050ms cubic-bezier(0.3, 0.6, 0.4, 1) both;
+}
+@keyframes sbBall {
+  0%   { opacity: 0; transform: translate(0, 58px) scale(1.38); }
+  12%  { opacity: 1; transform: translate(8px, 44px) scale(1.3); }
+  40%  { opacity: 1; transform: translate(176px, -198px) scale(0.56); }
+  48%  { transform: translate(158px, -182px) scale(0.6); }
+  100% { opacity: 0; transform: translate(300px, 46px) scale(0.92) rotate(280deg); }
+}
+.sb-glove { animation: sbGlove 1050ms cubic-bezier(0.25, 0.8, 0.35, 1) both; }
+@keyframes sbGlove {
+  0%   { opacity: 0; transform: translate(-26px, 162px) rotate(-16deg) scale(0.82); }
+  22%  { opacity: 1; transform: translate(-4px, 112px) rotate(-8deg) scale(0.95); }
+  40%  { transform: translate(180px, -24px) rotate(26deg) scale(1.08); }
+  52%  { transform: translate(170px, -16px) rotate(22deg) scale(1); }
+  100% { opacity: 1; transform: translate(170px, -16px) rotate(22deg) scale(1); }
+}
+.sb-impact {
+  position: absolute; left: 50%; top: 8%; width: 150px; height: 150px; margin: -45px 0 0 106px;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(102, 217, 138, 0.55), rgba(102, 217, 138, 0) 70%);
+  opacity: 0; animation: sbImpact 1050ms ease-out both;
+}
+.save-blast.them .sb-impact { background: radial-gradient(closest-side, rgba(255, 106, 92, 0.5), rgba(255, 106, 92, 0) 70%); }
+@keyframes sbImpact {
+  0%, 36% { opacity: 0; transform: scale(0.3); }
+  44%     { opacity: 1; transform: scale(1); }
+  100%    { opacity: 0; transform: scale(1.25); }
+}
+
+/* reduced motion: cancel the cinematic and snap actors to the resolved end frame so it still reads */
+@media (prefers-reduced-motion: reduce) {
+  .goal-blast, .save-blast, .gm4-img, .gb-text, .gb-sub, .sb-text, .sb-sub, .sb-chance,
+  .gb-ball, .gb-glove, .gb-boot, .gb-bulge, .gb-burst i,
+  .sb-ball, .sb-glove, .sb-impact { animation: none !important; }
+  .gb-boot, .gb-burst, .gb-bulge, .sb-impact { display: none; }
+  .gb-ball { transform: translate(178px, -209px) scale(0.54); opacity: 1; }
+  .gb-glove-miss { transform: translate(160px, 36px) rotate(26deg); opacity: 1; }
+  .sb-ball { transform: translate(158px, -182px) scale(0.6); opacity: 1; }
+  .sb-glove { transform: translate(170px, -16px) rotate(22deg); opacity: 1; }
+}
 
 /* ---- visible tacticals: AI reaction + their shelf + gate hints ---- */
 .reaction4 {
@@ -876,7 +1034,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .goal-blast, .goal-blast .gb-text, .goal-blast .gb-sub, .goal-blast .gb-net { animation: none !important; }
+  /* (.goal-blast/.save-blast reduced-motion lives with the cinematics block above) */
   .xgm4[data-heat="3"] .xgm-bar { animation: none !important; }
   .xg-float4, .reaction4 { animation: none !important; }
   .xgm4 .xgm-bar i { transition: none; }
@@ -2008,51 +2166,11 @@
 .pitch4[data-duel="B"] .l-tdef { opacity: 0.18; transform: scale(0.94); }
 
 /* ============================================================
-   v10 — GOAL blast (design wordmark). Authoritative over the
-   merged v4xg .goal-blast (this is last in the cascade).
+   (Removed) the v10 GOAL-blast duplicate that used to live here and win
+   the cascade. The GOAL + SAVE cinematics are now defined once, higher
+   up, in the "GOAL & SAVE match-reveal cinematics" block — a single
+   authoritative source, no more cascade-override trap.
    ============================================================ */
-.goal-blast {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  background: radial-gradient(60% 50% at 50% 50%, rgba(10, 13, 21, 0.5), rgba(6, 8, 14, 0.88));
-}
-.goal-blast .gb-net {
-  position: absolute;
-  inset: 0;
-  opacity: 0.1;
-  background:
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px 14px),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px 14px);
-  -webkit-mask-image: radial-gradient(60% 50% at 50% 50%, #000, transparent 75%);
-  mask-image: radial-gradient(60% 50% at 50% 50%, #000, transparent 75%);
-}
-.goal-blast .gb-text {
-  font-size: clamp(90px, 14vw, 190px);
-  font-weight: 900;
-  font-style: italic;
-  letter-spacing: -0.04em;
-  line-height: 0.9;
-  position: relative;
-  z-index: 1;
-  text-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
-}
-.goal-blast.you .gb-text { color: #e8c873; }
-.goal-blast.them .gb-text { color: #ff6a5c; }
-.goal-blast .gb-sub {
-  font-size: clamp(13px, 1.4vw, 18px);
-  font-weight: 800;
-  letter-spacing: 0.28em;
-  color: rgba(255, 255, 255, 0.9);
-  position: relative;
-  z-index: 1;
-  font-variant-numeric: tabular-nums;
-}
 
 /* Keep lane cards clear of the absolutely-positioned opponent-intent banner (top:6px).
    The pitch has overflow:hidden so the banner cannot move above it — instead the cards

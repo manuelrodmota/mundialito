@@ -26,6 +26,7 @@ import { crestSrc } from '../../data/nations'
 import { XGFloat } from '../Lanes'
 import { Modal, Overlay } from '../Modal'
 import { Goal } from '../Goal'
+import { ShotMiss } from '../ShotMiss'
 import { CoachMarks } from '../CoachMarks'
 import { MATCH_ONBOARDING_STEPS } from '../CoachMarks/steps'
 import { planHint } from '../../onboarding/planHint'
@@ -284,23 +285,6 @@ function FaceDownCard({ size = 96 }: { size?: number }) {
       }}
     >
       ?
-    </div>
-  )
-}
-
-/** v11: a missed shot — the meter was full (or a forced tactical fired) but the keeper won. */
-function ShotMiss({ p, mine, scorer }: { p: number; mine: boolean; scorer?: string }) {
-  const { t } = useLang()
-  return (
-    <div
-      className={`shot-miss${mine ? ' mine' : ''}`}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#dfe7f5' }}
-    >
-      <div style={{ fontSize: 40, fontWeight: 900, letterSpacing: 1 }}>{t('match.shot.saved')}</div>
-      <div style={{ fontSize: 15, opacity: 0.85 }}>
-        {mine ? t('match.shot.youMissed') : t('match.shot.theyMissed', { opp: scorer ?? '' })}
-      </div>
-      <div style={{ fontSize: 13, opacity: 0.6 }}>{t('match.shot.atChance', { pct: Math.round(p * 100) })}</div>
     </div>
   )
 }
@@ -1005,14 +989,14 @@ export function MatchBoard({
           <Overlay open onClick={() => setRevealStep(3)}>
             {youScored
               ? <Goal isYou score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal - (theyScored ? 1 : 0)]} />
-              : <ShotMiss p={youShot?.p ?? 0} mine />}
+              : <ShotMiss mine p={youShot?.p ?? 0} score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal - (theyScored ? 1 : 0)]} />}
           </Overlay>
         )}
         {showGoalThem && roundReport && (
           <Overlay open onClick={() => setRevealStep(5)}>
             {theyScored
               ? <Goal isYou={false} scorer={match.opponent.name} score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal]} />
-              : <ShotMiss p={theyShot?.p ?? 0} mine={false} scorer={match.opponent.name} />}
+              : <ShotMiss mine={false} p={theyShot?.p ?? 0} score={[roundReport.youGoalsTotal, roundReport.themGoalsTotal]} />}
           </Overlay>
         )}
 

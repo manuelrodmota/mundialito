@@ -85,8 +85,11 @@ export const en = {
   'match.meter.chanceMed': 'Med goal chance ⚽',
   'match.meter.chanceHigh': 'High goal chance ⚽',
   'match.meter.tip': 'The bar fills as you attack — the fuller it is, the better your chance to score when you take the shot. A goal empties the meter; a miss knocks a chunk off so you keep trying. The tag below (FRESH/HOT) is your fatigue.',
-  // v11 shot reveal
-  'match.shot.saved': 'SAVED!',
+  // v11 shot reveal — SAVE cinematic (twin of the GOAL blast): wordmark + "DENY · scoreline"
+  'match.shot.saved': 'SAVED',
+  'match.shot.youDeny': 'YOU DENY THEM',
+  'match.shot.theyDeny': 'THEY DENY YOU',
+  // legacy flavor/chance copy — no longer rendered by the redesigned SAVE cinematic; kept for reuse
   'match.shot.youMissed': "Your chance goes begging — the keeper wins it.",
   'match.shot.theyMissed': '{opp} blow their chance.',
   'match.shot.atChance': 'shot taken at {pct}%',
@@ -278,8 +281,11 @@ export const es: typeof en = {
   'match.meter.chanceMed': 'Ocasión media ⚽',
   'match.meter.chanceHigh': 'Ocasión alta ⚽',
   'match.meter.tip': 'La barra se llena al atacar — cuanto más llena, mejor tu ocasión de marcar al rematar. Un gol vacía el medidor; un fallo le quita una parte para seguir intentándolo. La etiqueta de abajo (FRESH/HOT) es tu fatiga.',
-  // v11 revelación del remate
-  'match.shot.saved': '¡ATAJADA!',
+  // v11 revelación del remate — cinemática de ATAJADA (gemela del blast de GOL)
+  'match.shot.saved': 'ATAJADA',
+  'match.shot.youDeny': 'LES TAPAS EL GOL',
+  'match.shot.theyDeny': 'TE TAPAN EL GOL',
+  // copia heredada de fallo/probabilidad — ya no se muestra en la cinemática rediseñada; se conserva por si se reutiliza
   'match.shot.youMissed': 'Tu ocasión se esfuma — el portero la gana.',
   'match.shot.theyMissed': '{opp} desperdician su ocasión.',
   'match.shot.atChance': 'remate al {pct}%',
