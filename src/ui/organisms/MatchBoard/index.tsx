@@ -22,6 +22,7 @@ import { CardDetailModal, TACTICAL_DESCRIPTIONS, TACTICAL_DESCRIPTION_KEYS } fro
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { CAT_GLYPH } from '../../molecules/TacticCard/glyphs'
+import { SoundControls } from '../../molecules/SoundControls'
 import { crestSrc } from '../../data/nations'
 import { XGFloat } from '../Lanes'
 import { Modal, Overlay } from '../Modal'
@@ -29,6 +30,7 @@ import { Goal } from '../Goal'
 import { CoachMarks } from '../CoachMarks'
 import { MATCH_ONBOARDING_STEPS } from '../CoachMarks/steps'
 import { planHint } from '../../onboarding/planHint'
+import { matchSound } from '../../sound'
 import { useLang } from '../../i18n'
 import type { Translate } from '../../i18n'
 
@@ -526,6 +528,39 @@ export function MatchBoard({
     return () => clearTimeout(t)
   }, [isReveal])
 
+  // Looping crowd ambience for the whole time the board is mounted (one match), stopped on exit.
+  useEffect(() => {
+    matchSound.startCrowd()
+    return () => matchSound.stopCrowd()
+  }, [])
+
+  // Goal cue: fire once per goal beat as it lands (your goal at step 2, theirs at step 4).
+  useEffect(() => {
+    if (showGoalYou && youScored) matchSound.playGoal()
+  }, [showGoalYou, youScored])
+  useEffect(() => {
+    if (showGoalThem && theyScored) matchSound.playGoal()
+  }, [showGoalThem, theyScored])
+
+  // Draw cue: ring once per card that genuinely ENTERS the hand (the round deal), staggered into
+  // a riffle. Tied to the engine hand — not to FanCard mount — so playing / staging / unstaging a
+  // card (none of which add to the hand) never triggers it. Discards are cued in the sweep below.
+  const prevHandIdsRef = useRef<Set<string>>(new Set())
+  const handSig = p0.hand.map((c) => c.id).join(',')
+  useEffect(() => {
+    const prev = prevHandIdsRef.current
+    let added = 0
+    for (const c of p0.hand) if (!prev.has(c.id)) added += 1
+    prevHandIdsRef.current = new Set(p0.hand.map((c) => c.id))
+    if (added <= 0) return
+    const timers: ReturnType<typeof setTimeout>[] = []
+    for (let i = 0; i < Math.min(added, 8); i += 1) {
+      timers.push(setTimeout(() => matchSound.playCard(), i * 45))
+    }
+    return () => timers.forEach(clearTimeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handSig])
+
   // Require an 8px drag before dnd activates, so a plain click selects a card (click-to-place)
   // instead of being swallowed as a micro-drag.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
@@ -663,6 +698,8 @@ export function MatchBoard({
       return { id: `nr${seq}-${i}`, x, y, dx: endX - x, dy: endY - y, delay: i * 45 }
     })
     const maxDelay = (ghosts.length - 1) * 45
+    // Dismiss cue per swept card, in step with its fly-off, mirroring the deal-in riffle.
+    ghosts.forEach((g) => setTimeout(() => matchSound.playCard(), g.delay))
     setDiscardGhosts(ghosts)
     setSweeping(true)
     setDiscardPulse(true)
@@ -875,6 +912,7 @@ export function MatchBoard({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            <SoundControls />
             <div className="board-meters">
               <XGMeter
                 goals={goalsValue('them')}

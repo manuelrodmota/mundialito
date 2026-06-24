@@ -56,6 +56,12 @@ export const en = {
   'match.surrender.match.confirm': 'Quit match',
   'match.surrender.keepPlaying': 'Keep playing',
 
+  // Sound controls
+  'match.sound.music.on': 'Mute crowd',
+  'match.sound.music.off': 'Unmute crowd',
+  'match.sound.sfx.on': 'Mute sound effects',
+  'match.sound.sfx.off': 'Unmute sound effects',
+
   // Pitch direction hints
   'match.dir.youAttack': 'You attack',
   'match.dir.theyAttack': 'They attack',
@@ -248,6 +254,12 @@ export const es: typeof en = {
   'match.surrender.match.body': 'Saldrás del partido y volverás al menú principal. No se guarda ningún resultado.',
   'match.surrender.match.confirm': 'Salir del partido',
   'match.surrender.keepPlaying': 'Seguir jugando',
+
+  // Sound controls
+  'match.sound.music.on': 'Silenciar público',
+  'match.sound.music.off': 'Activar público',
+  'match.sound.sfx.on': 'Silenciar efectos',
+  'match.sound.sfx.off': 'Activar efectos',
 
   // Pitch direction hints
   'match.dir.youAttack': 'Tú atacas',
