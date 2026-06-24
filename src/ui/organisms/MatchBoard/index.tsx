@@ -534,13 +534,18 @@ export function MatchBoard({
     return () => matchSound.stopCrowd()
   }, [])
 
-  // Goal cue: fire once per goal beat as it lands (your goal at step 2, theirs at step 4).
+  // Shot cue: as each beat lands (your shot at step 2, theirs at step 4), ring the goal roar on a
+  // score or the kick→groan miss cue on a shot that didn't go in.
   useEffect(() => {
-    if (showGoalYou && youScored) matchSound.playGoal()
-  }, [showGoalYou, youScored])
+    if (!showGoalYou) return
+    if (youScored) matchSound.playGoal()
+    else if (youTookShot) matchSound.playMiss()
+  }, [showGoalYou, youScored, youTookShot])
   useEffect(() => {
-    if (showGoalThem && theyScored) matchSound.playGoal()
-  }, [showGoalThem, theyScored])
+    if (!showGoalThem) return
+    if (theyScored) matchSound.playGoal()
+    else if (theyTookShot) matchSound.playMiss()
+  }, [showGoalThem, theyScored, theyTookShot])
 
   // Draw cue: ring once per card that genuinely ENTERS the hand (the round deal), staggered into
   // a riffle. Tied to the engine hand — not to FanCard mount — so playing / staging / unstaging a
@@ -553,9 +558,12 @@ export function MatchBoard({
     for (const c of p0.hand) if (!prev.has(c.id)) added += 1
     prevHandIdsRef.current = new Set(p0.hand.map((c) => c.id))
     if (added <= 0) return
+    // Space the riffle out so successive draws don't slur together (≈190ms between cards). The
+    // separation from the discard riffle comes from delaying the redraw itself (see the sweep).
+    const DRAW_CUE_GAP_MS = 190
     const timers: ReturnType<typeof setTimeout>[] = []
     for (let i = 0; i < Math.min(added, 8); i += 1) {
-      timers.push(setTimeout(() => matchSound.playCard(), i * 45))
+      timers.push(setTimeout(() => matchSound.playCard(), i * DRAW_CUE_GAP_MS))
     }
     return () => timers.forEach(clearTimeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -698,8 +706,16 @@ export function MatchBoard({
       return { id: `nr${seq}-${i}`, x, y, dx: endX - x, dy: endY - y, delay: i * 45 }
     })
     const maxDelay = (ghosts.length - 1) * 45
-    // Dismiss cue per swept card, in step with its fly-off, mirroring the deal-in riffle.
-    ghosts.forEach((g) => setTimeout(() => matchSound.playCard(), g.delay))
+    // Dismiss cue per swept card — spaced wider than the visual fly-off so the riffle reads as
+    // distinct cards rather than one slur.
+    const DISCARD_CUE_GAP_MS = 170
+    const n = ghosts.length
+    for (let i = 0; i < n; i += 1) {
+      setTimeout(() => matchSound.playCard(), i * DISCARD_CUE_GAP_MS)
+    }
+    // Hold an extra second before dealing the new hand, so the redraw (cards + their draw cues)
+    // lands well clear of the discard riffle instead of slurring into it.
+    const REDRAW_HOLD_MS = 1000
     setDiscardGhosts(ghosts)
     setSweeping(true)
     setDiscardPulse(true)
@@ -708,7 +724,7 @@ export function MatchBoard({
       setSweeping(false)
       setDiscardGhosts([])
       setDiscardPulse(false)
-    }, 460 + maxDelay)
+    }, 460 + maxDelay + REDRAW_HOLD_MS)
   }, [reduceMotion, onNextRound])
 
   // Tactical staging — a selected tactical plays on commit (mirrors attack/defense staging).
