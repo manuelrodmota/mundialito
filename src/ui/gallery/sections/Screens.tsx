@@ -8,6 +8,7 @@ import { PickRow, SlotMeter } from '../../molecules/PickRow'
 import { FillWithCommons } from '../../organisms/FillWithCommons'
 import { ResultTitle } from '../../organisms/ResultTitle'
 import { Goal } from '../../organisms/Goal'
+import { ShotMiss } from '../../organisms/ShotMiss'
 import type { Formation } from '../../../engine/types'
 import { useState } from 'react'
 
@@ -92,14 +93,29 @@ export function Screens() {
       </Section>
 
       <Section id="overlays" eyebrow="Run &amp; meta" title="Modals &amp; result overlays"
-        lede="Full-screen overlays handle the GOAL blast and win/loss results.">
+        lede="Full-screen overlays handle the GOAL / SAVE shot cinematics and win/loss results.">
         <div className="ds-grid cols-2">
           <Tile label="Result overlay" center sub="win / loss / draw titles">
             <ResultTitle you={3} them={1} note="Through to the quarter-finals." />
           </Tile>
-          <Tile label="GOAL blast" center sub="the money moment — full-bleed in play">
-            <div style={{ position: 'relative', width: '100%', minHeight: 200 }}>
+          <Tile label="GOAL · you" center sub="boot strike → ball in → keeper late · gold">
+            <div style={{ position: 'relative', width: '100%', minHeight: 380 }}>
               <Goal isYou score={[1, 0]} />
+            </div>
+          </Tile>
+          <Tile label="GOAL · them" center sub="opponent scores · red">
+            <div style={{ position: 'relative', width: '100%', minHeight: 380 }}>
+              <Goal isYou={false} scorer="Brazil" score={[1, 1]} />
+            </div>
+          </Tile>
+          <Tile label="SAVED · you" center sub="your keeper denies them · green">
+            <div style={{ position: 'relative', width: '100%', minHeight: 380 }}>
+              <ShotMiss mine={false} p={0.62} score={[0, 0]} />
+            </div>
+          </Tile>
+          <Tile label="SAVED · them" center sub="their keeper denies you · red">
+            <div style={{ position: 'relative', width: '100%', minHeight: 380 }}>
+              <ShotMiss mine p={0.41} score={[0, 0]} />
             </div>
           </Tile>
         </div>

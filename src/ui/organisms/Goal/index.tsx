@@ -1,4 +1,5 @@
-import { motion, useReducedMotion } from 'framer-motion'
+import type { CSSProperties } from 'react'
+import { GoalMouth, BlastBall, BootImg, GloveImg } from './scene'
 
 interface GoalProps {
   isYou: boolean
@@ -7,45 +8,40 @@ interface GoalProps {
   score?: readonly [number, number]
 }
 
-const slam = {
-  hidden: { scale: 0.4, opacity: 0 },
-  visible: { scale: 1, opacity: 1 },
-}
-const sub = {
-  hidden: { y: 14, opacity: 0 },
-  visible: { y: 0, opacity: 1 },
-}
-
-/** GOAL blast — big italic gold/red wordmark + score subtitle over a dimmed pitch.
- * pointer-events:none so the surrounding Overlay veil receives click-to-dismiss.
- * Skips animation under prefers-reduced-motion. Styling lives in v9.css (.goal-blast).
+/**
+ * GOAL cinematic — a boot strikes, the ball rockets into the top-right corner of the net, the
+ * keeper dives a beat too late, then the big italic gold/red wordmark + scoreline slam in.
+ * Motion is CSS-driven (keyframes in v9.css), so a single layer owns it and the
+ * prefers-reduced-motion block snaps straight to the resolved end frame.
+ * The root is pointer-events:none so the surrounding Overlay veil receives click-to-dismiss.
  */
 export function Goal({ isYou, scorer, score }: GoalProps) {
-  const reduce = useReducedMotion()
   const title = isYou ? 'YOU SCORE' : scorer ? `${scorer.toUpperCase()} SCORES` : 'THEY SCORE'
   const line = score ? `${title} · ${score[0]} – ${score[1]}` : title
 
   return (
     <div className={`goal-blast ${isYou ? 'you' : 'them'}`}>
       <div className="gb-net" />
-      <motion.div
-        className="gb-text"
-        variants={reduce ? undefined : slam}
-        initial="hidden"
-        animate="visible"
-        transition={reduce ? undefined : { type: 'spring', stiffness: 320, damping: 18 }}
-      >
-        GOAL
-      </motion.div>
-      <motion.div
-        className="gb-sub"
-        variants={reduce ? undefined : sub}
-        initial="hidden"
-        animate="visible"
-        transition={reduce ? undefined : { delay: 0.12, duration: 0.3 }}
-      >
-        {line}
-      </motion.div>
+      <div className="gb-pitch">
+        <GoalMouth />
+        <div className="gb-bulge" />
+        <div className="gb-burst" aria-hidden="true">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <i key={i} style={{ '--a': `${i * 40}deg` } as CSSProperties} />
+          ))}
+        </div>
+        <span className="gb-ball">
+          <BlastBall />
+        </span>
+        <span className="gb-glove gb-glove-miss">
+          <GloveImg />
+        </span>
+        <span className="gb-boot">
+          <BootImg />
+        </span>
+      </div>
+      <div className="gb-text">GOAL</div>
+      <div className="gb-sub">{line}</div>
     </div>
   )
 }
