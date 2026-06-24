@@ -22,6 +22,7 @@ import { CardDetailModal, TACTICAL_DESCRIPTIONS, TACTICAL_DESCRIPTION_KEYS } fro
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { CAT_GLYPH } from '../../molecules/TacticCard/glyphs'
+import { SoundControls } from '../../molecules/SoundControls'
 import { crestSrc } from '../../data/nations'
 import { XGFloat } from '../Lanes'
 import { Modal, Overlay } from '../Modal'
@@ -30,6 +31,7 @@ import { ShotMiss } from '../ShotMiss'
 import { CoachMarks } from '../CoachMarks'
 import { MATCH_ONBOARDING_STEPS } from '../CoachMarks/steps'
 import { planHint } from '../../onboarding/planHint'
+import { matchSound } from '../../sound'
 import { useLang } from '../../i18n'
 import type { Translate } from '../../i18n'
 
@@ -510,6 +512,47 @@ export function MatchBoard({
     return () => clearTimeout(t)
   }, [isReveal])
 
+  // Looping crowd ambience for the whole time the board is mounted (one match), stopped on exit.
+  useEffect(() => {
+    matchSound.startCrowd()
+    return () => matchSound.stopCrowd()
+  }, [])
+
+  // Shot cue: as each beat lands (your shot at step 2, theirs at step 4), ring the goal roar on a
+  // score or the kick→groan miss cue on a shot that didn't go in.
+  useEffect(() => {
+    if (!showGoalYou) return
+    if (youScored) matchSound.playGoal()
+    else if (youTookShot) matchSound.playMiss()
+  }, [showGoalYou, youScored, youTookShot])
+  useEffect(() => {
+    if (!showGoalThem) return
+    if (theyScored) matchSound.playGoal()
+    else if (theyTookShot) matchSound.playMiss()
+  }, [showGoalThem, theyScored, theyTookShot])
+
+  // Draw cue: ring once per card that genuinely ENTERS the hand (the round deal), staggered into
+  // a riffle. Tied to the engine hand — not to FanCard mount — so playing / staging / unstaging a
+  // card (none of which add to the hand) never triggers it. Discards are cued in the sweep below.
+  const prevHandIdsRef = useRef<Set<string>>(new Set())
+  const handSig = p0.hand.map((c) => c.id).join(',')
+  useEffect(() => {
+    const prev = prevHandIdsRef.current
+    let added = 0
+    for (const c of p0.hand) if (!prev.has(c.id)) added += 1
+    prevHandIdsRef.current = new Set(p0.hand.map((c) => c.id))
+    if (added <= 0) return
+    // Space the riffle out so successive draws don't slur together (≈190ms between cards). The
+    // separation from the discard riffle comes from delaying the redraw itself (see the sweep).
+    const DRAW_CUE_GAP_MS = 190
+    const timers: ReturnType<typeof setTimeout>[] = []
+    for (let i = 0; i < Math.min(added, 8); i += 1) {
+      timers.push(setTimeout(() => matchSound.playCard(), i * DRAW_CUE_GAP_MS))
+    }
+    return () => timers.forEach(clearTimeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handSig])
+
   // Require an 8px drag before dnd activates, so a plain click selects a card (click-to-place)
   // instead of being swallowed as a micro-drag.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
@@ -647,6 +690,16 @@ export function MatchBoard({
       return { id: `nr${seq}-${i}`, x, y, dx: endX - x, dy: endY - y, delay: i * 45 }
     })
     const maxDelay = (ghosts.length - 1) * 45
+    // Dismiss cue per swept card — spaced wider than the visual fly-off so the riffle reads as
+    // distinct cards rather than one slur.
+    const DISCARD_CUE_GAP_MS = 170
+    const n = ghosts.length
+    for (let i = 0; i < n; i += 1) {
+      setTimeout(() => matchSound.playCard(), i * DISCARD_CUE_GAP_MS)
+    }
+    // Hold an extra second before dealing the new hand, so the redraw (cards + their draw cues)
+    // lands well clear of the discard riffle instead of slurring into it.
+    const REDRAW_HOLD_MS = 1000
     setDiscardGhosts(ghosts)
     setSweeping(true)
     setDiscardPulse(true)
@@ -655,7 +708,7 @@ export function MatchBoard({
       setSweeping(false)
       setDiscardGhosts([])
       setDiscardPulse(false)
-    }, 460 + maxDelay)
+    }, 460 + maxDelay + REDRAW_HOLD_MS)
   }, [reduceMotion, onNextRound])
 
   // Tactical staging — a selected tactical plays on commit (mirrors attack/defense staging).
@@ -859,6 +912,7 @@ export function MatchBoard({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            <SoundControls />
             <div className="board-meters">
               <XGMeter
                 goals={goalsValue('them')}
