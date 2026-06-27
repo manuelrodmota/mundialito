@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', 'qubika-agentic-framework']),
+  globalIgnores(['dist', 'coverage', 'qubika-agentic-framework', 'supabase/functions']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

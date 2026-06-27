@@ -70,6 +70,106 @@ export type Database = {
         }
         Relationships: []
       }
+      mp_engine_state: {
+        Row: {
+          engine_state: Json
+          room_id: string
+          updated_at: string
+        }
+        Insert: {
+          engine_state: Json
+          room_id: string
+          updated_at?: string
+        }
+        Update: {
+          engine_state?: Json
+          room_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mp_engine_state_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "mp_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mp_player_state: {
+        Row: {
+          id: string
+          pending_commit: Json | null
+          player_index: number
+          private_view: Json | null
+          room_id: string
+          uid: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          pending_commit?: Json | null
+          player_index: number
+          private_view?: Json | null
+          room_id: string
+          uid: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          pending_commit?: Json | null
+          player_index?: number
+          private_view?: Json | null
+          room_id?: string
+          uid?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mp_player_state_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "mp_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mp_rooms: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          plan_deadline: string | null
+          player0_uid: string
+          player1_uid: string | null
+          public_state: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          plan_deadline?: string | null
+          player0_uid: string
+          player1_uid?: string | null
+          public_state?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          plan_deadline?: string | null
+          player0_uid?: string
+          player1_uid?: string | null
+          public_state?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       player_ratings: {
         Row: {
           attack: number
@@ -376,3 +476,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

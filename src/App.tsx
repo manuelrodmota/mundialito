@@ -5,6 +5,7 @@ import { MainMenu } from './ui/organisms/MainMenu'
 import { PlaceholderScreen } from './ui/organisms/PlaceholderScreen'
 import { Quickplay } from './ui/screens/Quickplay'
 import { Arcade } from './ui/screens/Arcade'
+import { Multiplayer } from './ui/screens/Multiplayer'
 import { HowToPlay } from './ui/screens/HowToPlay'
 import { useLang } from './ui/i18n'
 
@@ -21,7 +22,7 @@ function isGalleryRoute(): boolean {
   )
 }
 
-type Screen = 'menu' | 'quickplay' | 'arcade' | 'collection' | 'howToPlay'
+type Screen = 'menu' | 'quickplay' | 'arcade' | 'multiplayer' | 'collection' | 'howToPlay'
 
 function App() {
   const [screen, setScreen] = useState<Screen>('menu')
@@ -40,6 +41,7 @@ function App() {
       <MainMenu
         onQuickplay={() => setScreen('quickplay')}
         onArcade={() => setScreen('arcade')}
+        onMultiplayer={() => setScreen('multiplayer')}
         onCollection={() => setScreen('collection')}
         onHowToPlay={() => setScreen('howToPlay')}
       />
@@ -49,6 +51,12 @@ function App() {
   if (screen === 'quickplay') {
     return (
       <Quickplay onBack={() => setScreen('menu')} />
+    )
+  }
+
+  if (screen === 'multiplayer') {
+    return (
+      <Multiplayer onBack={() => setScreen('menu')} />
     )
   }
 

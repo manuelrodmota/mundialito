@@ -5,12 +5,13 @@ import { useLang } from '../../i18n'
 interface MainMenuProps {
   onQuickplay: () => void
   onArcade?: () => void
+  onMultiplayer?: () => void
   onCollection?: () => void
   onHowToPlay?: () => void
 }
 
-/** Main mode-select screen — entry point for Quickplay, Arcade Run, Collection, and How to Play. */
-export function MainMenu({ onQuickplay, onArcade, onCollection, onHowToPlay }: MainMenuProps) {
+/** Main mode-select screen — entry point for Quickplay, Arcade Run, Multiplayer, Collection, and How to Play. */
+export function MainMenu({ onQuickplay, onArcade, onMultiplayer, onCollection, onHowToPlay }: MainMenuProps) {
   const { t } = useLang()
 
   return (
@@ -44,6 +45,10 @@ export function MainMenu({ onQuickplay, onArcade, onCollection, onHowToPlay }: M
 
         <Button variant="primary" size="big" onClick={onArcade}>
           {t('menu.arcade')}
+        </Button>
+
+        <Button variant="primary" size="big" onClick={onMultiplayer}>
+          {t('mp.menu.title')}
         </Button>
 
         <Button variant="ghost" onClick={onCollection}>
