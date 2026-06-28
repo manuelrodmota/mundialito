@@ -85,11 +85,14 @@ export const en = {
 
   // Meter labels
   'match.meter.you': 'YOU',
+  'match.meter.them': 'THEM',
+  'match.meter.chanceTitle': 'Goal chance',
+  'match.meter.fitnessTitle': 'Physical',
   // v11 Pressure → Conversion meter. The bar fills as you attack; the label reads the goal chance
   // qualitatively (a full bar is a high chance, not a sure goal). Fatigue ("FRESH") is a separate line.
-  'match.meter.chanceLow': 'Low goal chance ⚽',
-  'match.meter.chanceMed': 'Med goal chance ⚽',
-  'match.meter.chanceHigh': 'High goal chance ⚽',
+  'match.meter.chanceLow': 'Low',
+  'match.meter.chanceMed': 'Medium',
+  'match.meter.chanceHigh': 'High',
   'match.meter.tip': 'The bar fills as you attack — the fuller it is, the better your chance to score when you take the shot. A goal empties the meter; a miss knocks a chunk off so you keep trying. The tag below (FRESH/HOT) is your fatigue.',
   // v11 shot reveal
   'match.shot.saved': 'SAVED!',
@@ -103,6 +106,14 @@ export const en = {
   'match.dock.staminaTip':
     "Your energy this round (8 → 10 → 12 as the match goes on). Fielding each player and tactical spends it — a star in a lane makes its support cards cost half. Cards you can't afford are dimmed.",
   'match.dock.powers': 'Powers',
+  'match.hud.resources': 'Resources',
+  'match.hud.shape': 'Shape',
+  'match.hud.stamina': 'Stamina',
+  'match.cap.players': 'Players',
+  'match.cap.tactics': 'Tactics',
+  'match.cap.star': '★ Star core · support half-price',
+  'match.menu.label': 'Settings',
+  'match.menu.sound': 'Sound',
 
   // Coach plan hint
   'match.commit.lockReveal': 'Lock in & reveal',
@@ -284,11 +295,14 @@ export const es: typeof en = {
 
   // Meter labels
   'match.meter.you': 'TÚ',
+  'match.meter.them': 'ELLOS',
+  'match.meter.chanceTitle': 'Ocasión de gol',
+  'match.meter.fitnessTitle': 'Estado físico',
   // v11 medidor Presión → Conversión. La barra se llena al atacar; la etiqueta indica la ocasión de
   // gol de forma cualitativa (barra llena = gran ocasión, no gol seguro). La fatiga ("FRESH") va aparte.
-  'match.meter.chanceLow': 'Ocasión baja ⚽',
-  'match.meter.chanceMed': 'Ocasión media ⚽',
-  'match.meter.chanceHigh': 'Ocasión alta ⚽',
+  'match.meter.chanceLow': 'Baja',
+  'match.meter.chanceMed': 'Media',
+  'match.meter.chanceHigh': 'Alta',
   'match.meter.tip': 'La barra se llena al atacar — cuanto más llena, mejor tu ocasión de marcar al rematar. Un gol vacía el medidor; un fallo le quita una parte para seguir intentándolo. La etiqueta de abajo (FRESH/HOT) es tu fatiga.',
   // v11 revelación del remate
   'match.shot.saved': '¡ATAJADA!',
@@ -302,6 +316,14 @@ export const es: typeof en = {
   'match.dock.staminaTip':
     'Tu energía esta ronda (8 → 10 → 12 a medida que avanza el partido). Alinear cada jugador y táctica la gasta — una estrella en una banda hace que sus cartas de apoyo cuesten la mitad. Las cartas que no puedes pagar se atenúan.',
   'match.dock.powers': 'Poderes',
+  'match.hud.resources': 'Recursos',
+  'match.hud.shape': 'Esquema',
+  'match.hud.stamina': 'Resistencia',
+  'match.cap.players': 'Jugadores',
+  'match.cap.tactics': 'Tácticas',
+  'match.cap.star': '★ Núcleo estrella · apoyo a mitad',
+  'match.menu.label': 'Ajustes',
+  'match.menu.sound': 'Sonido',
 
   // Coach plan hint
   'match.commit.lockReveal': 'Confirmar jugada y revelar',

@@ -184,9 +184,22 @@
   /* z-index:auto (no stacking context) so hovered/selected cards' high z-index pops
      them above the action dock. The resting arc is nudged down just a little so its
      bottom edge tucks off the screen, but the card art stays high in the dock. */
-  position: relative; display: flex; align-items: flex-end; justify-content: center;
+  position: relative; display: grid;
+  grid-template-columns: 1fr auto 1fr; /* equal flanks → the centre (fan) is exactly screen-centred */
+  align-items: end;
   padding: 0 18px; overflow: visible;
   --rest-drop: 12px; /* small sink so the very bottom of the card clips off-screen; keep low so the art rides high */
+}
+/* Each side track spreads its items (deck piles + stamina/resources flank) evenly across the
+   available half, so only the fan is dead-centre and everything else fills the gaps harmoniously. */
+.hand-dock .hand-side {
+  display: flex; align-items: flex-end; justify-content: space-evenly;
+  gap: 12px; min-width: 0; padding-bottom: 6px;
+}
+/* In each side track the piles return to the normal flow (the absolute edge-pin below is for the
+   old layout); the flex distribution now owns their horizontal placement. */
+.hand-dock .hand-side .pile-col7 {
+  position: static; bottom: auto; left: auto; right: auto;
 }
 .hand-dock .fan2 { display: flex; align-items: flex-end; overflow: visible; }
 .fan2 > * + * { margin-left: -30px; }
@@ -717,16 +730,23 @@
 .scorestrip4 .ss-round b { color: var(--txt); }
 .scorestrip4 .ht-tick { font-style: normal; color: #7ec898; font-size: 9px; letter-spacing: 0.1em; }
 
-/* ---- xG meter with fatigue heat (GDD §7, §8) ---- */
-.xgm4 { display: flex; flex-direction: column; gap: 3px; min-width: 210px; }
-.xgm4 .xgm-row { display: flex; align-items: center; gap: 10px; }
-.xgm4 .xgm-goals {
-  font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1;
-  color: #ff8d80; min-width: 22px; text-align: center;
+/* ---- xG meter with fatigue heat (GDD §7, §8) ----
+   One tidy row per side: short side label · pressure bar · fatigue tag.
+   The score + team name are not repeated (they live in the scoreboard). */
+.xgm4 {
+  display: grid;
+  grid-template-columns: 40px 1fr 42px;
+  align-items: center;
+  gap: 9px;
+  min-width: 196px;
 }
-.xgm4.mine .xgm-goals { color: #e8c873; }
+.xgm4 .xgm-name {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #ff9b90; white-space: nowrap;
+}
+.xgm4.mine .xgm-name { color: #e8c873; }
 .xgm4 .xgm-bar {
-  position: relative; flex: 1; height: 16px; border-radius: 999px; overflow: hidden;
+  position: relative; height: 14px; border-radius: 999px; overflow: hidden;
   background: rgba(255, 255, 255, 0.07); border: 1px solid var(--line);
   transition: box-shadow 300ms ease, border-color 300ms ease;
 }
@@ -738,13 +758,13 @@
 .xgm4.mine .xgm-bar i { background: linear-gradient(90deg, #c79a3e, #ecd391); }
 .xgm4 .xgm-val {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: rgba(255, 255, 255, 0.92);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); font-variant-numeric: tabular-nums;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
 }
-.xgm4 .xgm-sub {
-  display: flex; gap: 10px; align-items: center; justify-content: space-between;
-  font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--txt-dim);
-  padding-left: 32px;
+.xgm4 .heat-tag {
+  font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  text-align: right; white-space: nowrap;
 }
 /* heat — the fatigue dial glows on your goal */
 .xgm4[data-heat="1"] .xgm-bar { border-color: rgba(255, 158, 80, 0.35); box-shadow: 0 0 10px rgba(255, 130, 50, 0.25); }
@@ -914,6 +934,9 @@
 
 /* ---- per-round card-cap chip in the action dock (GDD v5 §6) ---- */
 .cap-chip5 {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 11.5px;
   font-weight: 700;
   color: var(--txt-dim);
@@ -925,6 +948,8 @@
   letter-spacing: 0.02em;
   flex: none;
 }
+.cap-chip5 .cap-lab { font-weight: 700; }
+.cap-chip5 .cap-val { margin-left: auto; font-variant-numeric: tabular-nums; }
 .cap-chip5 b { color: var(--txt); font-variant-numeric: tabular-nums; }
 .cap-chip5.full {
   color: #ffd28a;
@@ -1659,7 +1684,7 @@
 /* Just-in-time planning coach — a compact 💡 icon beside the Lock-in button; the
    advice reveals on hover/focus in a tooltip that floats over the pitch, so it no
    longer eats a wide strip of the dock. Self-clears as the lineup improves. */
-.screen.board > .match-dock .plan-hint {
+.screen.board .plan-hint {
   position: relative;
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; flex: none;
@@ -1674,7 +1699,7 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(255, 158, 80, 0.0); }
   50% { box-shadow: 0 0 0 4px rgba(255, 158, 80, 0.18); }
 }
-.screen.board > .match-dock .plan-hint .plan-hint-tip {
+.screen.board .plan-hint .plan-hint-tip {
   position: absolute; bottom: calc(100% + 10px); right: -6px;
   width: 250px; max-width: 70vw;
   background: rgba(10, 14, 24, 0.98);
@@ -1687,12 +1712,12 @@
   transition: opacity 140ms, transform 140ms;
   z-index: 200; pointer-events: none;
 }
-.screen.board > .match-dock .plan-hint:hover .plan-hint-tip,
-.screen.board > .match-dock .plan-hint:focus-visible .plan-hint-tip {
+.screen.board .plan-hint:hover .plan-hint-tip,
+.screen.board .plan-hint:focus-visible .plan-hint-tip {
   opacity: 1; visibility: visible; transform: translateY(0);
 }
 @media (prefers-reduced-motion: reduce) {
-  .screen.board > .match-dock .plan-hint { animation: none; }
+  .screen.board .plan-hint { animation: none; }
 }
 /* Quit/Surrender moved into the action dock (the bottom strip was removed to give
    the pitch its height); keep it tucked at the far right, visually quiet. */
@@ -2090,3 +2115,296 @@
 .builder-head h2 { color: var(--txt, #f5f7fb); }
 /* Roomier left padding on the deck-browser dropdowns + search. */
 .filters select, .filters input[type="text"] { padding-left: 14px; }
+
+/* ============================================================
+   FULL-BLEED PITCH + FLOATING HUD  (broadcast redesign)
+   The turf fills the viewport edge-to-edge; the scoreboard,
+   meters, action dock and hand fan float on top over scrims.
+   Appended last so it overrides the earlier board layout rules.
+   ============================================================ */
+
+.screen.board.v4board {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  --hud-top: 132px;   /* reserved band under the floating scoreboard */
+  --hud-bottom: 250px; /* reserved band over the action dock + hand fan */
+}
+
+/* --- turf fills the whole screen (no rounded card, no margins) --- */
+.screen.board > .pitch-wrap4 {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  z-index: 0;
+}
+.screen.board .pitch4 {
+  border: 0;
+  border-radius: 0;
+  /* richer mown turf + a soft stadium light spilling from the top */
+  background:
+    radial-gradient(125% 85% at 50% -25%, rgba(170, 215, 255, 0.16), transparent 62%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 76px, rgba(0, 0, 0, 0.05) 76px 152px),
+    linear-gradient(176deg, #2f8150 0%, #205c39 58%, #17492d 100%);
+  box-shadow: inset 0 0 260px rgba(0, 0, 0, 0.5);
+}
+/* broadcast vignette — darkens the corners so floating HUD stays legible */
+.screen.board .pitch4::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(120% 95% at 50% 42%, transparent 58%, rgba(4, 8, 16, 0.55) 100%);
+}
+
+/* lane play-area is pinned to the safe central band so cards + lane
+   labels never disappear under the floating top/bottom HUD. */
+.screen.board .p4-grid {
+  inset: var(--hud-top) 26px var(--hud-bottom);
+}
+.screen.board .p4-grid .lane4 { padding-top: 14px; }
+
+/* attack-direction hints drop into the play area, clear of the floating HUD panels */
+.screen.board .dirhint4 { top: calc(var(--hud-top) + 26px); opacity: 0.5; }
+
+/* --- top HUD: transparent, floats over the turf on a scrim --- */
+.screen.board > .side-strip.top,
+.v4board .side-strip.top {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 12;
+  min-height: 0;
+  padding: 16px 28px 30px;
+  background: linear-gradient(180deg, rgba(6, 10, 20, 0.94) 0%, rgba(6, 10, 20, 0.55) 52%, transparent 100%);
+  border-bottom: 0;
+  pointer-events: none;
+}
+.screen.board > .side-strip.top > * { pointer-events: auto; }
+
+/* glass treatment for the floating identity / intent block */
+.screen.board .side-strip.top .opp-id {
+  width: max-content;
+  max-width: 340px;
+  justify-self: start;
+  background: rgba(10, 14, 26, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 10px 14px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.screen.board .board-meters {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: rgba(10, 14, 26, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 9px 13px 10px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.screen.board .board-meters-title {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--txt-dim);
+  padding-bottom: 1px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+/* in the HUD box the fatigue moves to a shared footer, so the bar spans the freed tag column */
+.screen.board .board-meters .xgm4 { grid-template-columns: 44px 1fr; min-width: 196px; }
+
+/* physical-state footer — one compact line: "Físico  ELLOS Pleno · TÚ Pleno" */
+.screen.board .board-fitness {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px;
+  margin-top: 1px; padding-top: 7px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 9.5px; line-height: 1.2;
+}
+.screen.board .board-fitness .fit-label {
+  font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--txt-dim);
+  margin-right: 2px;
+}
+.screen.board .board-fitness .fit-name {
+  font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #ff9b90;
+}
+.screen.board .board-fitness .fit-name.mine { color: #e8c873; }
+.screen.board .board-fitness .fit-sep { color: var(--txt-dim); opacity: 0.6; }
+.screen.board .board-fitness .fit-val {
+  font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--txt);
+}
+.screen.board .board-fitness .fit-val[data-heat="1"] { color: #ff9e50; }
+.screen.board .board-fitness .fit-val[data-heat="2"] { color: #ff8a3c; }
+.screen.board .board-fitness .fit-val[data-heat="3"] { color: #ff6a3c; }
+
+/* --- bottom HUD: action dock + hand fan float on a bottom scrim --- */
+.screen.board > .hand-dock {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 35; /* above the centre commit pill so a hovered card lifts in FRONT of it */
+  min-height: 150px;
+  background: linear-gradient(0deg, rgba(6, 10, 20, 0.92) 0%, rgba(6, 10, 20, 0.5) 55%, transparent 100%);
+  pointer-events: none;
+}
+.screen.board > .hand-dock > * { pointer-events: auto; }
+
+/* primary action — a compact glass pill at bottom-centre (only commit + MP timer). */
+.screen.board > .match-dock {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 162px;
+  width: max-content;
+  max-width: calc(100vw - 36px);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 999px;
+  padding: 7px 10px 7px 18px !important;
+  background: rgba(9, 13, 24, 0.72) !important;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  justify-content: center;
+}
+/* nothing to commit (reveal / waiting) → no empty pill */
+.screen.board > .match-dock:empty { display: none; }
+
+/* ---- hand-dock flanks: stamina (left) + resources (right). Each lives in its side track
+        (.hand-side) alongside the deck piles, evenly distributed across the half so the card
+        fan alone stays dead-centre on the screen. ---- */
+.hand-dock .hand-flank {
+  flex: none; align-self: flex-end; z-index: 7;
+  margin-bottom: 14px;
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 7px 11px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(9, 13, 24, 0.62);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.hand-dock .hand-flank-right { align-items: flex-start; }
+/* stamina flank reads as just the label + pip pill — drop the panel box so only the
+   resistance + bolt show (the pips keep their own rounded pill). */
+.hand-dock .hand-flank-left {
+  align-items: center;
+  padding: 0; border: none; background: none; box-shadow: none; backdrop-filter: none;
+}
+/* quiet uppercase section header so each flank reads as one labelled group */
+.hand-dock .hand-flank-title {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--txt-dim);
+  padding-bottom: 1px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  align-self: stretch;
+}
+.hand-dock .hand-flank-left .hand-flank-title { border-bottom: none; align-self: center; }
+.hand-dock .hand-flank-chips { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.hand-dock .hand-flank .cap-chip5 { font-size: 11px; }
+/* single row — pips + the n/max ⚡ readout sit inline (no wrap), so the bolt never drops below. */
+.hand-dock .hand-flank .stamina-pips { flex-wrap: nowrap; font-size: 11px; }
+
+/* ---- shape dock: a single collapsible formation button (+ powers) bottom-left, over our
+        own half of the pitch (we attack leftwards) ---- */
+.screen.board > .match-shape-dock {
+  position: absolute;
+  left: 18px; bottom: 128px;
+  z-index: 40;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+}
+
+/* the formation button — current shape on one tidy pill, opens the picker above it */
+.formation-menu { position: relative; }
+.formation-menu-btn {
+  font: inherit; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(9, 13, 24, 0.66);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: var(--txt);
+  transition: background 140ms, border-color 140ms;
+}
+.formation-menu-btn:hover, .formation-menu-btn.open { background: rgba(18, 24, 40, 0.82); border-color: rgba(255, 255, 255, 0.18); }
+.formation-menu-btn .fm-cap {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--txt-dim);
+}
+.formation-menu-btn b { font-size: 14px; letter-spacing: 0.02em; }
+.formation-menu-btn .fm-name {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--txt-dim);
+}
+.formation-menu-btn .fm-chev { width: 14px; height: 14px; color: var(--txt-dim); transition: transform 160ms; }
+.formation-menu-btn.open .fm-chev { transform: rotate(180deg); }
+.formation-menu-btn[data-f="offensive"] b { color: #ff9d92; }
+.formation-menu-btn[data-f="defensive"] b { color: #82c0f2; }
+.formation-menu-btn:not([data-f]) b { color: var(--gold); }
+
+/* the popover opens upward (it lives at the bottom of the screen) */
+.formation-menu-pop {
+  position: absolute;
+  left: 0; bottom: calc(100% + 8px);
+  display: flex; flex-direction: column; gap: 5px; align-items: stretch;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(9, 13, 24, 0.92);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+  z-index: 60;
+}
+.formation-menu-pop button {
+  flex-direction: row; align-items: baseline; gap: 8px;
+  min-width: 200px; padding: 7px 11px;
+}
+/* keep the shape code on one line — without this it shrinks to min-content and breaks at the
+   hyphens (4- / 3- / 3) since the picker button is a tight flex row. */
+.formation-menu-pop button b { flex: none; white-space: nowrap; }
+.formation-menu-pop button i { margin-left: auto; }
+
+/* ---- settings gear (top-right): folds sound + exit into a small popover ---- */
+.match-settings { position: relative; }
+.match-settings-gear {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(9, 13, 24, 0.5);
+  backdrop-filter: blur(10px);
+  color: var(--txt-dim);
+  cursor: pointer;
+  transition: background 140ms, color 140ms, border-color 140ms;
+}
+.match-settings-gear:hover, .match-settings-gear.open { background: rgba(18, 24, 40, 0.8); color: var(--txt); border-color: rgba(255, 255, 255, 0.2); }
+.match-settings-gear svg { width: 19px; height: 19px; }
+.match-settings-pop {
+  position: absolute;
+  top: calc(100% + 8px); right: 0;
+  display: flex; flex-direction: column; gap: 8px;
+  min-width: 190px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(9, 13, 24, 0.95);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+  z-index: 60;
+}
+.match-settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.match-settings-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--txt-dim);
+}
+.match-settings-exit {
+  font: inherit; cursor: pointer; text-align: center;
+  padding: 8px 12px;
+  font-size: 12px; font-weight: 700;
+  color: #ff9d92;
+  border: 1px solid rgba(232, 85, 74, 0.4);
+  border-radius: 10px;
+  background: rgba(232, 85, 74, 0.1);
+  transition: background 140ms, border-color 140ms;
+}
+.match-settings-exit:hover { background: rgba(232, 85, 74, 0.2); border-color: rgba(232, 85, 74, 0.7); }

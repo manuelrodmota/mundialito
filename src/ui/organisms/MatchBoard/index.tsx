@@ -14,15 +14,15 @@ import { ExtraTimeBanner } from '../ExtraTime'
 import { Lane } from '../Lanes'
 import { PitchMarkings } from '../PitchMarkings'
 import { DeckPile } from '../../molecules/DeckPile'
-import { XGMeter } from '../../molecules/Meters'
-import { FormationPicker } from '../FormationPicker'
+import { XGMeter, HEAT_KEYS } from '../../molecules/Meters'
+import { FormationMenu } from '../FormationMenu'
 import { CapChip } from '../../atoms/CapChip'
 import { StaminaPips } from '../../atoms/StaminaPips'
 import { CardDetailModal, TACTICAL_DESCRIPTIONS, TACTICAL_DESCRIPTION_KEYS } from '../CardDetailModal'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { CAT_GLYPH } from '../../molecules/TacticCard/glyphs'
-import { SoundControls } from '../../molecules/SoundControls'
+import { MatchSettingsMenu } from '../../molecules/MatchSettingsMenu'
 import { crestSrc } from '../../data/nations'
 import { XGFloat } from '../Lanes'
 import { Modal, Overlay } from '../Modal'
@@ -984,23 +984,35 @@ export function MatchBoard({
             />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-            <SoundControls />
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'flex-end', gap: 8, alignSelf: 'start' }}>
             <div className="board-meters">
+              <span className="board-meters-title">{t('match.meter.chanceTitle')}</span>
               <XGMeter
-                goals={goalsValue('them')}
                 xg={meterValue('them')}
                 heat={fatigueHeat(p1.fatigue)}
-                label={match.opponent.name}
+                label={t('match.meter.them')}
+                showHeat={false}
               />
               <XGMeter
-                goals={goalsValue('you')}
                 xg={meterValue('you')}
                 heat={fatigueHeat(p0.fatigue)}
                 label={t('match.meter.you')}
                 mine
+                showHeat={false}
               />
+              <div className="board-fitness">
+                <span className="fit-label">{t('match.meter.fitnessTitle')}</span>
+                <span className="fit-name">{t('match.meter.them')}</span>
+                <span className="fit-val" data-heat={fatigueHeat(p1.fatigue)}>{t(HEAT_KEYS[fatigueHeat(p1.fatigue)])}</span>
+                <span className="fit-sep">·</span>
+                <span className="fit-name mine">{t('match.meter.you')}</span>
+                <span className="fit-val" data-heat={fatigueHeat(p0.fatigue)}>{t(HEAT_KEYS[fatigueHeat(p0.fatigue)])}</span>
+              </div>
             </div>
+            <MatchSettingsMenu
+              onExit={onSurrender ? () => setShowSurrender(true) : undefined}
+              exitLabel={t(surrenderCopy.button)}
+            />
           </div>
         </div>
 
@@ -1127,21 +1139,10 @@ export function MatchBoard({
           </Overlay>
         )}
 
-        {/* action dock — cap chips + formation + lock-in button (tacticals live in the hand dock) */}
-        <div className="match-dock">
+        {/* --- planning HUD, distributed to the corners so the centre stays clean --- */}
 
-          <CapChip kind="players" current={attackCards.length + defenseCards.length} max={playerCap} />
-          <CapChip kind="tactics" current={p0.tacticalsThisHalf + tacticalCards.length} max={TACTICALS_PER_HALF} />
-          {!isReveal && (
-            <StaminaPips
-              remaining={staminaLeft}
-              max={staminaMax}
-              label={t('match.dock.staminaLeft', { left: staminaLeft, max: staminaMax })}
-              tip={t('match.dock.staminaTip')}
-            />
-          )}
-          {showStarCore && <CapChip kind="star" />}
-
+        {/* shape (collapsible button) + powers — floats bottom-right */}
+        <div className="match-shape-dock">
           {p0.powers.length > 0 && (
             <div className="shelf board-powers">
               <span className="label">{t('match.dock.powers')}</span>
@@ -1161,45 +1162,35 @@ export function MatchBoard({
               ))}
             </div>
           )}
+          <FormationMenu selected={formation} onSelect={setFormation} />
+        </div>
 
-          <FormationPicker selected={formation} onSelect={setFormation} />
-
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
-            {coachHint && (
-              <span
-                className="plan-hint"
-                role="status"
-                tabIndex={0}
-                aria-label={t(coachHint.key, coachHint.vars)}
-              >
-                💡
-                <span className="plan-hint-tip">{t(coachHint.key, coachHint.vars)}</span>
-              </span>
-            )}
-            {!isReveal && mpMode && secondsLeft !== null && (
-              <span className="mp-plan-timer" role="timer" aria-label={t('mp.match.timeLeft')}>
-                ⏱ {secondsLeft}s
-              </span>
-            )}
-            {!isReveal && mpMode && mpWaiting && (
-              <span className="mp-waiting" role="status">{t('mp.match.waiting')}</span>
-            )}
-            {!isReveal && canCommit && (
-              <button className="btn btn-gold" data-coach="commit" onClick={handleCommit}>
-                {mpMode
-                  ? committed > 0 ? t('mp.match.lockIn') : t('mp.match.passRound')
-                  : committed > 0 ? t('match.commit.lockReveal') : t('match.commit.passRound')}
-              </button>
-            )}
-          </div>
-
-          {onSurrender && (
-            <button
-              type="button"
-              className="surrender-btn match-dock-surrender"
-              onClick={() => setShowSurrender(true)}
+        {/* primary action — a compact pill at bottom-centre, above the hand */}
+        <div className="match-dock">
+          {coachHint && (
+            <span
+              className="plan-hint"
+              role="status"
+              tabIndex={0}
+              aria-label={t(coachHint.key, coachHint.vars)}
             >
-              {t(surrenderCopy.button)}
+              💡
+              <span className="plan-hint-tip">{t(coachHint.key, coachHint.vars)}</span>
+            </span>
+          )}
+          {!isReveal && mpMode && secondsLeft !== null && (
+            <span className="mp-plan-timer" role="timer" aria-label={t('mp.match.timeLeft')}>
+              ⏱ {secondsLeft}s
+            </span>
+          )}
+          {!isReveal && mpMode && mpWaiting && (
+            <span className="mp-waiting" role="status">{t('mp.match.waiting')}</span>
+          )}
+          {!isReveal && canCommit && (
+            <button className="btn btn-gold" data-coach="commit" onClick={handleCommit}>
+              {mpMode
+                ? committed > 0 ? t('mp.match.lockIn') : t('mp.match.passRound')
+                : committed > 0 ? t('match.commit.lockReveal') : t('match.commit.passRound')}
             </button>
           )}
         </div>
@@ -1303,9 +1294,25 @@ export function MatchBoard({
 
         {/* hand dock — fan of player + tactical cards; also a drop target to drag staged cards back off the pitch */}
         <div className={`hand-dock${handDropOver ? ' drop-hot' : ''}`} ref={setHandDropRef}>
-          <div className="pile-col7 left">
-            <DeckPile kind="draw" count={p0.drawPile.length} label={t('match.pile.draw')} dw={34} />
-            <DeckPile kind="locked" count={p0.locked.length} label={t('match.pile.bench')} cue={t('match.pile.benchCue')} dw={34} />
+          {/* left side — draw/bench piles + stamina, spread evenly across the half left of the fan */}
+          <div className="hand-side hand-side-left">
+            <div className="pile-col7 left">
+              <DeckPile kind="draw" count={p0.drawPile.length} label={t('match.pile.draw')} dw={34} />
+              <DeckPile kind="locked" count={p0.locked.length} label={t('match.pile.bench')} cue={t('match.pile.benchCue')} dw={34} />
+            </div>
+
+            {/* stamina — left flank, tucked between the draw/bench piles and the card fan */}
+            {!isReveal && (
+              <div className="hand-flank hand-flank-left">
+                <span className="hand-flank-title">{t('match.hud.stamina')}</span>
+                <StaminaPips
+                  remaining={staminaLeft}
+                  max={staminaMax}
+                  label={t('match.dock.staminaLeft', { left: staminaLeft, max: staminaMax })}
+                  tip={t('match.dock.staminaTip')}
+                />
+              </div>
+            )}
           </div>
 
           {!isReveal && tacticalCards.length > 0 && (
@@ -1362,11 +1369,24 @@ export function MatchBoard({
             ))}
           </div>
 
-          <div className="pile-col7 right">
-            <div ref={discardRef}>
-              <DeckPile kind="discard" count={p0.discard.length} label={t('match.pile.discard')} dw={34} pulse={discardPulse} />
+          {/* right side — resources + discard/exiled piles, spread evenly across the half right of the fan */}
+          <div className="hand-side hand-side-right">
+            {/* resources — right flank, tucked between the card fan and the discard/exiled piles */}
+            <div className="hand-flank hand-flank-right">
+              <span className="hand-flank-title">{t('match.hud.resources')}</span>
+              <div className="hand-flank-chips">
+                <CapChip kind="players" current={attackCards.length + defenseCards.length} max={playerCap} />
+                <CapChip kind="tactics" current={p0.tacticalsThisHalf + tacticalCards.length} max={TACTICALS_PER_HALF} />
+                {showStarCore && <CapChip kind="star" />}
+              </div>
             </div>
-            <DeckPile kind="exiled" count={p0.exiled.length} label={t('match.pile.exiled')} dw={34} />
+
+            <div className="pile-col7 right">
+              <div ref={discardRef}>
+                <DeckPile kind="discard" count={p0.discard.length} label={t('match.pile.discard')} dw={34} pulse={discardPulse} />
+              </div>
+              <DeckPile kind="exiled" count={p0.exiled.length} label={t('match.pile.exiled')} dw={34} />
+            </div>
           </div>
         </div>
 

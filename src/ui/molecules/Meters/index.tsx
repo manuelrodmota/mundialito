@@ -24,8 +24,6 @@ export function StaminaMeter({ current, max, rampLabel }: StaminaMeterProps) {
 }
 
 interface XGMeterProps {
-  /** Goals scored. */
-  goals: number
   /** Current pressure fill 0–1 (the chance built toward a shot). */
   xg: number
   /** Fatigue heat level 0–3. */
@@ -33,17 +31,21 @@ interface XGMeterProps {
   label: string
   /** Whether this is the player's own meter. */
   mine?: boolean
+  /** Show the inline fatigue tag to the right of the bar (off when fitness is surfaced separately). */
+  showHeat?: boolean
 }
 
-const HEAT_KEYS = ['match.heat.fresh', 'match.heat.warm', 'match.heat.hot', 'match.heat.gassed'] as const
+/** Fatigue heat level (0–3) → i18n label key, shared so callers can render the same wording. */
+export const HEAT_KEYS = ['match.heat.fresh', 'match.heat.warm', 'match.heat.hot', 'match.heat.gassed'] as const
 
 /**
- * Pressure → shot meter with fatigue heat colouring (data-heat 0–3). The bar fills as you attack;
- * the label reads the goal chance qualitatively (low / med / high) rather than a raw % — a full bar
- * is a high chance, not a sure thing. The "high" band glows. Fatigue ("FRESH") sits on its own line.
+ * Pressure → shot meter with fatigue heat colouring (data-heat 0–3). One tidy row per side: a short
+ * side label, the pressure bar (the chance built toward a shot), and the fatigue tag. The chance
+ * level (low / med / high) colours the fill and the "high" band glows — a full bar is a high chance,
+ * not a sure thing. The goal count + team name live in the scoreboard, so they're not repeated here.
  * v11 §14.
  */
-export function XGMeter({ goals, xg, heat, label, mine = false }: XGMeterProps) {
+export function XGMeter({ xg, heat, label, mine = false, showHeat = true }: XGMeterProps) {
   const { t } = useLang()
   const pct = Math.min(100, Math.round(xg * 100))
   const level: 'low' | 'med' | 'high' = pct >= 60 ? 'high' : pct >= 30 ? 'med' : 'low'
@@ -53,17 +55,12 @@ export function XGMeter({ goals, xg, heat, label, mine = false }: XGMeterProps) 
   const tip = t('match.meter.tip')
   return (
     <div className={`xgm4${mine ? ' mine' : ''} chance-${level}`} data-heat={heat} title={tip}>
-      <div className="xgm-row">
-        <span className="xgm-goals">{goals}</span>
-        <div className="xgm-bar" title={tip}>
-          <i style={{ width: pct + '%' }} />
-          <span className="xgm-val">{barText}</span>
-        </div>
+      <span className="xgm-name">{label}</span>
+      <div className="xgm-bar">
+        <i style={{ width: pct + '%' }} />
+        <span className="xgm-val">{barText}</span>
       </div>
-      <div className="xgm-sub">
-        <span>{label}</span>
-        <span className="heat-tag">{t(HEAT_KEYS[heat])}</span>
-      </div>
+      {showHeat && <span className="heat-tag">{t(HEAT_KEYS[heat])}</span>}
     </div>
   )
 }

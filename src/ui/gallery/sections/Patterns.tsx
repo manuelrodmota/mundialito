@@ -120,8 +120,8 @@ export function Patterns() {
           </Tile>
           <Tile label="xG meter — fatigue heat" sub="data-heat 0→3 glows orange→red as a goal nears">
             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <XGMeter goals={2} xg={0.40} heat={0} label="YOU" mine />
-              <XGMeter goals={1} xg={0.88} heat={3} label="THEM" />
+              <XGMeter xg={0.40} heat={0} label="YOU" mine />
+              <XGMeter xg={0.88} heat={3} label="THEM" />
             </div>
           </Tile>
         </div>

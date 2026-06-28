@@ -4,17 +4,17 @@ import { XGMeter, StaminaMeter } from './index'
 
 describe('XGMeter', () => {
   it('sets data-heat attribute reflecting the prop', () => {
-    const { container } = render(<XGMeter goals={2} xg={0.40} heat={0} label="YOU" mine />)
+    const { container } = render(<XGMeter xg={0.40} heat={0} label="YOU" mine />)
     expect(container.querySelector('[data-heat="0"]')).toBeTruthy()
   })
 
   it('applies data-heat=3 for gassed heat level', () => {
-    const { container } = render(<XGMeter goals={1} xg={0.88} heat={3} label="THEM" />)
+    const { container } = render(<XGMeter xg={0.88} heat={3} label="THEM" />)
     expect(container.querySelector('[data-heat="3"]')).toBeTruthy()
   })
 
   it('renders the label text', () => {
-    const { container } = render(<XGMeter goals={0} xg={0.2} heat={1} label="YOU" />)
+    const { container } = render(<XGMeter xg={0.2} heat={1} label="YOU" />)
     expect(container).toHaveTextContent('YOU')
   })
 })
