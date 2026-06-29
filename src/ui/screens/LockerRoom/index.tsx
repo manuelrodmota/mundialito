@@ -5,7 +5,7 @@ import { NextPanel } from '../../organisms/NextPanel'
 import { LockerSwapRow } from '../../organisms/LockerSwapRow'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
-import { TACTICAL_DESCRIPTION_KEYS } from '../../organisms/CardDetailModal'
+import { TACTICAL_DESCRIPTION_KEYS } from '../../organisms/CardDetailModal/tacticalText'
 import { opponentBlurb } from '../../../data'
 import { useLang } from '../../i18n'
 

@@ -224,9 +224,9 @@ Pick one each round; it multiplies your committed **ATK_eff / DEF_eff** (applied
 
 | Formation | Shape | ATK | DEF |
 |---|---|---|---|
-| **Offensive** | 3-4-3 | **×1.25** | ×0.75 |
+| **Offensive** | 3-4-3 | **×1.2** | ×0.8 |
 | **Balanced** *(default)* | 4-3-3 | ×1.0 | ×1.0 |
-| **Defensive** | 5-4-1 | ×0.75 | **×1.25** |
+| **Defensive** | 5-4-1 | ×0.8 | **×1.2** |
 
 Formation is a **broadcast stance** (shown via Intent); lane allocation is your **hidden execution**. Symmetric multipliers → trades, not hard counters. *Opponents have a `preferredFormation` and may switch (Italy '82 Defensive, Brazil '70 Offensive).*
 
@@ -350,7 +350,7 @@ The score is a normal **scoreboard** (e.g. "ARG 3 – 2 BRA") with the clock —
 | **Diminishing returns** (lane stacking, v10) | per lane, contributions sorted high→low × `[1.00, 0.85, 0.70, 0.55, 0.40, 0.25]` — quality beats count |
 | **Star-core discount** (v10) | in a lane with ≥1 premium, non-anchor cards cost **×0.5 stamina** (round down, min 1); all-common lane = no discount |
 | ATK/DEF split | FWD 1.0/0.55 · MID 0.85/0.78 · DEF 0.55/1.0 · GK 0/+5 def-only (+ save xG-suppression) |
-| Formations | Off ×1.25/×0.75 · Bal ×1/×1 · Def ×0.75/×1.25 |
+| Formations | Off ×1.2/×0.8 · Bal ×1/×1 · Def ×0.8/×1.2 |
 | Fatigue | 0–30; `DEF_eff = DEF_total × (1 − F/60)`; defend raises, attack lowers; cleared at halftime / ET / by Water Break |
 | Synergies | Chemistry 3+ same nation +2/+2 · Strike Partnership 2+ FWD +5 ATK · Back Line 3+ DEF +8 DEF · Midfield Engine 2+ MID +1 stamina |
 | Captain's Pride | +2/+2 same nation |

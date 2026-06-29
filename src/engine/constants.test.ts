@@ -140,8 +140,8 @@ describe("v10 balance knobs", () => {
 
 describe("formation multipliers", () => {
   it("offensive boosts attack and weakens defense (v10.1 softened ±18%)", () => {
-    expect(FORMATIONS.offensive.atkMult).toBe(1.18);
-    expect(FORMATIONS.offensive.defMult).toBe(0.82);
+    expect(FORMATIONS.offensive.atkMult).toBe(1.2);
+    expect(FORMATIONS.offensive.defMult).toBe(0.8);
   });
 
   it("balanced is neutral", () => {
@@ -150,8 +150,8 @@ describe("formation multipliers", () => {
   });
 
   it("defensive weakens attack and boosts defense (v10.1 softened ±18%)", () => {
-    expect(FORMATIONS.defensive.atkMult).toBe(0.82);
-    expect(FORMATIONS.defensive.defMult).toBe(1.18);
+    expect(FORMATIONS.defensive.atkMult).toBe(0.8);
+    expect(FORMATIONS.defensive.defMult).toBe(1.2);
   });
 });
 
