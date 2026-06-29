@@ -258,7 +258,7 @@ export const es: typeof en = {
   'match.surrender.run.button': '🏳 Abandonar la partida',
   'match.surrender.run.title': '¿Abandonar la partida?',
   'match.surrender.run.body':
-    'Tu partida termina aquí y volverás a la selección de plantilla para armar un nuevo equipo. Esto no se puede deshacer.',
+    'Tu partida termina acá y volverás a la selección de plantilla para armar un nuevo equipo. Esto no se puede deshacer.',
   'match.surrender.run.confirm': 'Abandonar la partida',
   // Surrender — match
   'match.surrender.match.button': '🏳 Salir del partido',
@@ -274,7 +274,7 @@ export const es: typeof en = {
   'match.sound.sfx.off': 'Activar efectos',
 
   // Pitch direction hints
-  'match.dir.youAttack': 'Tú atacas',
+  'match.dir.youAttack': 'Vos atacás',
   'match.dir.theyAttack': 'Ellos atacan',
 
   // Opponent intent banner
@@ -295,7 +295,7 @@ export const es: typeof en = {
   'match.xg.theirAttack': 'xG · su ataque',
 
   // Meter labels
-  'match.meter.you': 'TÚ',
+  'match.meter.you': 'VOS',
   // v11 medidor Presión → Conversión. La barra se llena al atacar; la etiqueta indica la ocasión de
   // gol de forma cualitativa (barra llena = gran ocasión, no gol seguro). La fatiga ("FRESH") va aparte.
   'match.meter.chanceLow': 'Ocasión baja ⚽',
@@ -304,10 +304,10 @@ export const es: typeof en = {
   'match.meter.tip': 'La barra se llena al atacar — cuanto más llena, mejor tu ocasión de marcar al rematar. Un gol vacía el medidor; un fallo le quita una parte para seguir intentándolo. La etiqueta de abajo (FRESH/HOT) es tu fatiga.',
   // v11 revelación del remate — cinemática de ATAJADA (gemela del blast de GOL)
   'match.shot.saved': 'ATAJADA',
-  'match.shot.youDeny': 'LES TAPAS EL GOL',
+  'match.shot.youDeny': 'LES TAPÁS EL GOL',
   'match.shot.theyDeny': 'TE TAPAN EL GOL',
   // copia heredada de fallo/probabilidad — ya no se muestra en la cinemática rediseñada; se conserva por si se reutiliza
-  'match.shot.youMissed': 'Tu ocasión se esfuma — el portero la gana.',
+  'match.shot.youMissed': 'Tu ocasión se esfuma — el arquero la gana.',
   'match.shot.theyMissed': '{opp} desperdician su ocasión.',
   'match.shot.atChance': 'remate al {pct}%',
 
@@ -315,7 +315,7 @@ export const es: typeof en = {
   'match.dock.stamina': 'Resistencia',
   'match.dock.staminaLeft': '{left}/{max} de resistencia',
   'match.dock.staminaTip':
-    'Tu energía esta ronda (8 → 10 → 12 a medida que avanza el partido). Alinear cada jugador y táctica la gasta — una estrella en una banda hace que sus cartas de apoyo cuesten la mitad. Las cartas que no puedes pagar se atenúan.',
+    'Tu energía esta ronda (8 → 10 → 12 a medida que avanza el partido). Alinear cada jugador y táctica la gasta — una estrella en una banda hace que sus cartas de apoyo cuesten la mitad. Las cartas que no podés pagar se atenúan.',
   'match.dock.powers': 'Poderes',
 
   // Coach plan hint
@@ -329,7 +329,7 @@ export const es: typeof en = {
   'match.tactic.needsEnergy': 'Necesita {n}⚡ — no queda resistencia esta ronda.',
   'match.tactic.activePower': 'Poder — activo el resto del partido.',
   'match.tactic.played': 'Jugada esta ronda.',
-  'match.tactic.tapToInspect': 'Toca para ver qué hace',
+  'match.tactic.tapToInspect': 'Tocá para ver qué hace',
   'match.tactic.reqPos': '≥{n} {pos}',
   'match.tactic.reqFwdMid': '≥{n} DEL o MED',
   // Insignias de bloqueo en cartas de la mano
@@ -341,15 +341,15 @@ export const es: typeof en = {
   'match.report.extraTime': "Tiempo extra +{n}'",
   'match.report.round': 'Ronda {n}',
   'match.report.heading': '{phase} — informe completo',
-  'match.report.goalYou': '⚽ ¡GOL! Pones el {you}–{them}',
+  'match.report.goalYou': '⚽ ¡GOL! Ponés el {you}–{them}',
   'match.report.goalThem': '⚽ ¡GOL! {opp} pone el {you}–{them}',
   'match.report.onFormYou': '🔥 Estás en racha — impulso goleador la próxima ronda.',
   'match.report.onFormThem': '🔥 {opp} está en racha — cuidado la próxima ronda.',
   'match.report.halftime': '🏃 Medio tiempo — tus estrellas vuelven y las piernas están frescas.',
   'match.report.showNumbers': 'Ver los números',
-  'match.report.xgYou': 'Tú +{xg} xG — ATK {atk} vs DEF {def}',
+  'match.report.xgYou': 'Vos +{xg} xG — ATK {atk} vs DEF {def}',
   'match.report.xgThem': 'Ellos +{xg} xG — ATK {atk} vs DEF {def}',
-  'match.report.who.you': 'Tú',
+  'match.report.who.you': 'Vos',
   'match.report.who.they': 'Ellos',
   'match.report.next.result': 'Ver resultado →',
   'match.report.next.et': 'Siguiente ronda de TE →',
@@ -357,20 +357,20 @@ export const es: typeof en = {
 
   // Deck piles
   'match.pile.draw': 'Robo',
-  'match.pile.bench': 'Banquillo',
+  'match.pile.bench': 'Banco',
   'match.pile.benchCue': 'vuelve en el descanso',
   'match.pile.discard': 'Descarte',
   'match.pile.exiled': 'Exiliadas',
 
   // Bottom strip
-  'match.you': 'TÚ',
+  'match.you': 'VOS',
 
   // Opponent label
   'match.ai': 'IA',
 
   // Goal cinematic
   'match.goal.word': 'GOL',
-  'match.goal.youScore': 'TÚ MARCAS',
+  'match.goal.youScore': 'VOS MARCÁS',
   'match.goal.theyScore': 'MARCAN',
   'match.goal.scorerScores': '{scorer} MARCA',
 
@@ -382,7 +382,7 @@ export const es: typeof en = {
   'match.fx.starCore': '★ −{n}⚡ núcleo estelar',
   'match.fx.starCoreTitle': 'Núcleo estelar',
   'match.fx.starCoreBody':
-    'Una estrella ancla esta banda, así que toda otra carta aquí cuesta la mitad de resistencia (mín. 1). Ahorras {n}⚡ esta ronda.',
+    'Una estrella ancla esta banda, así que toda otra carta acá cuesta la mitad de resistencia (mín. 1). Ahorrás {n}⚡ esta ronda.',
 
   // Clash badge / floats
   'match.clash.vs': 'VS',
@@ -400,23 +400,23 @@ export const es: typeof en = {
   // Coach-mark steps
   'match.coach.score.title': 'Marca con xG',
   'match.coach.score.body':
-    'Aquí no hay barras de vida. Cada ronda atacas para llenar tu medidor de ocasión. Al llenarse REMATAS — al % indicado — así que un medidor lleno es una gran ocasión, no un gol seguro. Un gol lo vacía; un fallo deja algo de presión para reintentar. Gana quien tenga más goles al final.',
+    'Acá no hay barras de vida. Cada ronda atacás para llenar tu medidor de ocasión. Al llenarse REMATÁS — al % indicado — así que un medidor lleno es una gran ocasión, no un gol seguro. Un gol lo vacía; un fallo deja algo de presión para reintentar. Gana quien tenga más goles al final.',
   'match.coach.squad.title': 'Tu plantilla esta ronda',
   'match.coach.squad.body':
-    'Estos son los jugadores en tu mano. Arrástralos al campo — puedes alinear a unos cuantos cada ronda, según tu resistencia.',
+    'Estos son los jugadores en tu mano. Arrastralos al campo — podés alinear a unos cuantos cada ronda, según tu resistencia.',
   'match.coach.lanes.title': 'Dos bandas: ataque y defensa',
   'match.coach.lanes.body':
-    'Coloca jugadores en ATAQUE para generar ocasiones, o en DEFENSA para frenar las suyas. Toca una carta colocada para devolverla a tu mano.',
+    'Colocá jugadores en ATAQUE para generar ocasiones, o en DEFENSA para frenar las suyas. Tocá una carta colocada para devolverla a tu mano.',
   'match.coach.stamina.title': 'Cuida tu resistencia',
   'match.coach.stamina.body':
-    'Cada jugador que alineas gasta resistencia del presupuesto de la ronda. Se recarga y aumenta con el correr del partido — gástala donde más cuente.',
-  'match.coach.shape.title': 'Elige tu formación',
+    'Cada jugador que alineás gasta resistencia del presupuesto de la ronda. Se recarga y aumenta con el correr del partido — gastala donde más cuente.',
+  'match.coach.shape.title': 'Elegí tu formación',
   'match.coach.shape.body':
-    'Ofensiva potencia el ataque, Defensiva potencia la defensa, Equilibrada es pareja. Eliges una nueva cada ronda.',
+    'Ofensiva potencia el ataque, Defensiva potencia la defensa, Equilibrada es pareja. Elegís una nueva cada ronda.',
   'match.coach.tactical.title': 'Cartas tácticas',
   'match.coach.tactical.body':
-    'Cambios de partido de un solo uso — un penalti, una trampa de fuera de juego, un contraataque. Juega hasta 2 por tiempo; tu rival las ve una vez jugadas.',
+    'Cambios de partido de un solo uso — un penal, una trampa de offside, un contraataque. Jugá hasta 2 por tiempo; tu rival las ve una vez jugadas.',
   'match.coach.lockin.title': 'Confirmar jugada',
   'match.coach.lockin.body':
-    '¿Conforme con tu plan? Confirma la jugada para revelar ambas alineaciones y ver cómo se desarrollan las ocasiones. ¡Suerte!',
+    '¿Conforme con tu plan? Confirmá la jugada para revelar ambas alineaciones y ver cómo se desarrollan las ocasiones. ¡Suerte!',
 }

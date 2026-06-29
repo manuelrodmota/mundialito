@@ -36,3 +36,32 @@ export function tacticalDescription(t: Translate, kind: string, name: string): s
   const key = TACTICAL_DESCRIPTION_KEYS[kind]
   return key ? t(key) : t('builder.tacNoDescription', { name })
 }
+
+/** Maps a tactical effect `kind` to its display-name translation key. */
+export const TACTICAL_NAME_KEYS: Record<string, string> = {
+  var: 'builder.tacNameVar',
+  offsideTrap: 'builder.tacNameOffsideTrap',
+  referee: 'builder.tacNameReferee',
+  injury: 'builder.tacNameInjury',
+  waterBreak: 'builder.tacNameWaterBreak',
+  substitution: 'builder.tacNameSubstitution',
+  tikiTaka: 'builder.tacNameTikiTaka',
+  catenaccio: 'builder.tacNameCatenaccio',
+  counterAttack: 'builder.tacNameCounterAttack',
+  highPress: 'builder.tacNameHighPress',
+  longBall: 'builder.tacNameLongBall',
+  nutmeg: 'builder.tacNameNutmeg',
+  penalty: 'builder.tacNamePenalty',
+  teamTalk: 'builder.tacNameTeamTalk',
+  timeWasting: 'builder.tacNameTimeWasting',
+  handOfGod: 'builder.tacNameHandOfGod',
+  fortress: 'builder.tacNameFortress',
+  talisman: 'builder.tacNameTalisman',
+  totalFootball: 'builder.tacNameTotalFootball',
+}
+
+/** Resolves a tactical card's localized display name (falls back to the raw English name). */
+export function tacticalName(t: Translate, kind: string, fallback: string): string {
+  const key = TACTICAL_NAME_KEYS[kind]
+  return key ? t(key) : fallback
+}

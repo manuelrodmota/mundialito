@@ -138,16 +138,16 @@ export const es: typeof en = {
 
   // LockerRoom — tactical offer section
   'run.noTacticalOffer': 'No hay oferta táctica en esta etapa.',
-  'run.tacticalAtCap': 'El mazo táctico está al límite. Elige una carta para tomar y otra para descartar.',
+  'run.tacticalAtCap': 'El mazo táctico está al límite. Elegí una carta para tomar y otra para descartar.',
   'run.selected': 'Seleccionada',
-  'run.exileFromDeck': 'Descarta de tu mazo',
+  'run.exileFromDeck': 'Descartá de tu mazo',
   // LockerRoom — main
   'run.lockerRoom': 'Vestuario',
-  'run.lockerHint': 'Toma tus recompensas y prepárate para el próximo partido.',
+  'run.lockerHint': 'Tomá tus recompensas y preparate para el próximo partido.',
   'run.reward': 'Recompensa',
   'run.noPlayerReward': 'No hay recompensa de jugador en esta etapa.',
   'run.tacticalOfferHeading': 'Oferta táctica',
-  'run.tacticalSelectOne': 'Elige una para reclamarla.',
+  'run.tacticalSelectOne': 'Elegí una para reclamarla.',
   'run.acceptRewards': 'Aceptar recompensas',
   'run.continueWithJustPlayer': 'Continuar solo con el jugador',
   'run.yourSquad': 'Tu plantilla',

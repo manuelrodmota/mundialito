@@ -14,7 +14,7 @@ export const en = {
     "Defenders and your keeper <b>slow the other side's meter</b> — they don't score, they keep goals out. And a <b>star</b> paired with a lanemate <b>multiplies that whole lane</b>, so build around your best players.",
   'screens.htpMatchTitle': 'A match',
   'screens.htpMatchBody':
-    '90 minutes = <b>10 rounds</b>, with a reset at <b>halftime</b> (round 5). Lead by <b>3 goals</b> and you win instantly (the mercy rule). Otherwise, whoever is ahead at <b>full time</b> wins — and a level game goes to <span class="gold">golden-goal extra time</span> (next goal wins).',
+    '90 minutes = <b>8 rounds</b>, with a reset at <b>halftime</b> (after round 4). Lead by <b>3 goals</b> and you win instantly (the mercy rule). Otherwise the team ahead at <b>full time</b> wins — and if the score is level, the better chances (<b>xG</b>) settle it, then <span class="gold">golden-goal extra time</span>.',
   'screens.htpRoundTitle': 'Each round',
   'screens.htpRoundStep1': 'Draw back up to <b>5 cards</b>.',
   'screens.htpRoundStep2': 'Pick a <b>formation</b> — your stance for the round.',
@@ -36,7 +36,7 @@ export const en = {
     "Attacking <b>rests your legs</b>; defending <b>tires them</b>. A tired back line lets the opponent score faster — so you can't park the bus forever. Halftime <b>and extra time</b> clear fatigue for both sides.",
   'screens.htpWinningTitle': 'Winning',
   'screens.htpWinningBody':
-    "Most goals at full time takes the match. Level at 90'? It's golden-goal <b>extra time</b> — the next goal wins it. There are no draws.",
+    "Most goals at <b>full time</b> (after round 8) takes the match. Level on goals? Whoever created the <b>better chances (xG)</b> edges it — and if those are level too, <span class=\"gold\">golden-goal extra time</span> decides it. There are no draws.",
   'screens.htpTip': 'First match? <span class="gold">We\'ll point out the key parts</span> as you play.',
   'screens.htpGotIt': 'Got it',
 
@@ -73,39 +73,39 @@ export const es: typeof en = {
   'screens.htpBack': 'Atrás',
   'screens.htpGoalTitle': 'El objetivo',
   'screens.htpGoalBody':
-    'Vence a una selección nacional histórica <b>marcando más goles</b> que ella. Aquí no hay barra de vida — el fútbol se trata de meter el balón en la red.',
-  'screens.htpScoreTitle': 'Cómo marcas (xG)',
+    'Vencé a una selección nacional histórica <b>marcando más goles</b> que ella. Acá no hay barra de vida — el fútbol se trata de meter el balón en la red.',
+  'screens.htpScoreTitle': 'Cómo marcás (xG)',
   'screens.htpScoreBody1':
-    'Cada ronda ambos equipos generan <b>goles esperados (xG)</b> atacando. Tus atacantes llenan <b>tu</b> medidor; los del rival llenan <b>el suyo</b>. Cuando un medidor se llena, ese equipo <span class="gold">REMATA</span> — una gran ocasión, pero <b>no segura</b>: es <span class="gold">GOL</span> o atajada. Si marcas, el medidor se vacía; si fallas, solo baja un poco, así que sigues presionando.',
+    'Cada ronda ambos equipos generan <b>goles esperados (xG)</b> atacando. Tus atacantes llenan <b>tu</b> medidor; los del rival llenan <b>el suyo</b>. Cuando un medidor se llena, ese equipo <span class="gold">REMATA</span> — una gran ocasión, pero <b>no segura</b>: es <span class="gold">GOL</span> o atajada. Si marcás, el medidor se vacía; si fallás, solo baja un poco, así que seguís presionando.',
   'screens.htpScoreBody2':
-    'Los defensas y tu portero <b>frenan el medidor del rival</b> — no marcan, evitan goles. Y una <b>estrella</b> junto a un compañero de carril <b>multiplica todo ese carril</b>, así que construye alrededor de tus mejores jugadores.',
+    'Los defensas y tu arquero <b>frenan el medidor del rival</b> — no marcan, evitan goles. Y una <b>estrella</b> junto a un compañero de carril <b>multiplica todo ese carril</b>, así que construí alrededor de tus mejores jugadores.',
   'screens.htpMatchTitle': 'Un partido',
   'screens.htpMatchBody':
-    '90 minutos = <b>10 rondas</b>, con un reinicio en el <b>descanso</b> (ronda 5). Si llevas <b>3 goles</b> de ventaja ganas al instante (la regla de misericordia). Si no, gana quien esté por delante al <b>tiempo completo</b> — y un partido igualado va al <span class="gold">tiempo extra de gol de oro</span> (el siguiente gol gana).',
+    '90 minutos = <b>8 rondas</b>, con un reinicio en el <b>descanso</b> (tras la ronda 4). Si llevás <b>3 goles</b> de ventaja ganás al instante (la regla de misericordia). Si no, gana quien esté por delante al <b>tiempo completo</b> — y si están iguales, lo definen las mejores ocasiones (<b>xG</b>), y luego el <span class="gold">tiempo extra de gol de oro</span>.',
   'screens.htpRoundTitle': 'Cada ronda',
-  'screens.htpRoundStep1': 'Roba hasta tener <b>5 cartas</b>.',
-  'screens.htpRoundStep2': 'Elige una <b>formación</b> — tu postura para la ronda.',
+  'screens.htpRoundStep1': 'Robá hasta tener <b>5 cartas</b>.',
+  'screens.htpRoundStep2': 'Elegí una <b>formación</b> — tu postura para la ronda.',
   'screens.htpRoundStep3':
-    'Coloca jugadores en tus carriles de <b>Ataque</b> y <b>Defensa</b> (dentro de tu resistencia y límite de cartas).',
-  'screens.htpRoundStep4': 'Opcionalmente juega una <b>carta táctica</b> para un gran giro.',
-  'screens.htpRoundStep5': '<b>Confirma</b> — ambas alineaciones se revelan, los medidores se llenan y todo medidor lleno remata.',
+    'Colocá jugadores en tus carriles de <b>Ataque</b> y <b>Defensa</b> (dentro de tu resistencia y límite de cartas).',
+  'screens.htpRoundStep4': 'Opcionalmente jugá una <b>carta táctica</b> para un gran giro.',
+  'screens.htpRoundStep5': '<b>Confirmá</b> — ambas alineaciones se revelan, los medidores se llenan y todo medidor lleno remata.',
   'screens.htpCardsTitle': 'Tus cartas',
   'screens.htpCardsBullet1':
     'Los <b>jugadores comunes</b> se reciclan todo el partido — tu motor confiable.',
   'screens.htpCardsBullet2':
-    'Las <b>estrellas</b> (rara → legendaria) son triunfos de un uso por tiempo: van a la banca tras usarse y vuelven en el <b>descanso y el tiempo extra</b>.',
+    'Las <b>estrellas</b> (rara → legendaria) son triunfos de un uso por tiempo: van al banco tras usarse y vuelven en el <b>descanso y el tiempo extra</b>.',
   'screens.htpCardsBullet3':
     'Las <b>cartas tácticas</b> son de un solo uso — como máximo <b>2 por tiempo</b>. Una vez jugadas, tu rival las ve.',
   'screens.htpEnergyTitle': 'Energía por ronda',
   'screens.htpEnergyBody':
-    'Cada ronda tienes un <b>presupuesto de energía</b> (<b>8 → 10 → 12</b> a medida que avanza el partido). Alinear cada jugador y jugar cada táctica <b>gasta energía</b> — así que no puedes alinearlo todo. Una <b>estrella</b> en una banda hace que sus cartas de apoyo cuesten la mitad. Las cartas que no puedes pagar se <b>atenúan</b> en tu mano.',
+    'Cada ronda tenés un <b>presupuesto de energía</b> (<b>8 → 10 → 12</b> a medida que avanza el partido). Alinear cada jugador y jugar cada táctica <b>gasta energía</b> — así que no podés alinearlo todo. Una <b>estrella</b> en una banda hace que sus cartas de apoyo cuesten la mitad. Las cartas que no podés pagar se <b>atenúan</b> en tu mano.',
   'screens.htpStaminaTitle': 'Atacar vs. defender',
   'screens.htpStaminaBody':
-    'Atacar <b>descansa tus piernas</b>; defender <b>las cansa</b>. Una línea defensiva cansada deja que el rival marque más rápido — así que no puedes encerrarte para siempre. El descanso <b>y el tiempo extra</b> eliminan la fatiga de ambos lados.',
+    'Atacar <b>descansa tus piernas</b>; defender <b>las cansa</b>. Una línea defensiva cansada deja que el rival marque más rápido — así que no podés encerrarte para siempre. El descanso <b>y el tiempo extra</b> eliminan la fatiga de ambos lados.',
   'screens.htpWinningTitle': 'Ganar',
   'screens.htpWinningBody':
-    'Quien tenga más goles al tiempo completo se lleva el partido. ¿Igualados al minuto 90? Es <b>tiempo extra</b> de gol de oro — el siguiente gol lo gana. No hay empates.',
-  'screens.htpTip': '¿Primer partido? <span class="gold">Te señalaremos las partes clave</span> mientras juegas.',
+    'Quien tenga más goles al <b>tiempo completo</b> (tras la ronda 8) se lleva el partido. ¿Iguales en goles? Lo define quien generó las <b>mejores ocasiones (xG)</b> — y si eso también está igualado, decide el <span class="gold">tiempo extra de gol de oro</span>. No hay empates.',
+  'screens.htpTip': '¿Primer partido? <span class="gold">Te señalaremos las partes clave</span> mientras jugás.',
   'screens.htpGotIt': 'Entendido',
 
   // Quickplay wrapper
@@ -124,9 +124,9 @@ export const es: typeof en = {
   'screens.diffHardLabel': 'Difícil',
   'screens.diffHardDesc': 'Un rival formidable. Necesitarás tu mejor once.',
   'screens.diffLegendaryLabel': 'Legendaria',
-  'screens.diffLegendaryDesc': 'Una selección campeona. Prepárate para una batalla.',
+  'screens.diffLegendaryDesc': 'Una selección campeona. Preparate para una batalla.',
   'screens.diffKicker': 'Partida rápida',
-  'screens.diffTitle': 'Elige la dificultad',
+  'screens.diffTitle': 'Elegí la dificultad',
   'screens.diffSubtitle':
     'La dificultad define el nivel de tu rival — desde equipos en desarrollo (D) hasta campeones del mundo (S).',
   'screens.diffFinding': 'Buscando rival…',

@@ -4,6 +4,7 @@ import { TacticCard } from '../../molecules/TacticCard'
 import { Button } from '../../atoms/Button'
 import { Modal } from '../Modal'
 import { useLang } from '../../i18n'
+import { tacticalName } from '../CardDetailModal/tacticalText'
 
 const ROLE_KEY: Record<string, string> = {
   FWD: 'card.roleFwd',
@@ -84,7 +85,7 @@ export function CardModal({
         />
       ) : null}
       <div className="info">
-        <h3>{card.name}</h3>
+        <h3>{tc ? tacticalName(t, tc.effect.kind, tc.name) : card.name}</h3>
         {isPlayer && pc ? (
           <>
             <div className="tag">

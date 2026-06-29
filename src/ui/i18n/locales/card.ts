@@ -90,7 +90,7 @@ export const es: typeof en = {
   'card.roleMid':
     'Mediocampista — equilibrado (85 % ATK / 78 % DEF). 2+ mediocampistas jugados = +1 de resistencia la próxima ronda.',
   'card.roleDef': 'Defensa — un muro (DEF completo), limitado en ataque (55 % ATK).',
-  'card.roleGk': 'Portero — solo en la línea de defensa. DEF = global +5, ATK 0.',
+  'card.roleGk': 'Arquero — solo en la línea de defensa. DEF = global +5, ATK 0.',
   // CardModal — body copy
   'card.slot': 'espacio',
   'card.slots': 'espacios',
@@ -130,9 +130,9 @@ export const es: typeof en = {
   'card.capTactics': 'tácticas · mitad',
 
   // Just-in-time plan hints (planHint)
-  'match.hint.noAttack': 'Nadie en ataque — no puedes generar ocasiones. Coloca un jugador en ATAQUE.',
+  'match.hint.noAttack': 'Nadie en ataque — no podés generar ocasiones. Colocá un jugador en ATAQUE.',
   'match.hint.loneStriker':
-    'Un solo delantero contra sus {n} atrás rara vez rompe — una estrella sola ≈ dos defensas. Suma otro en ataque.',
+    'Un solo delantero contra sus {n} atrás rara vez rompe — una estrella sola ≈ dos defensas. Sumá otro en ataque.',
   'match.hint.offensiveWaste':
-    'La formación Ofensiva desperdicia su bonus con un solo atacante — suma más en ataque o cambia a Equilibrada.',
+    'La formación Ofensiva desperdicia su bonus con un solo atacante — sumá más en ataque o cambiá a Equilibrada.',
 }
