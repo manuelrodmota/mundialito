@@ -25,23 +25,35 @@ vi.mock('../../../data/opponents', () => ({
   opponents: [],
 }))
 
+function allPlayersTile(): HTMLButtonElement {
+  return screen.getByText('Build with all players', { selector: '.tile-name' }).closest('button') as HTMLButtonElement
+}
+
 describe('Quickplay', () => {
-  it('renders the deck builder as the first sub-screen', () => {
+  it('renders the squad-source chooser as the first sub-screen', () => {
     render(<Quickplay onBack={() => {}} />)
-    expect(screen.getByText(/loading players/i)).toBeInTheDocument()
+    expect(allPlayersTile()).toBeInTheDocument()
+    expect(screen.getByText('Build with your deck', { selector: '.tile-name' })).toBeInTheDocument()
   })
 
-  it('calls onBack when the back button is clicked from deckbuilder error state', async () => {
-    vi.mocked(await import('../../../data/remote/players.repo')).fetchPlayers = vi.fn().mockRejectedValue(new Error('fail'))
-
+  it('calls onBack when Menu is clicked on the chooser', async () => {
     const onBack = vi.fn()
-    const { waitFor } = await import('@testing-library/react')
     const userEvent = (await import('@testing-library/user-event')).default
-
     render(<Quickplay onBack={onBack} />)
-    await waitFor(() => screen.getByText(/Failed to load/i))
-
     await userEvent.setup().click(screen.getByRole('button', { name: 'Menu' }))
     expect(onBack).toHaveBeenCalled()
+  })
+
+  it('"build with all players" opens the deck builder; its Menu returns to the chooser', async () => {
+    vi.mocked(await import('../../../data/remote/players.repo')).fetchPlayers = vi.fn().mockRejectedValue(new Error('fail'))
+    const { waitFor } = await import('@testing-library/react')
+    const user = (await import('@testing-library/user-event')).default.setup()
+
+    render(<Quickplay onBack={() => {}} />)
+    await user.click(allPlayersTile())
+    await waitFor(() => screen.getByText(/Failed to load/i))
+
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
+    expect(allPlayersTile()).toBeInTheDocument()
   })
 })

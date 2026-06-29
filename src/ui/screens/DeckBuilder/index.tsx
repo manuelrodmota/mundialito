@@ -3,6 +3,7 @@ import type { PlayerCard, TacticalCard, Card } from '../../../engine/types'
 import { makeRng } from '../../../engine'
 import { fetchPlayers, fetchAvailableSeasons, fetchTeamsForSeason } from '../../../data/remote/players.repo'
 import { getSupabaseClient } from '../../../data/remote/client'
+import { getCatalog } from '../../../data/remote/catalog.repo'
 import { tacticals } from '../../../data'
 import { buildQuickplayDeck } from '../../quickplay/buildQuickplayDeck'
 import { recommendedSpread, POSITION_ORDER } from '../../quickplay/curatePool'
@@ -12,6 +13,7 @@ import { PickRow, SlotMeter } from '../../molecules/PickRow'
 import { CardDetailModal, TACTICAL_DESCRIPTION_KEYS } from '../../organisms/CardDetailModal'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
+import { Icon } from '../../atoms/Icon'
 import { useLang } from '../../i18n'
 
 interface DeckBuilderProps {
@@ -23,9 +25,18 @@ interface DeckBuilderProps {
   tacticalCap?: number
   /** Total roster size including bench commons. Defaults to 16 for Quickplay. */
   rosterSize?: number
+  /**
+   * When provided, the builder drafts only from these owned card ids (= player_ratings.id):
+   * "build with your deck" / Arcade. Sources the pool from the collection catalog and hides
+   * the WC-edition selector. Absent = the full pool (Quickplay "build with all players").
+   */
+  ownedCardIds?: Set<number>
 }
 
 type LoadState = 'loading' | 'error' | 'empty' | 'ready'
+
+/** Minimum playable deck size when building from a (possibly small) owned collection. */
+const MIN_OWNED_DECK = 11
 
 /** Full deck-builder screen. Loads the 2026 Supabase pool, splits it into
  *  premiums (hand-pickable) and commons (bench-fill only). Lets the user pick
@@ -43,8 +54,10 @@ export function DeckBuilder({
   playerBudget = 20,
   tacticalCap = 3,
   rosterSize = 16,
+  ownedCardIds,
 }: DeckBuilderProps) {
   const { t } = useLang()
+  const ownedMode = ownedCardIds != null
   const [premiums, setPremiums] = useState<PlayerCard[]>([])
   // Commons for the browsed edition. Hidden by default (the grid shows premiums only,
   // to avoid loading thousands of low-tier cards), but surfaced when a country filter is
@@ -75,26 +88,49 @@ export function DeckBuilder({
   const scrollRef = useRef<HTMLDivElement>(null)
   const tacticsRef = useRef<HTMLDivElement>(null)
 
-  // Distinct WC editions, loaded once (drives the edition selector).
+  // Owned mode ("build with your deck" / Arcade): draft only from the collection.
   useEffect(() => {
+    if (!ownedMode) return
+    let cancelled = false
+    getCatalog()
+      .then((cat) => {
+        if (cancelled) return
+        const owned = [...cat.byId.values()].filter((c) => c.cardId != null && ownedCardIds!.has(c.cardId))
+        const prem = owned.filter((c) => c.rarity !== 'common')
+        const comm = owned.filter((c) => c.rarity === 'common')
+        setPremiums(prem)
+        setEditionCommons(comm)
+        setCommonPool(comm)
+        setCountries([...new Set(owned.map((c) => c.nation))].sort())
+        setLoadState(prem.length === 0 ? 'empty' : 'ready')
+      })
+      .catch(() => { if (!cancelled) setLoadState('error') })
+    return () => { cancelled = true }
+  }, [ownedMode, ownedCardIds])
+
+  // Distinct WC editions, loaded once (drives the edition selector). Full-pool mode only.
+  useEffect(() => {
+    if (ownedMode) return
     fetchAvailableSeasons(getSupabaseClient())
       .then((list) => { if (list.length > 0) setSeasons(list) })
       .catch(() => { /* keep the 2026 default */ })
-  }, [])
+  }, [ownedMode])
 
   // Stable bench common pool, loaded once from the plentiful default WC 2026 edition
   // (~1000 commons). The bench auto-fills with random commons, but some editions are
   // common-sparse (WC 1950 has a single common), so tying the bench to the browsed
   // edition would leave the deck with no cycling pile. This pool is edition-independent.
   useEffect(() => {
+    if (ownedMode) return
     fetchPlayers({ season: 2026, limit: 2000 }, getSupabaseClient())
       .then((players) => setCommonPool(players.filter((p) => p.rarity === 'common')))
       .catch(() => { /* bench fill will be limited if this fails */ })
-  }, [])
+  }, [ownedMode])
 
   // Players + country list for the selected WC edition. Re-runs when the edition changes.
   // (loadState is reset to 'loading' by the season-change handler, not synchronously here.)
   useEffect(() => {
+    if (ownedMode) return
     const client = getSupabaseClient()
     let cancelled = false
     Promise.all([
@@ -117,12 +153,12 @@ export function DeckBuilder({
       })
       .catch(() => { if (!cancelled) setLoadState('error') })
     return () => { cancelled = true }
-  }, [seasonValue])
+  }, [seasonValue, ownedMode])
 
   const filteredPlayers = useMemo(() => {
     // A country filter surfaces that nation's commons too, so small squads aren't empty;
     // the default (no country) view stays premium-only.
-    const base = countryValue !== 'all' ? [...premiums, ...editionCommons] : premiums
+    const base = !ownedMode && countryValue !== 'all' ? [...premiums, ...editionCommons] : premiums
     return base.filter((p) => {
       if (searchValue && !p.name.toLowerCase().includes(searchValue.toLowerCase())) return false
       if (countryValue !== 'all' && p.nation !== countryValue) return false
@@ -131,7 +167,7 @@ export function DeckBuilder({
       if (p.overall < ratingMin) return false
       return true
     })
-  }, [premiums, editionCommons, searchValue, countryValue, positionValue, rarityValue, ratingMin])
+  }, [premiums, editionCommons, ownedMode, searchValue, countryValue, positionValue, rarityValue, ratingMin])
 
   const slotsUsed = picks.reduce((sum, p) => sum + p.slots, 0)
   const isOverBudget = slotsUsed > playerBudget
@@ -194,7 +230,9 @@ export function DeckBuilder({
 
   function handleConfirm() {
     if (!captainId || isOverBudget || picks.length === 0) return
-    if (benchCommons.length < Math.max(0, rosterSize - picks.length)) return
+    const need = Math.max(0, rosterSize - picks.length)
+    const enough = ownedMode ? benchCommons.length >= Math.min(need, commonPool.length) : benchCommons.length >= need
+    if (!enough) return
 
     const rng = makeRng(fillSeed * 31337)
 
@@ -249,15 +287,20 @@ export function DeckBuilder({
   }
 
   const benchNeeded = Math.max(0, rosterSize - picks.length)
+  const totalPicks = picks.length + benchCommons.length
   // The squad isn't ready until the bench is rolled (or premiums already fill the roster) — this
   // forces the player to roll + see their full squad before confirming. Changing a pick clears
   // benchCommons (see handleAddPlayer/handleRemovePlayer), so the bench must be re-rolled after edits.
-  const benchFilled = benchCommons.length >= benchNeeded
-  const canConfirm = hasCaptain && !isOverBudget && picks.length > 0 && benchFilled
+  // Owned mode may not have a full bench of commons — treat "all owned commons rolled" as filled and
+  // require a minimum playable deck instead of the full roster.
+  const benchFilled = ownedMode
+    ? benchCommons.length >= Math.min(benchNeeded, commonPool.length)
+    : benchCommons.length >= benchNeeded
+  const minDeckOk = !ownedMode || totalPicks >= MIN_OWNED_DECK
+  const canConfirm = hasCaptain && !isOverBudget && picks.length > 0 && benchFilled && minDeckOk
   // Once the slot budget is spent, rolling the bench is the only remaining step — glow the
   // Fill button to point the player there.
   const shouldGlowFill = !benchFilled && slotsUsed >= playerBudget
-  const totalPicks = picks.length + benchCommons.length
 
   const gks = picks.filter((p) => p.position === 'GK').length
   const avg = (k: 'atk' | 'def') =>
@@ -281,13 +324,15 @@ export function DeckBuilder({
     <div className="screen builder">
       <div className="stadium-bg" />
       <div className="builder-head">
-        <div>
+        <button className="btn btn-ghost builder-back" onClick={onBack}>
+          <Icon name="back" size={16} /> {t('builder.goBack')}
+        </button>
+        <div className="builder-head-titles">
           <h2>{t('builder.title')}</h2>
           <div className="hint">
             {t('builder.hint', { budget: playerBudget, tac: tacticalCap, tacPlural: tacticalCap !== 1 ? 's' : '' })}
           </div>
         </div>
-        <button className="btn btn-ghost" onClick={onBack}>{t('builder.menu')}</button>
       </div>
 
       <div className="builder-body">
@@ -313,9 +358,9 @@ export function DeckBuilder({
           <Filters
             searchValue={searchValue}
             onSearchChange={setSearchValue}
-            seasonValue={seasonValue}
-            onSeasonChange={(s) => { setLoadState('loading'); setSeasonValue(s); setCountryValue('all') }}
-            seasonOptions={seasons}
+            seasonValue={ownedMode ? undefined : seasonValue}
+            onSeasonChange={ownedMode ? undefined : (s) => { setLoadState('loading'); setSeasonValue(s); setCountryValue('all') }}
+            seasonOptions={ownedMode ? undefined : seasons}
             countryValue={countryValue}
             onCountryChange={setCountryValue}
             countryOptions={countries}

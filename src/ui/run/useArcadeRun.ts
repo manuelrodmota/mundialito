@@ -16,7 +16,7 @@
  *   'runover'   — run ended (win or loss)
  */
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import {
   newMatch,
   startRound,
@@ -42,12 +42,16 @@ import type { MatchState, Card, Formation, CardInPlay, PlayerCard, PlayerState, 
 import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
 import type { RunState } from '../../engine/types'
-import { newRun, stageForIndex, advanceRun, isRunOver, isRunWon, STAGE_AI_STRENGTH } from '../../run'
+import { newRun, stageForIndex, advanceRun, isRunOver, isRunWon, runEndReward, aiStrengthMultFor } from '../../run'
 import { drawOpponent, allowedTiersForStage } from '../../run'
 import { rollPlayerReward, offerTacticals, applyReward, swapTactical, removeCard, countTacticals } from '../../run'
 import { players as staticPlayerPool } from '../../data/players'
 import { buildOpponentBench } from '../../data/opponentBench'
 import { tacticals as allTacticals } from '../../data/tacticals'
+import { recordMatch } from '../../data/user/profile.repo'
+import { addBoxes, type UnopenedBox } from '../../data/user/userBoxes.repo'
+import { useAccount } from '../../account/AccountProvider'
+import { arcadeMatchXp } from '../../meta/xpSources'
 
 export type ArcadeRunPhase = 'building' | 'map' | 'match' | 'locker' | 'runover'
 
@@ -125,6 +129,8 @@ export interface ArcadeRunViewState {
   roundReport: RoundReport | null
   reward: RewardState | null
   nextOpponent: OpponentTeam | null
+  /** Run-end reward boxes granted to the locker (shown on the summary). */
+  rewardBoxes: UnopenedBox[]
 }
 
 export interface UseArcadeRunReturn {
@@ -176,9 +182,28 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
   const matchRef = useRef<MatchState | null>(null)
   const rngRef = useRef<Rng | null>(null)
   const goalCounterRef = useRef(0)
+  const recordedRef = useRef(false)
+
+  const { addXp } = useAccount()
 
   const [runState, setRunState] = useState<RunState | null>(null)
   const [matchSnapshot, setMatchSnapshot] = useState<MatchState | null>(null)
+
+  // Record each finished match once (player is index 0) + grant XP (participation + win +
+  // stage-clear, plus the run-win bonus on a Final win). Best-effort; no-op when signed out.
+  useEffect(() => {
+    const w = matchSnapshot?.winner
+    if (w === null || w === undefined) {
+      recordedRef.current = false
+      return
+    }
+    if (recordedRef.current) return
+    recordedRef.current = true
+    const won = w === 0
+    void recordMatch(won)
+    const stage = runState?.stage ?? 'group'
+    void addXp(arcadeMatchXp(won, stage, won && stage === 'final'))
+  }, [matchSnapshot?.winner, runState, addXp])
   const [phase, setPhase] = useState<ArcadeRunPhase>('building')
   const [error, setError] = useState<string | null>(null)
   const [goalEvents, setGoalEvents] = useState<GoalEvent[]>([])
@@ -187,6 +212,19 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
   const [roundReport, setRoundReport] = useState<RoundReport | null>(null)
   const [reward, setReward] = useState<RewardState | null>(null)
   const [nextOpponentState, setNextOpponentState] = useState<OpponentTeam | null>(null)
+  const [rewardBoxes, setRewardBoxes] = useState<UnopenedBox[]>([])
+  const rewardGrantedRef = useRef(false)
+
+  // On run end, grant the §8 reward boxes to the locker once. Best-effort; no-op when signed out.
+  // (The guard + rewardBoxes are reset in startRun, not here, to avoid sync setState in an effect.)
+  useEffect(() => {
+    if (phase !== 'runover' || !runState) return
+    if (rewardGrantedRef.current) return
+    rewardGrantedRef.current = true
+    addBoxes(runEndReward(runState), 'run')
+      .then(setRewardBoxes)
+      .catch(() => setRewardBoxes([]))
+  }, [phase, runState])
 
   const syncSnapshot = useCallback(() => {
     const m = matchRef.current
@@ -213,6 +251,8 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
       rngRef.current = rng
 
       const run = newRun(deck, captainId)
+      rewardGrantedRef.current = false
+      setRewardBoxes([])
       setRunState(run)
       setPhase('map')
       setError(null)
@@ -282,8 +322,9 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
         opponent,
         'run',
       )
-      // Per-stage difficulty handicap — later opponents are sharper (tuned via scripts/arcadeSim.ts).
-      match.aiStrengthMult = STAGE_AI_STRENGTH[run.stage]
+      // Per-stage difficulty handicap + v12 champion strength-floor (a weak champion drawn for the
+      // Final is normalized up so the Final is reliably the hardest stage). Tuned via scripts/arcadeSim.ts.
+      match.aiStrengthMult = aiStrengthMultFor(run.stage, opponent)
 
       startRound(match, rng)
       matchRef.current = match
@@ -597,6 +638,7 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
       roundReport,
       reward,
       nextOpponent: nextOpponentState,
+      rewardBoxes,
     },
     startRun,
     startStage,

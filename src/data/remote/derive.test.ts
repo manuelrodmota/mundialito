@@ -23,14 +23,15 @@ describe("deriveRarity — GDD §4 boundaries", () => {
     expect(deriveRarity(86)).toBe("rare");
   });
 
-  it("overall 87–91 → epic", () => {
+  it("overall 87–89 → epic", () => {
     expect(deriveRarity(87)).toBe("epic");
+    expect(deriveRarity(88)).toBe("epic");
     expect(deriveRarity(89)).toBe("epic");
-    expect(deriveRarity(91)).toBe("epic");
   });
 
-  it("overall ≥ 92 → legendary", () => {
-    expect(deriveRarity(92)).toBe("legendary");
+  it("overall ≥ 90 → legendary", () => {
+    expect(deriveRarity(90)).toBe("legendary");
+    expect(deriveRarity(91)).toBe("legendary");
     expect(deriveRarity(96)).toBe("legendary");
     expect(deriveRarity(99)).toBe("legendary");
   });

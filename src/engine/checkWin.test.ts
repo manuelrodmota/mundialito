@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { checkWin, beginExtraTime } from "./checkWin.ts";
 import { makeRng } from "./rng.ts";
+import { XG_TIEBREAK_GAP } from "./constants.ts";
 import type { MatchState, PlayerState } from "./types.ts";
 
 function makePlayerState(overrides: Partial<PlayerState> = {}): PlayerState {
@@ -110,6 +111,38 @@ describe("checkWin — regulation full time (R10)", () => {
     expect(m.winner).toBeNull();
     expect(m.extraTime).toBe(true);
     expect(m.etRound).toBe(0);
+  });
+});
+
+describe("checkWin — partial xG tie-break (v12 §19#5)", () => {
+  it("level on goals at full time + a clear xG edge → that side wins outright, no ET", () => {
+    const m = makeMatch(2, 2, 8);
+    m.players[0]!.xgAccum = 2.0;
+    m.players[1]!.xgAccum = 2.0 - (XG_TIEBREAK_GAP + 0.1); // gap ≥ threshold
+    checkWin(m, makeRng(42));
+    expect(m.winner).toBe(0);
+    expect(m.decidedByTieBreak).toBe(true);
+    expect(m.extraTime).toBe(false);
+    expect(m.phase).toBe("end");
+  });
+
+  it("player 1's clear xG edge wins the tie-break", () => {
+    const m = makeMatch(1, 1, 8);
+    m.players[0]!.xgAccum = 1.2;
+    m.players[1]!.xgAccum = 1.2 + (XG_TIEBREAK_GAP + 0.05);
+    checkWin(m, makeRng(42));
+    expect(m.winner).toBe(1);
+    expect(m.decidedByTieBreak).toBe(true);
+  });
+
+  it("a narrow xG gap (< threshold) still goes to golden-goal ET", () => {
+    const m = makeMatch(2, 2, 8);
+    m.players[0]!.xgAccum = 1.5;
+    m.players[1]!.xgAccum = 1.5 - (XG_TIEBREAK_GAP - 0.1); // gap just under threshold
+    checkWin(m, makeRng(42));
+    expect(m.winner).toBeNull();
+    expect(m.extraTime).toBe(true);
+    expect(m.decidedByTieBreak).toBeFalsy();
   });
 });
 

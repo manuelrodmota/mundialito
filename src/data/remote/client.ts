@@ -25,7 +25,13 @@ export function getSupabaseClient(): SupabaseClient<Database> {
   }
 
   _client = createClient<Database>(url, key, {
-    auth: { persistSession: false },
+    // Meta layer (WCC-043): persist the auth session so login survives reloads and
+    // the OAuth redirect is consumed from the URL on return.
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
   });
 
   return _client;

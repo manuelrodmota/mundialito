@@ -34,36 +34,36 @@ import {
 } from "./constants.ts";
 
 describe("STAMINA", () => {
-  it("returns 8 for rounds 1–5", () => {
+  it("returns 8 for rounds 1–4", () => {
     expect(STAMINA(1)).toBe(8);
-    expect(STAMINA(5)).toBe(8);
+    expect(STAMINA(4)).toBe(8);
   });
 
-  it("returns 10 at R6 breakpoint through R8", () => {
+  it("returns 10 at R5 breakpoint through R6", () => {
+    expect(STAMINA(5)).toBe(10);
     expect(STAMINA(6)).toBe(10);
-    expect(STAMINA(8)).toBe(10);
   });
 
-  it("returns 12 at R9 breakpoint and R10", () => {
-    expect(STAMINA(9)).toBe(12);
-    expect(STAMINA(10)).toBe(12);
+  it("returns 12 at R7 breakpoint and R8", () => {
+    expect(STAMINA(7)).toBe(12);
+    expect(STAMINA(8)).toBe(12);
   });
 });
 
 describe("CARD_CAP", () => {
-  it("returns 4 for rounds 1–5", () => {
+  it("returns 4 for rounds 1–4", () => {
     expect(CARD_CAP(1)).toBe(4);
-    expect(CARD_CAP(5)).toBe(4);
+    expect(CARD_CAP(4)).toBe(4);
   });
 
-  it("returns 5 at R6 breakpoint through R8", () => {
+  it("returns 5 at R5 breakpoint through R6", () => {
+    expect(CARD_CAP(5)).toBe(5);
     expect(CARD_CAP(6)).toBe(5);
-    expect(CARD_CAP(8)).toBe(5);
   });
 
-  it("returns 6 at R9 breakpoint and R10", () => {
-    expect(CARD_CAP(9)).toBe(6);
-    expect(CARD_CAP(10)).toBe(6);
+  it("returns 6 at R7 breakpoint and R8", () => {
+    expect(CARD_CAP(7)).toBe(6);
+    expect(CARD_CAP(8)).toBe(6);
   });
 });
 
@@ -73,11 +73,11 @@ describe("match structure constants", () => {
   });
 
   it("has correct round cap", () => {
-    expect(ROUND_CAP).toBe(10);
+    expect(ROUND_CAP).toBe(8);
   });
 
   it("has correct halftime round", () => {
-    expect(HALFTIME_ROUND).toBe(5);
+    expect(HALFTIME_ROUND).toBe(4);
   });
 
   it("has correct ET round cap", () => {
@@ -129,10 +129,10 @@ describe("v10 balance knobs", () => {
     expect(STAR_SYNERGY_DISCOUNT).toBe(0.5);
   });
 
-  it("xG curve constants match v10.1 spec", () => {
+  it("xG curve constants match v10.1 spec (cap raised to 0.65 in v12)", () => {
     expect(XG_FLOOR).toBe(0.1);
     expect(XG_SLOPE).toBe(180);
-    expect(XG_CAP).toBe(0.55);
+    expect(XG_CAP).toBe(0.65);
     expect(GOAL_THRESHOLD).toBe(0.8);
     expect(DEF_COEFF).toBe(0.9);
   });

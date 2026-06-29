@@ -49,16 +49,6 @@ function isInjured(status: CardStatus | Status | undefined): boolean {
   return false
 }
 
-/** Derives a visual colour tier from a player's overall rating.
- * Keeps gameplay rarity (used for balance multipliers) separate from presentation.
- */
-function colorTier(overall: number): string {
-  if (overall >= 87) return 'legendary'
-  if (overall >= 84) return 'epic'
-  if (overall >= 80) return 'rare'
-  return 'common'
-}
-
 /** Player card — the hero object of World Cup Clash.
  * Rarity surface via data-rarity, jersey in the figure, stat row, flag chip, status overlays.
  */
@@ -104,7 +94,7 @@ export function PlayerCard({
   const cardEl = (
     <div
       className={`wcard v2${compact ? ' compact' : ''}${onClick ? ' clickable' : ''}${className ? ' ' + className : ''}`}
-      data-rarity={colorTier(card.overall)}
+      data-rarity={card.rarity}
       style={{ '--cw': size + 'px' } as CSSProperties}
       onClick={onClick}
     >
@@ -114,7 +104,7 @@ export function PlayerCard({
       {laneMult !== undefined && laneMult > 1 && (
         <div
           className="lane-mult2"
-          data-rar={colorTier(card.overall)}
+          data-rar={card.rarity}
           title={`Lane multiplier — this star lifts the whole line ×${laneMult}`}
         >
           ×{laneMult}

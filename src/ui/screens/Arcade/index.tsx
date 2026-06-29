@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { laneFx } from '../../../engine'
 import { useLang } from '../../i18n'
 import { useArcadeRun } from '../../run/useArcadeRun'
@@ -8,6 +8,8 @@ import { RunMap } from '../RunMap'
 import { LockerRoom } from '../LockerRoom'
 import { RunSummary } from '../RunSummary'
 import { MatchBoard } from '../../organisms/MatchBoard'
+import { BoxOpening, type BoxSpec } from '../../organisms/BoxOpening'
+import { fetchOwnedCounts } from '../../../data/user/userCards.repo'
 import type { Card, TacticalCard } from '../../../engine/types'
 
 interface ArcadeProps {
@@ -35,8 +37,20 @@ export function Arcade({ onHome }: ArcadeProps) {
     surrenderRun,
   } = useArcadeRun()
 
-  const { phase, runState, matchSnapshot, reward, nextOpponent } = viewState
+  const { phase, runState, matchSnapshot, reward, nextOpponent, rewardBoxes } = viewState
   const onboarding = useFirstMatchOnboarding()
+
+  // Arcade is collection-gated: build from owned cards. Loaded once on mount.
+  const [ownedIds, setOwnedIds] = useState<Set<number> | null>(null)
+  const [openingRewards, setOpeningRewards] = useState<BoxSpec[] | null>(null)
+
+  useEffect(() => {
+    let active = true
+    fetchOwnedCounts()
+      .then((counts) => { if (active) setOwnedIds(new Set(counts.keys())) })
+      .catch(() => { if (active) setOwnedIds(new Set()) })
+    return () => { active = false }
+  }, [])
 
   const handleDeckReady = useCallback(
     (deck: Card[], captainId: string) => {
@@ -57,6 +71,13 @@ export function Arcade({ onHome }: ArcadeProps) {
   }, [nextRound])
 
   if (phase === 'building') {
+    if (ownedIds === null) {
+      return (
+        <div className="qp-loading">
+          <p>{t('quickChoose.ownedLoading')}</p>
+        </div>
+      )
+    }
     return (
       <DeckBuilder
         playerBudget={10}
@@ -64,6 +85,7 @@ export function Arcade({ onHome }: ArcadeProps) {
         rosterSize={11}
         onDeckReady={handleDeckReady}
         onBack={onHome}
+        ownedCardIds={ownedIds}
       />
     )
   }
@@ -132,9 +154,14 @@ export function Arcade({ onHome }: ArcadeProps) {
   }
 
   if (phase === 'runover' && runState) {
+    if (openingRewards) {
+      return <BoxOpening queue={openingRewards} onDone={() => setOpeningRewards(null)} />
+    }
     return (
       <RunSummary
         runState={runState}
+        earnedBoxes={rewardBoxes}
+        onOpenBoxes={rewardBoxes.length ? () => setOpeningRewards(rewardBoxes) : undefined}
         onRestart={() => startRun(runState.deck, runState.captainId)}
         onHome={onHome}
       />

@@ -184,13 +184,13 @@ describe("resolveRound", () => {
     expect(inDiscard).toBe(true);
   });
 
-  it("halftime fires at R5: locked cards return and fatigue resets", () => {
+  it("halftime fires at R4: locked cards return and fatigue resets", () => {
     const premiumCard = makePlayerCard("leg0", { rarity: "legendary", cost: 4 });
     const deck: Card[] = [premiumCard, ...makeDeck(7, "a")];
     const m = newMatch(42, { deck, captainId: "a0" }, { deck: makeDeck(8, "b"), captainId: "b0" }, makeOpp());
     const rng = makeRng(42);
 
-    m.round = 5;
+    m.round = 4;
     m.players[0]!.fatigue = 20;
     m.players[0]!.locked = [premiumCard];
 
@@ -199,7 +199,7 @@ describe("resolveRound", () => {
 
     resolveRound(m, rng);
 
-    if (m.round >= 6 || m.winner !== null) {
+    if (m.round >= 5 || m.winner !== null) {
       expect(m.players[0]!.fatigue).toBe(0);
       expect(m.players[0]!.locked).toHaveLength(0);
     }

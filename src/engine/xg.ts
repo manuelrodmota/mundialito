@@ -26,6 +26,9 @@ import {
   PITY_STEP,
   PITY_CAP,
   MOMENTUM_CONVERSION,
+  SNAP_THRESHOLD,
+  SNAP_SCALE,
+  SNAP_CAP,
 } from "./constants.ts";
 import { clamp } from "./util.ts";
 
@@ -42,7 +45,7 @@ export function addPressure(state: PlayerState, fillXg: number): void {
   state.xg = clamp(state.xg + fillXg, 0, PRESSURE_FULL);
 }
 
-/** Options that modify a shot — tactical-forced shots (Penalty / Hand of God). */
+/** Options that modify a shot — tactical-forced shots (Penalty / Hand of God) + v12 edge cases. */
 export interface ShotOpts {
   round: number;
   rng: Rng;
@@ -50,42 +53,71 @@ export interface ShotOpts {
   forceShot?: boolean;
   /** A conversion floor the shot can't drop below (a Penalty/Hand-of-God's own quality). */
   convFloor?: number;
+  /** v12 Park the Bus: opponent's open-play conversion penalty (ignored for forced shots). */
+  busPenalty?: number;
+  /** v12 Snap Shot: this round's xG fill — a near-maxed round can fire early on a partial meter. */
+  xgRound?: number;
+  /** v12 Snap Shot toggle (sim A/B). Default enabled. */
+  snapEnabled?: boolean;
 }
 
 /**
  * Computes the conversion probability the NEXT shot would use, without rolling or mutating state.
  * Pure — used by the UI to telegraph the odds before lock-in, and internally by `takeShot`.
+ * `snap` treats a partial-meter Snap Shot as a normal open-play shot; `busPenalty` is the v12 Park
+ * the Bus cut (open-play only — never a forced shot).
  */
 export function previewConversion(
   state: PlayerState,
-  opts: { forceShot?: boolean; convFloor?: number } = {},
+  opts: { forceShot?: boolean; convFloor?: number; snap?: boolean; busPenalty?: number } = {},
 ): number {
   const full = state.xg >= PRESSURE_FULL;
-  if (!full && !opts.forceShot) return 0;
+  const openPlay = full || opts.snap === true;
+  if (!openPlay && !opts.forceShot) return 0;
 
-  // Natural base only applies once the meter is full; a forced shot below full takes its quality
-  // entirely from the tactical's convFloor.
-  let p = full ? BASE_CONVERSION : 0;
+  // Natural base applies to any open-play shot (full meter or a Snap Shot); a forced shot below full
+  // takes its quality entirely from the tactical's convFloor.
+  let p = openPlay ? BASE_CONVERSION : 0;
   p += Math.min((state.missStreak ?? 0) * PITY_STEP, PITY_CAP);
   p += (Math.min(state.momentum, 3) / 3) * MOMENTUM_CONVERSION;
+  // Park the Bus only blunts open-play shots; forced shots (set via convFloor below) ignore it.
+  if (openPlay && opts.busPenalty) p -= opts.busPenalty;
   if (opts.convFloor !== undefined) p = Math.max(p, opts.convFloor);
-  return clamp(p, full || opts.convFloor !== undefined ? CONVERSION_FLOOR : 0, CONVERSION_CAP);
+  return clamp(p, openPlay || opts.convFloor !== undefined ? CONVERSION_FLOOR : 0, CONVERSION_CAP);
 }
 
 /**
- * Resolves a shot for the player. If the meter is full (or a shot is forced) it rolls P:
+ * Resolves a shot for the player. A shot happens when the meter is full, a tactical forces one, or
+ * (v12) a Snap Shot fires on a near-maxed attacking round with a partial meter. It rolls P:
  *   - GOAL → goals += 1, meter empties to 0, miss-streak resets.
- *   - MISS → meter drops by MISS_DROP_FRAC, miss-streak increments (raising the next pity bonus).
- * Returns the shot outcome (also stored on state.lastShot by the caller). GDD §14.
+ *   - MISS (full meter) → meter drops by MISS_DROP_FRAC, miss-streak increments (raises pity).
+ *   - Snap Shot (goal OR miss) → meter resets to 0, miss-streak untouched (a spent tempo gamble).
+ * Returns the shot outcome (also stored on state.lastShot by the caller). GDD §7 / §14.
  */
 export function takeShot(state: PlayerState, opts: ShotOpts): ShotResult {
-  const ready = state.xg >= PRESSURE_FULL || opts.forceShot === true;
-  if (!ready) {
-    const none: ShotResult = { took: false, scored: false, p: 0 };
-    return none;
+  const forced = opts.forceShot === true;
+  const full = state.xg >= PRESSURE_FULL;
+
+  // v12 Snap Shot: with no full meter and no forced shot, a dominant attacking round (xgRound near
+  // the cap) has a slim chance of an early shot on the partial meter.
+  let snap = false;
+  if (!full && !forced) {
+    const snapEnabled = opts.snapEnabled !== false;
+    const snapChance = snapEnabled
+      ? clamp(((opts.xgRound ?? 0) - SNAP_THRESHOLD) * SNAP_SCALE, 0, SNAP_CAP)
+      : 0;
+    if (snapChance > 0 && opts.rng.next() < snapChance) snap = true;
+    else return { took: false, scored: false, p: 0 };
   }
 
-  const p = previewConversion(state, { forceShot: opts.forceShot, convFloor: opts.convFloor });
+  // Forced shots ignore Park the Bus (you can't park the bus against a penalty).
+  const busPenalty = forced ? 0 : opts.busPenalty ?? 0;
+  const p = previewConversion(state, {
+    forceShot: forced,
+    convFloor: opts.convFloor,
+    snap,
+    busPenalty,
+  });
   const scored = opts.rng.next() < p;
 
   if (scored) {
@@ -93,10 +125,13 @@ export function takeShot(state: PlayerState, opts: ShotOpts): ShotResult {
     if (state.scoredFirstAt === null) state.scoredFirstAt = opts.round;
     state.xg = 0;
     state.missStreak = 0;
+  } else if (snap) {
+    // A Snap Shot spends the build-up: the meter resets whether it goes in or not (pity untouched).
+    state.xg = 0;
   } else {
     state.xg = state.xg * (1 - MISS_DROP_FRAC);
     state.missStreak = (state.missStreak ?? 0) + 1;
   }
 
-  return { took: true, scored, p };
+  return { took: true, scored, p, snap, busApplied: busPenalty > 0 };
 }
