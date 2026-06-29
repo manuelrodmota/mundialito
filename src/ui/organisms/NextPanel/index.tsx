@@ -3,6 +3,7 @@ import { MiniCrest } from '../../atoms/Crest'
 import { TierStars, FormationChip, Chip } from '../../atoms/Chip'
 import { teamBadge } from '../../data/nations'
 import type { Formation, Tier } from '../../../engine/types'
+import { useLang } from '../../i18n'
 
 interface NextPanelProps {
   /** Opponent crest band colours (fallback when no nation badge resolves). */
@@ -26,7 +27,7 @@ export function NextPanel({
   cols = ['#74ACDF', '#fff', '#74ACDF'],
   nation,
   year = "'26",
-  round = 'Round of 16',
+  round,
   name,
   tier,
   formation,
@@ -34,6 +35,7 @@ export function NextPanel({
   extra,
   actions,
 }: NextPanelProps) {
+  const { t } = useLang()
   const badge = nation ? teamBadge(nation) : null
   return (
     <div className="next-panel">
@@ -47,7 +49,7 @@ export function NextPanel({
       )}
       <div className="meta">
         <div className="vs">
-          {round} · vs
+          {round ?? t('run.stageR16Long')} · vs
         </div>
         <h3>{name}</h3>
         <div className="chips">

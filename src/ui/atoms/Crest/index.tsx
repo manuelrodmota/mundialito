@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { useLang } from '../../i18n'
 
 interface MiniCrestProps {
   cols?: [string, string, string]
@@ -28,9 +29,10 @@ interface PlayerCrestProps {
 
 /** Monogram crest for the player (YOU) or AI opponent. */
 export function PlayerCrest({ variant = 'you' }: PlayerCrestProps) {
+  const { t } = useLang()
   return (
     <span className={variant === 'ai' ? 'crest ai' : 'crest'}>
-      {variant === 'ai' ? 'AI' : 'YOU'}
+      {variant === 'ai' ? t('match.ai') : t('match.you')}
     </span>
   )
 }

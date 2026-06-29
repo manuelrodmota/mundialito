@@ -1,3 +1,5 @@
+import { useLang } from '../../i18n'
+
 type CapChipProps =
   | {
       /** 'players' = per-round player cap; 'tactics' = tactical-plays-this-half counter. */
@@ -15,8 +17,10 @@ type CapChipProps =
  * star-core chip (.cap-chip5.star) share this component. The first two go .full at the limit.
  */
 export function CapChip(props: CapChipProps) {
+  const { t } = useLang()
+
   if (props.kind === 'star') {
-    return <span className="cap-chip5 star">★ star core · support half-price</span>
+    return <span className="cap-chip5 star">{t('card.starCore')}</span>
   }
 
   const { kind, current, max } = props
@@ -27,7 +31,7 @@ export function CapChip(props: CapChipProps) {
 
   return (
     <span className={cls}>
-      <b>{current}</b>/{max} {kind === 'tactics' ? 'tactics · half' : 'players'}
+      <b>{current}</b>/{max} {kind === 'tactics' ? t('card.capTactics') : t('card.capPlayers')}
     </span>
   )
 }

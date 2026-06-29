@@ -1,5 +1,6 @@
 import { MiniCrest, PlayerCrest } from '../../atoms/Crest'
 import { crestSrc } from '../../data/nations'
+import { useLang } from '../../i18n'
 
 interface XGRailProps {
   code: string
@@ -34,12 +35,13 @@ export function Scoreboard({
   nation,
   themCols = ['#74ACDF', '#fff', '#74ACDF'],
   minute = "63'",
-  phase = '2ND HALF',
+  phase,
   mercy,
   mercyHot,
   et,
   xg,
 }: ScoreboardProps) {
+  const { t } = useLang()
   const crest = nation ? crestSrc(nation) : null
 
   return (
@@ -64,12 +66,12 @@ export function Scoreboard({
           <div className="sb-youcrest">
             <PlayerCrest variant="you" />
           </div>
-          <span className="sb-code">YOU</span>
+          <span className="sb-code">{t('match.you')}</span>
         </div>
       </div>
       <div className="sb-clock">
         <span className="sb-min">{minute}</span>
-        <span className={`sb-phase${et ? ' et' : ''}`}>{phase}</span>
+        <span className={`sb-phase${et ? ' et' : ''}`}>{phase ?? t('match.phase.secondHalf')}</span>
       </div>
       {mercy !== undefined && (
         <div className={`sb-mercy${mercyHot ? ' hot' : ''}`}>{mercy}</div>
@@ -87,7 +89,7 @@ export function Scoreboard({
             </span>
           </div>
           <div className="cbxg you">
-            <span className="cbxg-lab">YOU</span>
+            <span className="cbxg-lab">{t('match.you')}</span>
             <div className="cbxg-track">
               <i style={{ width: Math.round(xg.youXg * 100) + '%' }} />
               <span className="cbxg-val">{xg.youXg.toFixed(2)} xG</span>

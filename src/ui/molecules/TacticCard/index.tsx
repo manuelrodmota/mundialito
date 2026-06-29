@@ -2,6 +2,8 @@ import type { CSSProperties, MouseEventHandler } from 'react'
 import type { TacticalCard as TacticalCardData } from '../../../engine/types'
 import { SlotPips } from '../../atoms/SlotPips'
 import { CAT_GLYPH } from './glyphs'
+import { useLang } from '../../i18n'
+import { tacticalName } from '../../organisms/CardDetailModal/tacticalText'
 
 interface TacticCardProps {
   card: TacticalCardData
@@ -28,6 +30,7 @@ export function TacticCard({
   onClick,
   className = '',
 }: TacticCardProps) {
+  const { t } = useLang()
   const cost = fieldCost ?? card.cost
 
   if (faceDown) {
@@ -50,13 +53,13 @@ export function TacticCard({
       style={{ '--cw': size + 'px' } as CSSProperties}
       onClick={onClick}
     >
-      <div className="cost" title="Stamina cost">
+      <div className="cost" title={t('card.staminaCost')}>
         {cost}
       </div>
       <div className="inner">
         <div className="cat">{card.category}</div>
         <div className="glyph">{CAT_GLYPH[card.category]}</div>
-        <div className="tname">{card.name}</div>
+        <div className="tname">{tacticalName(t, card.effect.kind, card.name)}</div>
         {description && <div className="ttext">{description}</div>}
       </div>
       {showSlots && <SlotPips n={card.slots} />}

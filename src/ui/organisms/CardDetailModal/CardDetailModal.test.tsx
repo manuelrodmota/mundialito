@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { CardDetailModal, TACTICAL_DESCRIPTIONS } from './index'
+import { CardDetailModal } from './index'
 import type { PlayerCard, TacticalCard } from '../../../engine/types'
 
 vi.mock('framer-motion', async (orig) => ({
@@ -59,7 +59,7 @@ describe('CardDetailModal', () => {
     )
     expect(screen.getAllByText(/VAR Review/).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/INSTANT/i).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(TACTICAL_DESCRIPTIONS['var']!).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/cancels one Tactical Card/).length).toBeGreaterThan(0)
   })
 
   it('shows opponent team blurb when provided', () => {

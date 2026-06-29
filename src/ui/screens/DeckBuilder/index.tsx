@@ -10,7 +10,8 @@ import { recommendedSpread, POSITION_ORDER } from '../../quickplay/curatePool'
 import { Filters } from '../../organisms/Filters'
 import { AssistedPool } from '../../organisms/AssistedPool'
 import { PickRow, SlotMeter } from '../../molecules/PickRow'
-import { CardDetailModal, TACTICAL_DESCRIPTION_KEYS } from '../../organisms/CardDetailModal'
+import { CardDetailModal } from '../../organisms/CardDetailModal'
+import { TACTICAL_DESCRIPTION_KEYS, tacticalName } from '../../organisms/CardDetailModal/tacticalText'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { Icon } from '../../atoms/Icon'
@@ -523,7 +524,7 @@ export function DeckBuilder({
                         <PickRow
                           key={c.id}
                           rating={c.cost}
-                          name={c.name}
+                          name={tacticalName(t, c.effect.kind, c.name)}
                           slots={c.slots}
                           isTactic
                           onRemove={() => handleRemoveTactical(c as TacticalCard)}

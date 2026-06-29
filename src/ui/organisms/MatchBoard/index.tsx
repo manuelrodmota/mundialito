@@ -18,7 +18,8 @@ import { XGMeter } from '../../molecules/Meters'
 import { FormationPicker } from '../FormationPicker'
 import { CapChip } from '../../atoms/CapChip'
 import { StaminaPips } from '../../atoms/StaminaPips'
-import { CardDetailModal, TACTICAL_DESCRIPTIONS, TACTICAL_DESCRIPTION_KEYS } from '../CardDetailModal'
+import { CardDetailModal } from '../CardDetailModal'
+import { TACTICAL_DESCRIPTION_KEYS, tacticalDescription } from '../CardDetailModal/tacticalText'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { CAT_GLYPH } from '../../molecules/TacticCard/glyphs'
@@ -181,6 +182,7 @@ function DraggableCard({
   blockLabel?: string
 }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: card.id })
+  const { t } = useLang()
   const dragging = transform != null
   const offset = index - (count - 1) / 2
 
@@ -189,8 +191,8 @@ function DraggableCard({
   const [dealing, setDealing] = useState(true)
   const dealDelay = Math.min(index, 8) * 45
   useEffect(() => {
-    const t = setTimeout(() => setDealing(false), dealDelay + 480)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setDealing(false), dealDelay + 480)
+    return () => clearTimeout(timer)
   }, [dealDelay])
 
   const style = {
@@ -232,7 +234,7 @@ function DraggableCard({
           <TacticCard
             card={card as TacticalCard}
             size={HAND_CARD_SIZE}
-            description={TACTICAL_DESCRIPTIONS[(card as TacticalCard).effect.kind]}
+            description={tacticalDescription(t, (card as TacticalCard).effect.kind, card.name)}
           />
         )}
       </div>
@@ -1306,7 +1308,7 @@ export function MatchBoard({
                     className="tac-used-card"
                     onClick={() => setDetailTac(tac)}
                   >
-                    <TacticCard card={tac} size={72} description={TACTICAL_DESCRIPTIONS[tac.effect.kind]} />
+                    <TacticCard card={tac} size={72} description={tacticalDescription(t, tac.effect.kind, tac.name)} />
                   </button>
                 ))}
               </div>

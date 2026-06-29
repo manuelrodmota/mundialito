@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { GoalMouth, BlastBall, BootImg, GloveImg } from './scene'
+import { useLang } from '../../i18n'
 
 interface GoalProps {
   isYou: boolean
@@ -16,7 +17,12 @@ interface GoalProps {
  * The root is pointer-events:none so the surrounding Overlay veil receives click-to-dismiss.
  */
 export function Goal({ isYou, scorer, score }: GoalProps) {
-  const title = isYou ? 'YOU SCORE' : scorer ? `${scorer.toUpperCase()} SCORES` : 'THEY SCORE'
+  const { t } = useLang()
+  const title = isYou
+    ? t('match.goal.youScore')
+    : scorer
+      ? t('match.goal.scorerScores', { scorer: scorer.toUpperCase() })
+      : t('match.goal.theyScore')
   const line = score ? `${title} · ${score[0]} – ${score[1]}` : title
 
   return (
@@ -40,7 +46,7 @@ export function Goal({ isYou, scorer, score }: GoalProps) {
           <BootImg />
         </span>
       </div>
-      <div className="gb-text">GOAL</div>
+      <div className="gb-text">{t('match.goal.word')}</div>
       <div className="gb-sub">{line}</div>
     </div>
   )

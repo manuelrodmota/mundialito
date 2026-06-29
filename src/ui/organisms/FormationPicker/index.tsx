@@ -11,9 +11,9 @@ interface FormationOption {
 // Stat multipliers stay as symbolic notation (ATK/DEF are kept abbreviations); only the
 // shape label is translated, via labelKey.
 const FORMATION_OPTIONS: FormationOption[] = [
-  { formation: 'offensive', code: '4-3-3', labelKey: 'formation.offensive', description: 'ATK ×1.25 · DEF ×0.75' },
+  { formation: 'offensive', code: '4-3-3', labelKey: 'formation.offensive', description: 'ATK ×1.2 · DEF ×0.8' },
   { formation: 'balanced', code: '4-4-2', labelKey: 'formation.balanced', description: 'ATK ×1.0 · DEF ×1.0' },
-  { formation: 'defensive', code: '5-4-1', labelKey: 'formation.defensive', description: 'ATK ×0.75 · DEF ×1.25' },
+  { formation: 'defensive', code: '5-4-1', labelKey: 'formation.defensive', description: 'ATK ×0.8 · DEF ×1.2' },
 ]
 
 interface FormationPickerProps {

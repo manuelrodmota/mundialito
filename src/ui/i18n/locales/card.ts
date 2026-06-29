@@ -48,6 +48,18 @@ export const en = {
   'match.heat.hot': 'Hot',
   'match.heat.gassed': 'Gassed',
 
+  // Player/tactic card anatomy
+  'card.captain': 'CAPTAIN',
+  'card.free': 'FREE',
+  'card.staminaTitle': 'Stamina cost to field this round',
+  'card.staminaCost': 'Stamina cost',
+  'card.laneMultTitle': 'Lane multiplier — this star lifts the whole line ×{mult}',
+  'card.bookedTitle': 'Booked — next whistle is a red',
+  'card.injuredTitle': 'Injured — −15 ATK/DEF',
+  'card.starCore': '★ star core · support half-price',
+  'card.capPlayers': 'players',
+  'card.capTactics': 'tactics · half',
+
   // Just-in-time plan hints (planHint)
   'match.hint.noAttack': "No one up front — you can't create chances. Put a player in ATTACK.",
   'match.hint.loneStriker':
@@ -78,7 +90,7 @@ export const es: typeof en = {
   'card.roleMid':
     'Mediocampista — equilibrado (85 % ATK / 78 % DEF). 2+ mediocampistas jugados = +1 de resistencia la próxima ronda.',
   'card.roleDef': 'Defensa — un muro (DEF completo), limitado en ataque (55 % ATK).',
-  'card.roleGk': 'Portero — solo en la línea de defensa. DEF = global +5, ATK 0.',
+  'card.roleGk': 'Arquero — solo en la línea de defensa. DEF = global +5, ATK 0.',
   // CardModal — body copy
   'card.slot': 'espacio',
   'card.slots': 'espacios',
@@ -105,10 +117,22 @@ export const es: typeof en = {
   'match.heat.hot': 'Caliente',
   'match.heat.gassed': 'Agotado',
 
+  // Player/tactic card anatomy
+  'card.captain': 'CAPITÁN',
+  'card.free': 'GRATIS',
+  'card.staminaTitle': 'Coste de resistencia para alinear esta ronda',
+  'card.staminaCost': 'Coste de resistencia',
+  'card.laneMultTitle': 'Multiplicador de banda — esta estrella eleva toda la línea ×{mult}',
+  'card.bookedTitle': 'Amonestado — el próximo silbato es roja',
+  'card.injuredTitle': 'Lesionado — −15 ATK/DEF',
+  'card.starCore': '★ núcleo estelar · apoyo a mitad de precio',
+  'card.capPlayers': 'jugadores',
+  'card.capTactics': 'tácticas · mitad',
+
   // Just-in-time plan hints (planHint)
-  'match.hint.noAttack': 'Nadie en ataque — no puedes generar ocasiones. Coloca un jugador en ATAQUE.',
+  'match.hint.noAttack': 'Nadie en ataque — no podés generar ocasiones. Colocá un jugador en ATAQUE.',
   'match.hint.loneStriker':
-    'Un solo delantero contra sus {n} atrás rara vez rompe — una estrella sola ≈ dos defensas. Suma otro en ataque.',
+    'Un solo delantero contra sus {n} atrás rara vez rompe — una estrella sola ≈ dos defensas. Sumá otro en ataque.',
   'match.hint.offensiveWaste':
-    'La formación Ofensiva desperdicia su bonus con un solo atacante — suma más en ataque o cambia a Equilibrada.',
+    'La formación Ofensiva desperdicia su bonus con un solo atacante — sumá más en ataque o cambiá a Equilibrada.',
 }

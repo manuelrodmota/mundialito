@@ -5,7 +5,7 @@ import { NextPanel } from '../../organisms/NextPanel'
 import { LockerSwapRow } from '../../organisms/LockerSwapRow'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
-import { TACTICAL_DESCRIPTION_KEYS } from '../../organisms/CardDetailModal'
+import { TACTICAL_DESCRIPTION_KEYS, tacticalName } from '../../organisms/CardDetailModal/tacticalText'
 import { opponentBlurb } from '../../../data'
 import { useLang } from '../../i18n'
 
@@ -95,7 +95,7 @@ function TacticalOfferSection({
                 onKeyDown={(e) => e.key === 'Enter' && onChooseExile(t.id)}
               >
                 <LockerSwapRow
-                  name={t.name}
+                  name={tacticalName(tr, t.effect.kind, t.name)}
                   isSwappingOut={exileId === t.id}
                   isHighlighted={exileId === t.id}
                 />
@@ -275,8 +275,8 @@ export function LockerRoom({
             <>
               <h4>{t('run.tacticalsInDeck')}</h4>
               <div className="pick-rows">
-                {heldTacticals.map((t) => (
-                  <LockerSwapRow key={t.id} name={t.name} />
+                {heldTacticals.map((tac) => (
+                  <LockerSwapRow key={tac.id} name={tacticalName(t, tac.effect.kind, tac.name)} />
                 ))}
               </div>
             </>

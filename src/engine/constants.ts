@@ -136,9 +136,9 @@ export function CARD_CAP(round: number): number {
 
 /** ATK and DEF multipliers per formation. §15 */
 export const FORMATIONS: Record<Formation, { atkMult: number; defMult: number }> = {
-  offensive: { atkMult: 1.18, defMult: 0.82 },
+  offensive: { atkMult: 1.2, defMult: 0.8 },
   balanced: { atkMult: 1.0, defMult: 1.0 },
-  defensive: { atkMult: 0.82, defMult: 1.18 },
+  defensive: { atkMult: 0.8, defMult: 1.2 },
 } as const satisfies Record<Formation, { atkMult: number; defMult: number }>;
 
 // Match structure. §15 — v12: match cut 10 → 8 rounds (halftime R4 / 45', full time R8 / 90').
