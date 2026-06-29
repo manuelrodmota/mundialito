@@ -4,6 +4,7 @@ import { Flag } from '../../atoms/Flag'
 import { SlotPips } from '../../atoms/SlotPips'
 import { RarityMultBadge } from '../../atoms/Chip'
 import { WCJersey } from '../../jersey/WCJersey'
+import { useLang } from '../../i18n'
 
 /** Map from engine StatusKind to card overlay state. */
 interface CardStatus {
@@ -68,6 +69,7 @@ export function PlayerCard({
   onClick,
   className = '',
 }: PlayerCardProps) {
+  const { t } = useLang()
   const cost = fieldCost ?? card.cost
 
   if (faceDown) {
@@ -98,25 +100,25 @@ export function PlayerCard({
       style={{ '--cw': size + 'px' } as CSSProperties}
       onClick={onClick}
     >
-      <div className="cost" title="Stamina cost to field this round">
+      <div className="cost" title={t('card.staminaTitle')}>
         {cost}
       </div>
       {laneMult !== undefined && laneMult > 1 && (
         <div
           className="lane-mult2"
           data-rar={card.rarity}
-          title={`Lane multiplier — this star lifts the whole line ×${laneMult}`}
+          title={t('card.laneMultTitle', { mult: laneMult })}
         >
           ×{laneMult}
         </div>
       )}
       {showMult && <RarityMultBadge rarity={card.rarity} />}
-      {isCaptain && <div className="captain-band">CAPTAIN</div>}
+      {isCaptain && <div className="captain-band">{t('card.captain')}</div>}
       {isBooked(status) && (
-        <div className="st-booked" title="Booked — next whistle is a red" />
+        <div className="st-booked" title={t('card.bookedTitle')} />
       )}
       {isInjured(status) && (
-        <div className="st-injured" title="Injured — −15 ATK/DEF">
+        <div className="st-injured" title={t('card.injuredTitle')}>
           ✚
         </div>
       )}

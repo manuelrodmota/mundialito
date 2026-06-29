@@ -48,6 +48,18 @@ export const en = {
   'match.heat.hot': 'Hot',
   'match.heat.gassed': 'Gassed',
 
+  // Player/tactic card anatomy
+  'card.captain': 'CAPTAIN',
+  'card.free': 'FREE',
+  'card.staminaTitle': 'Stamina cost to field this round',
+  'card.staminaCost': 'Stamina cost',
+  'card.laneMultTitle': 'Lane multiplier — this star lifts the whole line ×{mult}',
+  'card.bookedTitle': 'Booked — next whistle is a red',
+  'card.injuredTitle': 'Injured — −15 ATK/DEF',
+  'card.starCore': '★ star core · support half-price',
+  'card.capPlayers': 'players',
+  'card.capTactics': 'tactics · half',
+
   // Just-in-time plan hints (planHint)
   'match.hint.noAttack': "No one up front — you can't create chances. Put a player in ATTACK.",
   'match.hint.loneStriker':
@@ -104,6 +116,18 @@ export const es: typeof en = {
   'match.heat.warm': 'Tibio',
   'match.heat.hot': 'Caliente',
   'match.heat.gassed': 'Agotado',
+
+  // Player/tactic card anatomy
+  'card.captain': 'CAPITÁN',
+  'card.free': 'GRATIS',
+  'card.staminaTitle': 'Coste de resistencia para alinear esta ronda',
+  'card.staminaCost': 'Coste de resistencia',
+  'card.laneMultTitle': 'Multiplicador de banda — esta estrella eleva toda la línea ×{mult}',
+  'card.bookedTitle': 'Amonestado — el próximo silbato es roja',
+  'card.injuredTitle': 'Lesionado — −15 ATK/DEF',
+  'card.starCore': '★ núcleo estelar · apoyo a mitad de precio',
+  'card.capPlayers': 'jugadores',
+  'card.capTactics': 'tácticas · mitad',
 
   // Just-in-time plan hints (planHint)
   'match.hint.noAttack': 'Nadie en ataque — no puedes generar ocasiones. Coloca un jugador en ATAQUE.',

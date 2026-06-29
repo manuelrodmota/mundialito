@@ -1,4 +1,5 @@
 import { Button } from '../../atoms/Button'
+import { useLang } from '../../i18n'
 
 interface FillWithCommonsProps {
   onFill: () => void
@@ -7,12 +8,13 @@ interface FillWithCommonsProps {
 
 /** Fill-with-commons affordance — triggers the §16.3 random-common roster fill. */
 export function FillWithCommons({ onFill, disabled }: FillWithCommonsProps) {
+  const { t } = useLang()
   return (
     <div className="fill-with-commons">
       <Button variant="ghost" onClick={onFill} disabled={disabled}>
-        Fill bench (random)
+        {t('builder.fillBench')}
       </Button>
-      <span className="fill-hint">Commons aren&apos;t hand-picked — roll a random bench to complete the XI (re-click to re-roll)</span>
+      <span className="fill-hint">{t('builder.fillHint')}</span>
     </div>
   )
 }

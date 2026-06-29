@@ -79,10 +79,10 @@ export function Filters({
       )}
       <select value={positionValue} onChange={(e) => onPositionChange?.(e.target.value)}>
         <option value="all">{t('builder.allPositions')}</option>
-        <option>FWD</option>
-        <option>MID</option>
-        <option>DEF</option>
-        <option>GK</option>
+        <option value="FWD">{t('builder.posFwd')}</option>
+        <option value="MID">{t('builder.posMid')}</option>
+        <option value="DEF">{t('builder.posDef')}</option>
+        <option value="GK">{t('builder.posGk')}</option>
       </select>
       <select value={rarityValue} onChange={(e) => onRarityChange?.(e.target.value)}>
         <option value="all">{rarityAllLabel ?? t('builder.allRarities')}</option>

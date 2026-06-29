@@ -154,6 +154,15 @@ export const en = {
   // Bottom strip
   'match.you': 'YOU',
 
+  // Opponent label
+  'match.ai': 'AI',
+
+  // Goal cinematic
+  'match.goal.word': 'GOAL',
+  'match.goal.youScore': 'YOU SCORE',
+  'match.goal.theyScore': 'THEY SCORE',
+  'match.goal.scorerScores': '{scorer} SCORES',
+
   // Lane fx pills
   'match.fx.stacked': '−{n}% stacked',
   'match.fx.crowdedTitle': 'Crowded lane',
@@ -355,6 +364,15 @@ export const es: typeof en = {
 
   // Bottom strip
   'match.you': 'TÚ',
+
+  // Opponent label
+  'match.ai': 'IA',
+
+  // Goal cinematic
+  'match.goal.word': 'GOL',
+  'match.goal.youScore': 'TÚ MARCAS',
+  'match.goal.theyScore': 'MARCAN',
+  'match.goal.scorerScores': '{scorer} MARCA',
 
   // Lane fx pills
   'match.fx.stacked': '−{n}% amontonado',
