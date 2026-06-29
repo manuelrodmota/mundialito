@@ -3,16 +3,15 @@ import type { ReactNode } from 'react'
 import './App.css'
 import './ui/tokens/index.css'
 import { MainMenu } from './ui/organisms/MainMenu'
-import { PlaceholderScreen } from './ui/organisms/PlaceholderScreen'
 import { Splash } from './ui/screens/Splash'
 import { Register } from './ui/screens/Register'
 import { Account } from './ui/screens/Account'
 import { Collection } from './ui/screens/Collection'
 import { Quickplay } from './ui/screens/Quickplay'
 import { Arcade } from './ui/screens/Arcade'
+import { Multiplayer } from './ui/screens/Multiplayer'
 import { HowToPlay } from './ui/screens/HowToPlay'
 import { LevelUpHost } from './ui/organisms/LevelUp'
-import { useLang } from './ui/i18n'
 import { useAuth } from './auth/AuthProvider'
 import { useAccount } from './account/AccountProvider'
 
@@ -41,7 +40,6 @@ type Screen =
 
 function App() {
   const [screen, setScreen] = useState<Screen>('splash')
-  const { t } = useLang()
   const { status: authStatus, signOut } = useAuth()
   const { status: profileStatus } = useAccount()
 
@@ -93,13 +91,7 @@ function App() {
   } else if (screen === 'collection') {
     screenEl = <Collection onHome={() => setScreen('menu')} onBack={() => setScreen('account')} />
   } else if (screen === 'multiplayer') {
-    screenEl = (
-      <PlaceholderScreen
-        title={t('meta.multiplayer')}
-        note={t('meta.multiplayerSoon')}
-        onBack={() => setScreen('menu')}
-      />
-    )
+    screenEl = <Multiplayer onBack={() => setScreen('menu')} />
   } else {
     screenEl = <HowToPlay onBack={() => setScreen('menu')} />
   }

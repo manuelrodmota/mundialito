@@ -330,6 +330,19 @@ interface MatchBoardProps {
   onSurrender?: () => void
   /** Tunes the bail-out copy: 'run' (Arcade — abandon the whole run) or 'match' (Quickplay). */
   surrenderKind?: 'run' | 'match'
+  /**
+   * Multiplayer mode: the round is resolved by the authoritative server, so committing does NOT
+   * immediately reveal — the board waits for the opponent and the parent flips to 'reveal' on the
+   * server push. Planning is "a-ciegas": the opponent's lineup/intent is hidden, only their played
+   * tacticals + lock status show.
+   */
+  mpMode?: boolean
+  /** MP: you've locked in and are waiting for the opponent to commit. */
+  mpWaiting?: boolean
+  /** MP: the opponent's a-ciegas planning status (lock + played tacticals). */
+  mpOpponentStatus?: { lockedIn: boolean; playedTacticals: TacticalCard[] } | null
+  /** MP: epoch-ms planning deadline for the countdown timer (null = no timer). */
+  planDeadline?: number | null
 }
 
 const SURRENDER_COPY = {
@@ -370,6 +383,10 @@ export function MatchBoard({
   onOnboardingDone = () => {},
   onSurrender,
   surrenderKind = 'run',
+  mpMode = false,
+  mpWaiting = false,
+  mpOpponentStatus = null,
+  planDeadline = null,
 }: MatchBoardProps) {
   const { t } = useLang()
   const surrenderCopy = SURRENDER_COPY[surrenderKind]
@@ -387,6 +404,20 @@ export function MatchBoard({
   const [formation, setFormation] = useState<Formation>(p0.formation)
   const [selectedHandId, setSelectedHandId] = useState<string | null>(null)
   const [showSurrender, setShowSurrender] = useState(false)
+
+  // MP planning countdown — `now` lives in state and is updated only by the interval callback
+  // (async setState is allowed; no impure Date.now() during render). Display only; the server
+  // enforces the deadline authoritatively via resolve-if-expired.
+  const timerActive = mpMode && !isReveal && planDeadline !== null
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!timerActive) return
+    const id = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(id)
+  }, [timerActive])
+  const secondsLeft = timerActive
+    ? Math.max(0, Math.ceil((planDeadline! - now) / 1000))
+    : null
 
   // v10 budget: per-round card cap (4 → 5 → 6) and stamina budget (8 → 10 → 12). Both are
   // enforced on placement so the player can't overfield, exactly like the AI's validLineup.
@@ -657,19 +688,33 @@ export function MatchBoard({
 
   const handleCommit = useCallback(() => {
     onCommit({ formation, attackCards, defenseCards, tacticals: tacticalCards })
+    if (mpMode) {
+      // MP: the server resolves once BOTH players commit. Keep the committed cards on the pitch
+      // (locked) while waiting for the opponent — they're cleared when the reveal arrives (below).
+      setSelectedHandId(null)
+      return
+    }
+    // Single-player reveals immediately (the AI already committed); clear the local staging — the
+    // reveal renders the snapshot, and the next round draws fresh.
     onReveal()
-    // Clear the local staging — the reveal renders the snapshot, and the next round draws fresh.
     setAttackCards([])
     setDefenseCards([])
     setTacticalCards([])
     setSelectedHandId(null)
-  }, [onCommit, onReveal, formation, attackCards, defenseCards, tacticalCards])
+  }, [onCommit, onReveal, mpMode, formation, attackCards, defenseCards, tacticalCards])
 
   // Next round: sweep the cards that were PLAYED on the pitch to the discard pile — your
   // own lane cards (l-yatk/l-ydef) fly to your discard pile; their cards fade off the pitch
   // (the opponent has no on-screen pile). The resting hand is left alone — unplayed cards
   // stay for next round, which is exactly what the engine does. Then advance + deal in.
   const handleNextRoundClick = useCallback(() => {
+    // MP: cards were kept staged through the "waiting" window; clear them now that we're advancing
+    // past the reveal so the next planning round starts from a fresh hand.
+    if (mpMode) {
+      setAttackCards([])
+      setDefenseCards([])
+      setTacticalCards([])
+    }
     const boardEl = boardRef.current
     const discRect = discardRef.current?.getBoundingClientRect()
     const myCardEls = boardEl
@@ -712,7 +757,7 @@ export function MatchBoard({
       setDiscardGhosts([])
       setDiscardPulse(false)
     }, 460 + maxDelay + REDRAW_HOLD_MS)
-  }, [reduceMotion, onNextRound])
+  }, [reduceMotion, onNextRound, mpMode])
 
   // Tactical staging — a selected tactical plays on commit (mirrors attack/defense staging).
   const canStageMoreTacticals = p0.tacticalsThisHalf + tacticalCards.length < TACTICALS_PER_HALF
@@ -883,6 +928,18 @@ export function MatchBoard({
             {!isReveal && opponentIntent && intentMeta && (
               <div className="opp-intent">
                 <b>{intentMeta.label} {t(intentMeta.shapeKey)}</b> · <b>{opponentIntent.cardCount}</b> {opponentIntent.cardCount === 1 ? t('match.intent.cardOne') : t('match.intent.cardMany')} · <b>{opponentIntent.staminaSpent}</b> {t('match.intent.stamina')}
+              </div>
+            )}
+            {!isReveal && mpMode && (
+              <div className="opp-intent mp-opp-status">
+                <b>
+                  {mpOpponentStatus?.lockedIn
+                    ? t('mp.match.oppLockedIn')
+                    : t('mp.match.oppPlanning')}
+                </b>
+                {(mpOpponentStatus?.playedTacticals.length ?? 0) > 0 && (
+                  <span> · {mpOpponentStatus!.playedTacticals.map((tac) => tac.name).join(', ')}</span>
+                )}
               </div>
             )}
             {oppActiveTacticals.length > 0 && (
@@ -1106,9 +1163,19 @@ export function MatchBoard({
                 <span className="plan-hint-tip">{t(coachHint.key, coachHint.vars)}</span>
               </span>
             )}
+            {!isReveal && mpMode && secondsLeft !== null && (
+              <span className="mp-plan-timer" role="timer" aria-label={t('mp.match.timeLeft')}>
+                ⏱ {secondsLeft}s
+              </span>
+            )}
+            {!isReveal && mpMode && mpWaiting && (
+              <span className="mp-waiting" role="status">{t('mp.match.waiting')}</span>
+            )}
             {!isReveal && canCommit && (
               <button className="btn btn-gold" data-coach="commit" onClick={handleCommit}>
-                {committed > 0 ? t('match.commit.lockReveal') : t('match.commit.passRound')}
+                {mpMode
+                  ? committed > 0 ? t('mp.match.lockIn') : t('mp.match.passRound')
+                  : committed > 0 ? t('match.commit.lockReveal') : t('match.commit.passRound')}
               </button>
             )}
           </div>
