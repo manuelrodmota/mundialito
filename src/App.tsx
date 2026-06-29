@@ -12,7 +12,6 @@ import { Arcade } from './ui/screens/Arcade'
 import { Multiplayer } from './ui/screens/Multiplayer'
 import { HowToPlay } from './ui/screens/HowToPlay'
 import { LevelUpHost } from './ui/organisms/LevelUp'
-import { useLang } from './ui/i18n'
 import { useAuth } from './auth/AuthProvider'
 import { useAccount } from './account/AccountProvider'
 
@@ -41,7 +40,6 @@ type Screen =
 
 function App() {
   const [screen, setScreen] = useState<Screen>('splash')
-  const { t } = useLang()
   const { status: authStatus, signOut } = useAuth()
   const { status: profileStatus } = useAccount()
 
