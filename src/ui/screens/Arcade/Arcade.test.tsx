@@ -13,6 +13,12 @@ vi.mock('../../../data/remote/client', () => ({
   getSupabaseClient: vi.fn().mockReturnValue({}),
 }))
 
+// Arcade fetches owned cards in the building phase; keep it pending so the screen
+// stays on the collection loader (the deck builder itself has its own tests).
+vi.mock('../../../data/user/userCards.repo', () => ({
+  fetchOwnedCounts: vi.fn(() => new Promise(() => {})),
+}))
+
 vi.mock('../../../data/remote/players.repo', () => ({
   fetchPlayers: vi.fn().mockResolvedValue([]),
   fetchAvailableSeasons: vi.fn().mockResolvedValue([2026]),
@@ -40,6 +46,7 @@ const baseViewState: ArcadeRunViewState = {
   roundReport: null,
   reward: null,
   nextOpponent: null,
+  rewardBoxes: [],
 }
 
 function makeReturn(overrides: Partial<ArcadeRunViewState> = {}): UseArcadeRunReturn {
@@ -80,10 +87,10 @@ describe('Arcade', () => {
     vi.clearAllMocks()
   })
 
-  it('renders the deck builder in building phase', async () => {
+  it('loads the collection before the deck builder in building phase', async () => {
     await mockArcadeRun({ phase: 'building' })
     await renderArcade()
-    expect(screen.getByText(/loading players/i)).toBeInTheDocument()
+    expect(screen.getByText(/loading your collection/i)).toBeInTheDocument()
   })
 
   it('renders RunMap when phase is map', async () => {

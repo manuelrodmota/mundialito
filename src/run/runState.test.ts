@@ -1,15 +1,41 @@
 import { describe, expect, it } from "vitest";
-import type { Card } from "../engine";
+import type { Card, OpponentTeam } from "../engine";
 import {
   advanceRun,
+  aiStrengthMultFor,
+  CHAMPION_STRENGTH_FLOOR,
   isRunOver,
   isRunWon,
   newRun,
+  runEndReward,
+  STAGE_AI_STRENGTH,
   stageForIndex,
 } from "./runState";
 
 const DUMMY_DECK: Card[] = [];
 const CAPTAIN_ID = "player-001";
+
+describe("runEndReward", () => {
+  function winN(n: number) {
+    let run = newRun(DUMMY_DECK, CAPTAIN_ID);
+    for (let i = 0; i < n; i++) run = advanceRun(run, true, `opp-${i}`);
+    return run;
+  }
+  it("group-stage exit → 1 Group box", () => {
+    expect(runEndReward(advanceRun(newRun(DUMMY_DECK, CAPTAIN_ID), false, "x"))).toEqual(["group"]);
+  });
+  it("R16/QF exit → Group + Knockout", () => {
+    expect(runEndReward(advanceRun(winN(3), false, "x"))).toEqual(["group", "knockout"]); // lost at R16
+    expect(runEndReward(advanceRun(winN(4), false, "x"))).toEqual(["group", "knockout"]); // lost at QF
+  });
+  it("SF/Final loss → 2 Knockout", () => {
+    expect(runEndReward(advanceRun(winN(5), false, "x"))).toEqual(["knockout", "knockout"]); // lost at SF
+    expect(runEndReward(advanceRun(winN(6), false, "x"))).toEqual(["knockout", "knockout"]); // lost at Final
+  });
+  it("winning the Final → Trophy box", () => {
+    expect(runEndReward(winN(7))).toEqual(["trophy"]);
+  });
+});
 
 describe("stageForIndex", () => {
   it("maps indices 0–2 to group", () => {
@@ -37,6 +63,34 @@ describe("stageForIndex", () => {
   it("maps indices beyond 6 to final", () => {
     expect(stageForIndex(7)).toBe("final");
     expect(stageForIndex(99)).toBe("final");
+  });
+});
+
+describe("aiStrengthMultFor — v12 champion strength-floor", () => {
+  function team(top11: number, isChampion: boolean): OpponentTeam {
+    const squad = Array.from({ length: 13 }, () => ({ overall: top11 }));
+    return {
+      id: "t", name: "T", nation: "X", year: 1990, tier: isChampion ? "S" : "A",
+      strength: top11, squad, preferredFormation: "balanced", isChampion,
+    } as unknown as OpponentTeam;
+  }
+
+  it("the Final stage handicap is 1.15 (v12)", () => {
+    expect(STAGE_AI_STRENGTH.final).toBe(1.15);
+  });
+
+  it("a non-champion uses the plain per-stage handicap", () => {
+    expect(aiStrengthMultFor("sf", team(80, false))).toBeCloseTo(STAGE_AI_STRENGTH.sf, 5);
+  });
+
+  it("a strong champion (≥ floor) is never weakened — just the stage handicap", () => {
+    expect(aiStrengthMultFor("final", team(88, true))).toBeCloseTo(STAGE_AI_STRENGTH.final, 5);
+  });
+
+  it("a weak champion is normalized UP toward CHAMPION_STRENGTH_FLOOR", () => {
+    const m = aiStrengthMultFor("final", team(80, true));
+    expect(m).toBeCloseTo(STAGE_AI_STRENGTH.final * (CHAMPION_STRENGTH_FLOOR / 80), 5);
+    expect(m).toBeGreaterThan(STAGE_AI_STRENGTH.final);
   });
 });
 

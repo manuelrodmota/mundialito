@@ -43,14 +43,17 @@ const WIN_CONFETTI = Array.from({ length: 60 }, (_, i) => ({
   animationDelay: `${(i % 10) * 0.18}s`,
 }))
 
+// v12 (8-round match): fixed minute lookup. Halftime after R4 (45'); R5 reads 46' so the 2nd-half
+// kickoff sits apart from the 45' halftime whistle; full time after R8 (90').
+const MATCH_CLOCK = [0, 15, 30, 45, 46, 60, 75, 90]
 const ROUND_TO_MINUTE = (round: number, extraTime: boolean): string => {
-  if (extraTime) return `90+${(round - 10) * 9}'`
-  return `${round * 9}'`
+  if (extraTime) return `90+${(round - 8) * 15}'`
+  return `${MATCH_CLOCK[round - 1] ?? 90}'`
 }
 
 const ROUND_TO_PHASE = (round: number, extraTime: boolean, t: Translate): string => {
   if (extraTime) return t('match.phase.extraTime')
-  if (round <= 5) return t('match.phase.firstHalf')
+  if (round <= 4) return t('match.phase.firstHalf')
   return t('match.phase.secondHalf')
 }
 

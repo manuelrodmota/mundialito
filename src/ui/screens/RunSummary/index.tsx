@@ -1,7 +1,9 @@
 import type { RunState } from '../../../engine/types'
 import { Trophy } from '../../organisms/Trophy'
+import { Pack } from '../../organisms/BoxOpening/Pack'
 import { useLang } from '../../i18n'
 import type { Translate } from '../../i18n'
+import type { UnopenedBox } from '../../../data/user/userBoxes.repo'
 
 const STAGE_LABEL_KEYS: Record<RunState['stage'], string> = {
   group: 'run.stageGroupLong',
@@ -26,6 +28,10 @@ interface RunSummaryProps {
   runState: RunState
   onRestart: () => void
   onHome: () => void
+  /** Run-end reward boxes granted to the locker. */
+  earnedBoxes?: UnopenedBox[]
+  /** Open the earned boxes now (else they wait in the locker). */
+  onOpenBoxes?: () => void
 }
 
 /** Derives a human-readable label for how far the player reached. */
@@ -44,7 +50,7 @@ function reachedLabel(runState: RunState, t: Translate): string {
  * - Loss (run over, not won): renders run summary + Restart/Home.
  * Prop-driven container; import type only from engine.
  */
-export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
+export function RunSummary({ runState, onRestart, onHome, earnedBoxes = [], onOpenBoxes }: RunSummaryProps) {
   const { t } = useLang()
   const isRunWon = runState.alive && runState.stage === 'final' && runState.matchIndex >= 6
   const stagesCleared = runState.defeated.length
@@ -53,6 +59,23 @@ export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
     stagesCleared === 1
       ? t('run.matchesWonOne', { n: stagesCleared })
       : t('run.matchesWonMany', { n: stagesCleared })
+
+  const rewardsBlock =
+    earnedBoxes.length > 0 ? (
+      <div className="run-rewards">
+        <div className="rr-title">{t('run.rewardsTitle')}</div>
+        <div className="rr-packs">
+          {earnedBoxes.map((b) => (
+            <Pack key={b.id} tier={b.tier} />
+          ))}
+        </div>
+        {onOpenBoxes && (
+          <button type="button" className="btn btn-gold" onClick={onOpenBoxes}>
+            {t('run.openBoxes')}
+          </button>
+        )}
+      </div>
+    ) : null
 
   if (isRunWon) {
     return (
@@ -85,6 +108,8 @@ export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
         <div className="sub" style={{ fontSize: 13, color: 'var(--txt-dim)' }}>
           {matchesWonText}
         </div>
+
+        {rewardsBlock}
 
         <div className="actions" style={{ flexDirection: 'row', width: 'auto' }}>
           <button type="button" className="btn btn-gold btn-big" onClick={onRestart}>
@@ -141,6 +166,8 @@ export function RunSummary({ runState, onRestart, onHome }: RunSummaryProps) {
       <div className="sub" style={{ fontSize: 13, color: 'var(--txt-dim)' }}>
         {matchesWonText}
       </div>
+
+      {rewardsBlock}
 
       <div className="actions" style={{ flexDirection: 'row', width: 'auto' }}>
         <button type="button" className="btn btn-primary btn-big" onClick={onRestart}>

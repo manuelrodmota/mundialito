@@ -219,3 +219,8 @@ export function flagUrl(nation: string): string | null {
 export function teamBadge(nation: string): string | null {
   return crestSrc(nation) ?? flagUrl(nation)
 }
+
+/** Selectable nations for the favourite-team picker — those with a badge, deduped by flag (aliases collapse), sorted. */
+export const PICKABLE_NATIONS: string[] = Array.from(
+  new Map(Object.entries(NATION_CODES).map(([name, code]) => [code, name])).values(),
+).sort((a, b) => a.localeCompare(b))

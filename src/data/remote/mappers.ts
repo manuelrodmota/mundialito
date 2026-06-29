@@ -57,6 +57,7 @@ export function ratingRowToPlayerCard(
 
   const card: PlayerCard = {
     id,
+    cardId: row.id,
     type: "player",
     name: row.player,
     nation: row.team,

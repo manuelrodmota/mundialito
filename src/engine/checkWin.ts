@@ -7,7 +7,7 @@
  */
 
 import type { MatchState } from "./types.ts";
-import { MERCY_LEAD, ROUND_CAP, ET_ROUND_CAP } from "./constants.ts";
+import { MERCY_LEAD, ROUND_CAP, ET_ROUND_CAP, XG_TIEBREAK_GAP } from "./constants.ts";
 import { resetFatigue } from "./fatigue.ts";
 import { returnLockedToDrawPile } from "./cards.ts";
 import { resetTacticalCounters } from "./tacticals.ts";
@@ -62,6 +62,18 @@ export function checkWin(m: MatchState, rng: Rng): void {
     }
     if (g1 > g0) {
       m.winner = 1;
+      m.phase = "end";
+      return;
+    }
+
+    // v12 §19#5(b): partial xG tie-break — a level-on-goals game with a CLEAR accumulated-xG edge is
+    // decided outright (the side that created the better chances wins); only genuinely-even games
+    // (xG gap < XG_TIEBREAK_GAP) go to golden-goal ET. Lowers the structural ~34% ET rate to target.
+    const a0 = p0!.xgAccum ?? 0;
+    const a1 = p1!.xgAccum ?? 0;
+    if (Math.abs(a0 - a1) >= XG_TIEBREAK_GAP) {
+      m.winner = a0 > a1 ? 0 : 1;
+      m.decidedByTieBreak = true;
       m.phase = "end";
       return;
     }

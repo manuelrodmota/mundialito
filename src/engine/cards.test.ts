@@ -160,22 +160,22 @@ describe("drawToHand", () => {
 });
 
 describe("refreshStamina", () => {
-  it("sets stamina to 8 at round 5", () => {
+  it("sets stamina to 8 at round 4", () => {
     const s = makeState();
-    refreshStamina(s, 5);
+    refreshStamina(s, 4);
     expect(s.stamina).toBe(8);
     expect(s.maxStamina).toBe(8);
   });
 
-  it("sets stamina to 10 at round 6", () => {
+  it("sets stamina to 10 at round 5", () => {
     const s = makeState();
-    refreshStamina(s, 6);
+    refreshStamina(s, 5);
     expect(s.stamina).toBe(10);
   });
 
-  it("sets stamina to 12 at round 9", () => {
+  it("sets stamina to 12 at round 7", () => {
     const s = makeState();
-    refreshStamina(s, 9);
+    refreshStamina(s, 7);
     expect(s.stamina).toBe(12);
   });
 
