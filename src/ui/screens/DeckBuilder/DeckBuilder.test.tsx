@@ -107,8 +107,8 @@ describe('DeckBuilder', () => {
     const user = userEvent.setup()
     render(<DeckBuilder onDeckReady={() => {}} onBack={onBack} />)
 
-    await waitFor(() => screen.getByRole('button', { name: 'Menu' }))
-    await user.click(screen.getByRole('button', { name: 'Menu' }))
+    await waitFor(() => screen.getByRole('button', { name: /Go back/i }))
+    await user.click(screen.getByRole('button', { name: /Go back/i }))
     expect(onBack).toHaveBeenCalled()
   })
 

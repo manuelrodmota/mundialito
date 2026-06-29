@@ -36,6 +36,8 @@ export interface TacticalEffect {
 
 export interface PlayerCard {
   id: string;
+  /** Durable collection identity = player_ratings.id. Present on cards built from the DB catalog. */
+  cardId?: number;
   type: "player";
   name: string;
   nation: string;

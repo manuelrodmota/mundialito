@@ -144,6 +144,48 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          champions_boxes_since_legendary: number
+          created_at: string
+          favorite_team: string | null
+          games_played: number
+          games_won: number
+          level: number
+          prestige: number
+          user_id: string
+          username: string
+          welcome_done: boolean
+          xp: number
+        }
+        Insert: {
+          champions_boxes_since_legendary?: number
+          created_at?: string
+          favorite_team?: string | null
+          games_played?: number
+          games_won?: number
+          level?: number
+          prestige?: number
+          user_id: string
+          username: string
+          welcome_done?: boolean
+          xp?: number
+        }
+        Update: {
+          champions_boxes_since_legendary?: number
+          created_at?: string
+          favorite_team?: string | null
+          games_played?: number
+          games_won?: number
+          level?: number
+          prestige?: number
+          user_id?: string
+          username?: string
+          welcome_done?: boolean
+          xp?: number
+        }
+        Relationships: []
+      }
       squad_members: {
         Row: {
           id: number
@@ -235,12 +277,121 @@ export type Database = {
         }
         Relationships: []
       }
+      user_boxes: {
+        Row: {
+          created_at: string
+          id: number
+          opened: boolean
+          opened_at: string | null
+          source: string
+          tier: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          opened?: boolean
+          opened_at?: string | null
+          source: string
+          tier: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          opened?: boolean
+          opened_at?: string | null
+          source?: string
+          tier?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_cards: {
+        Row: {
+          card_id: number
+          count: number
+          first_acquired_at: string
+          user_id: string
+        }
+        Insert: {
+          card_id: number
+          count?: number
+          first_acquired_at?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: number
+          count?: number
+          first_acquired_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_cards_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "player_ratings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_xp: { Args: { p_amount: number }; Returns: Json }
+      open_box: {
+        Args: { p_box_id: number; p_card_ids: number[] }
+        Returns: undefined
+      }
+      prestige_account: {
+        Args: never
+        Returns: {
+          champions_boxes_since_legendary: number
+          created_at: string
+          favorite_team: string | null
+          games_played: number
+          games_won: number
+          level: number
+          prestige: number
+          user_id: string
+          username: string
+          welcome_done: boolean
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_match: { Args: { p_won: boolean }; Returns: undefined }
+      register_account: {
+        Args: { p_username: string }
+        Returns: {
+          champions_boxes_since_legendary: number
+          created_at: string
+          favorite_team: string | null
+          games_played: number
+          games_won: number
+          level: number
+          prestige: number
+          user_id: string
+          username: string
+          welcome_done: boolean
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      username_available: { Args: { p_username: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
@@ -376,3 +527,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

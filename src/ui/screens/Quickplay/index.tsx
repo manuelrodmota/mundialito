@@ -5,11 +5,13 @@ import { useLang } from '../../i18n'
 import { useQuickplayMatch } from '../../quickplay/useQuickplayMatch'
 import { useFirstMatchOnboarding } from '../../onboarding/useFirstMatchOnboarding'
 import { DeckBuilder } from '../DeckBuilder'
+import { QuickplayChooser } from '../QuickplayChooser'
 import { DifficultyPicker } from '../DifficultyPicker'
 import { MatchBoard } from '../../organisms/MatchBoard'
 import { ResultScreen } from '../ResultScreen'
+import { fetchOwnedCounts } from '../../../data/user/userCards.repo'
 
-type QuickplaySubScreen = 'deckbuilder' | 'difficulty' | 'match' | 'result'
+type QuickplaySubScreen = 'chooser' | 'deckbuilder' | 'difficulty' | 'match' | 'result'
 
 interface QuickplayProps {
   onBack: () => void
@@ -21,9 +23,12 @@ interface QuickplayProps {
  */
 export function Quickplay({ onBack }: QuickplayProps) {
   const { t } = useLang()
-  const [subScreen, setSubScreen] = useState<QuickplaySubScreen>('deckbuilder')
+  const [subScreen, setSubScreen] = useState<QuickplaySubScreen>('chooser')
   const [builtDeck, setBuiltDeck] = useState<Card[] | null>(null)
   const [captainId, setCaptainId] = useState<string | null>(null)
+  // null = build from the full pool; a Set = build only from these owned card ids.
+  const [ownedIds, setOwnedIds] = useState<Set<number> | null>(null)
+  const [loadingOwned, setLoadingOwned] = useState(false)
   const onboarding = useFirstMatchOnboarding()
 
   const {
@@ -41,6 +46,24 @@ export function Quickplay({ onBack }: QuickplayProps) {
     setBuiltDeck(deck)
     setCaptainId(capId)
     setSubScreen('difficulty')
+  }, [])
+
+  const handleBuildAll = useCallback(() => {
+    setOwnedIds(null)
+    setSubScreen('deckbuilder')
+  }, [])
+
+  const handleBuildOwned = useCallback(async () => {
+    setLoadingOwned(true)
+    try {
+      const counts = await fetchOwnedCounts()
+      setOwnedIds(new Set(counts.keys()))
+    } catch {
+      setOwnedIds(new Set())
+    } finally {
+      setLoadingOwned(false)
+      setSubScreen('deckbuilder')
+    }
   }, [])
 
   const handleKickOff = useCallback(async () => {
@@ -71,11 +94,23 @@ export function Quickplay({ onBack }: QuickplayProps) {
     setSubScreen('match')
   }, [rematch])
 
+  if (subScreen === 'chooser') {
+    return (
+      <QuickplayChooser
+        onAll={handleBuildAll}
+        onOwned={handleBuildOwned}
+        onBack={onBack}
+        loadingOwned={loadingOwned}
+      />
+    )
+  }
+
   if (subScreen === 'deckbuilder') {
     return (
       <DeckBuilder
         onDeckReady={handleDeckReady}
-        onBack={onBack}
+        onBack={() => setSubScreen('chooser')}
+        ownedCardIds={ownedIds ?? undefined}
       />
     )
   }

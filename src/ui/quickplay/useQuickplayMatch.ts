@@ -11,7 +11,7 @@
  *   3. nextRound() — if winner → 'result'; else startRound + decideTurn, phase → 'playing'
  */
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { newMatch, startRound, resolveRound, decideTurn, intentOf, makeRng, computeEffectiveStats, computeSynergies, FORMATIONS, FATIGUE_DIV, HALFTIME_ROUND, CARD_CAP, TACTICALS_PER_HALF, MERCY_LEAD, ROUND_CAP, laneStamina, laneStack, atkOf, defOf, laneMultiplier, cardLaneMult, tacticalGatePassed } from '../../engine'
 import type { MatchState, Card, Formation, Tier, CardInPlay, PlayerCard, PlayerState, ShotResult } from '../../engine/types'
 import type { Intent } from '../../engine/board'
@@ -21,6 +21,9 @@ import { buildQuickplayDeck } from './buildQuickplayDeck'
 import { buildOpponentBench } from '../../data/opponentBench'
 import type { TacticalCard } from '../../engine/types'
 import { getSupabaseClient } from '../../data/remote/client'
+import { recordMatch } from '../../data/user/profile.repo'
+import { useAccount } from '../../account/AccountProvider'
+import { quickplayMatchXp } from '../../meta/xpSources'
 import { opponents as staticOpponents } from '../../data/opponents'
 
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'legendary'
@@ -175,8 +178,25 @@ export function useQuickplayMatch(): UseQuickplayMatchReturn {
   const rngRef = useRef<Rng | null>(null)
   const sessionRef = useRef<MatchSession | null>(null)
   const goalCounterRef = useRef(0)
+  const recordedRef = useRef(false)
+
+  const { addXp } = useAccount()
 
   const [matchSnapshot, setMatchSnapshot] = useState<MatchState | null>(null)
+
+  // Record a finished match once (player is index 0) + grant XP. Best-effort; no-op when signed out.
+  useEffect(() => {
+    const w = matchSnapshot?.winner
+    if (w === null || w === undefined) {
+      recordedRef.current = false
+      return
+    }
+    if (recordedRef.current) return
+    recordedRef.current = true
+    const won = w === 0
+    void recordMatch(won)
+    void addXp(quickplayMatchXp(won))
+  }, [matchSnapshot?.winner, addXp])
   const [phase, setPhase] = useState<QuickplayViewState['phase']>('idle')
   const [error, setError] = useState<string | null>(null)
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')

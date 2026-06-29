@@ -5,11 +5,34 @@ import {
   isRunOver,
   isRunWon,
   newRun,
+  runEndReward,
   stageForIndex,
 } from "./runState";
 
 const DUMMY_DECK: Card[] = [];
 const CAPTAIN_ID = "player-001";
+
+describe("runEndReward", () => {
+  function winN(n: number) {
+    let run = newRun(DUMMY_DECK, CAPTAIN_ID);
+    for (let i = 0; i < n; i++) run = advanceRun(run, true, `opp-${i}`);
+    return run;
+  }
+  it("group-stage exit → 1 Group box", () => {
+    expect(runEndReward(advanceRun(newRun(DUMMY_DECK, CAPTAIN_ID), false, "x"))).toEqual(["group"]);
+  });
+  it("R16/QF exit → Group + Knockout", () => {
+    expect(runEndReward(advanceRun(winN(3), false, "x"))).toEqual(["group", "knockout"]); // lost at R16
+    expect(runEndReward(advanceRun(winN(4), false, "x"))).toEqual(["group", "knockout"]); // lost at QF
+  });
+  it("SF/Final loss → 2 Knockout", () => {
+    expect(runEndReward(advanceRun(winN(5), false, "x"))).toEqual(["knockout", "knockout"]); // lost at SF
+    expect(runEndReward(advanceRun(winN(6), false, "x"))).toEqual(["knockout", "knockout"]); // lost at Final
+  });
+  it("winning the Final → Trophy box", () => {
+    expect(runEndReward(winN(7))).toEqual(["trophy"]);
+  });
+});
 
 describe("stageForIndex", () => {
   it("maps indices 0–2 to group", () => {

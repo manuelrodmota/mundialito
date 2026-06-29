@@ -1,4 +1,4 @@
-# WORLD CUP CLASH — Game Design Document **v10**
+# WORLD CUP CLASH — Game Design Document **v12**
 *(working title — alternatives: Road to Glory, Stoppage Time, Total Football)*
 
 Important: FULL DESIGN OF THE APP IS AT ./design => Includes the full Design System (`World Cup Clash - Design System.html`) + the interactive HTML prototype (`World Cup Clash.html`), the **v10 balance build**: it loads `js/engine9.js` (the v10 match engine, `window.WCC9E`) + `js/engine3.js` (run helpers, `WCC3E`), `jsx/Board9.jsx` + `App9.jsx` + `Builder9.jsx` + board widgets, `css/v9.css`, and national-team crests under `assets/crests/`. The current handoff notes live at **`design/README.md`**. *(The shipping rules engine is the pure-TS port under `src/engine/`, which is the authority for the v10 balance pass below; `design/js/engine9.js` is the design source of truth for that math, and the `design/` prototype is the behavioral reference for UI/flow.)*
@@ -9,7 +9,23 @@ A **Slay the Spire–style arcade roguelike** themed on World Cup football. Play
 
 ## 0. What changed
 
-**v10 (this revision) — balance pass, locked from the Monte-Carlo sim:**
+**v12 (this revision) — meta-progression (collection, boxes & team perks); commons now pickable:**
+A persistent layer wraps the run: you build a permanent collection by opening boxes, and owning a nation's players unlocks team perks. Two rules shift to support it.
+- **Pick-your-own commons** (§5, §16, §17): you now hand-pick the commons that fill your roster from the ones you've **collected**, with a **"Fill randomly" button** for speed. This reverses v9's roll-only rule. It's viable now because commons are **earned** (you can only field what you own), but established players with deep common pools can optimise, so the star-vs-common balance gets a **re-sim** with a best-commons archetype (§19) before it's considered locked.
+- **Collection & boxes** (§20): players are unlocked from **boxes** — Group / Knockout / Champions, 5 cards each, premium-weighted by tier. Duplicates convert to a crafting currency (or XP). A **new-player welcome bundle** (2 Group + 1 Knockout + 1 Champions, the Champions box guaranteeing a Legendary) seeds the first deck; **run results** and **account level** grant more boxes.
+- **Commons are collectible** (§5, §20): no longer a free shared pool — earned like everything else. The ~7k-player dataset is mostly commons, which is exactly the volume that fills the boxes and gives the collection a long tail.
+- **Quickplay is the no-login sandbox** (§2, §16): it offers **all players** (no collection needed), so anyone can try the full game before registering. Collection-gating, the EXP level, the Arcade Run, **Account/Collection**, and **Multiplayer** (the future PvP mode) all sit behind **login**; registering (login + username) grants the 4-box welcome bundle (§20).
+- **Team perks** (§20): owning a share of a nation's players unlocks tiered, equippable **nation perks** — the reason commons are worth collecting. They add flat stat bonuses to fielded players, so they also get a sim archetype (§19) before locking.
+- **Prestige** (§20, economy §7): at **level 50** you can reset to level 1 for a **prestige rank** (Prestige I–X) + an exclusive cosmetic badge — a Multiplayer-visible flex. You keep all cards/boxes and re-level for the full box rewards again (a mild, accepted Champions boost). The team-perk "Prestige layer" is renamed **Iconic XI** to free the name.
+
+**v11 — probabilistic finishing, lane force-multiplier, tactical correctness:**
+The v10 balance held, but a deterministic "fill 1.0 → guaranteed goal" made matches metronomic (I score, you score) and several Tactical Cards didn't match this spec in the shipped engine. v11 fixes both.
+- **Probabilistic finishing — "Pressure → Conversion"** (§7, §10, §14, §15, §17): a full xG meter no longer auto-scores — it triggers a **SHOT** that converts with probability `P` = `BASE_CONVERSION` **0.80** + **pity** (per consecutive miss) + **momentum**, capped **0.95**. A **goal empties** the meter; a **miss drops it by half** so you keep pressing. The odds are **telegraphed** before lock-in. This breaks the metronome while keeping the better deck on top (it fills faster → shoots more often → scores more); the sim shows a star deck still beating a common deck ~85%.
+- **Rarity multiplier is now a LANE force-multiplier** (§4): a star's tier multiplier lifts the **whole lane's** stat, but **only when the lane has ≥2 cards** (a lone star gets no boost — it'd just inflate its own overall). Highest tier wins per lane. **Gold goalkeepers** (overall ≥ `GOLD_THRESHOLD` 87) anchor at **×1.3** even if only epic-rated. (Was: per-card `stat × rarityMult`, applied unconditionally.)
+- **Tactical cards corrected to spec** (§12): **Penalty Kick** and **Hand of God** are now **forced SHOTS** (≈**0.78** / ≈**0.95** conversion, Hand of God once per match) rather than flat-xG adds; the other attacking tacticals (Tiki-Taka, Long Ball, Counter-Attack, Nutmeg) still **fill** the meter. The remaining effects now behave exactly as this table already described (Catenaccio halves opponent xG, Counter triggers on your DEF ≥ their ATK, Nutmeg/Talisman/Total Football actually apply, Injury persists for the match, Time Wasting zeroes the opponent's next-round xG floor, Water Break grants its +2 stamina the **same** round).
+- **Extra time** is shot-based sudden death: both sides build pressure, the **higher-pressure side shoots first**, and the **first goal ends the passage**.
+
+**v10 — balance pass, locked from the Monte-Carlo sim:**
 The output of the balance simulator (thousands of matches per archetype × opponent tier). It fixes the core inversion where cheap all-common decks out-performed star-led ones, makes premium investment reliably pay off — including Quickplay's loaded all-star decks — and keeps scoring lively without spiralling.
 - **Diminishing returns on lane stacking** (§7, §15, §17): a lane's card contributions are sorted high-to-low and weighted `[1.00, 0.85, 0.70, 0.55, 0.40, 0.25]`, so the 4th–5th body in a lane adds little. A few strong cards now beat a wall of commons — the root fix for cheap-card flooding, working with the card cap.
 - **Star-core stamina discount** (§6, §15, §17): in a lane containing **≥1 premium**, the single most-expensive card pays full per-round stamina and **every other card in that lane is half-price** (min 1). A star core can field a full lineup instead of one legendary and empty space.
@@ -19,7 +35,7 @@ The output of the balance simulator (thousands of matches per archetype × oppon
 - **Net effect (sim):** a realistic star-led Run deck and a loaded Quickplay all-star deck both clearly beat an all-common deck at every tier; a strong back line concedes measurably less against the toughest opponents; matches play like tense football — most decided by a goal, with the better deck still winning the close ones (and the sudden-death ones). *Soft spots flagged for the next tuning pass: rares are a weak middle tier, and Tactical Cards are net-negative for an otherwise-common deck (§19).*
 
 **v9 — commons are rolled, not picked:**
-- **Random-common fill** (§5, §16): your slot budget buys your **premium** core; the remaining roster spots **auto-fill with random commons**, and you **can't hand-pick** them. Stops the min-max where you'd cherry-pick every top-rated common (all the 79s) and make the budget meaningless; turns the bench into genuine squad depth. Applies to the Run and Quickplay.
+- **Random-common fill** (§5, §16): your slot budget buys your **premium** core; the remaining roster spots **auto-fill with random commons**, and you **can't hand-pick** them. Stops the min-max where you'd cherry-pick every top-rated common (all the 79s) and make the budget meaningless; turns the bench into genuine squad depth. Applies to the Run and Quickplay. *(Superseded by v12: commons are now collectible and pickable — see §5/§20.)*
 
 **v8 — hand & tactical limits:**
 - **Minimum hand of 5** (§6, §10): draw up to 5 each round; grays reshuffle mid-draw. Drops the old draw-3 / 8-cap.
@@ -66,7 +82,7 @@ Two modes share the **same match engine** (xG, formations, fatigue, Tactical Car
 - **Quickplay** — build a full deck and play **one match** at a difficulty you pick. No run, no permadeath, no rewards. For a fast game, or to test deck ideas and learn the systems.
 
 ### Quickplay
-- **Build a loaded squad up front** (there are no rewards to earn): a **~16-player roster**, spending a **slot budget of 20** on premiums *(double the run's 10 — enough for a genuinely star-studded squad)* with the rest **auto-filled with random commons** (§5), **plus up to 3 Tactical Cards** as a **separate allowance** (not drawn from the player budget — the same player-vs-tactical split the run uses), and designate a Captain. Deliberately more generous than the run's lean 11, since your deck won't grow during the game and you'll pick a difficulty to match.
+- **Build a loaded squad up front** (there are no rewards to earn): a **~16-player roster**, spending a **slot budget of 20** on premiums *(double the run's 10 — enough for a genuinely star-studded squad)* with the rest **filled with commons from the full pool** (Quickplay has **all players available** — no login or collection needed; it's the try-before-you-register sandbox), **plus up to 3 Tactical Cards** as a **separate allowance** (not drawn from the player budget — the same player-vs-tactical split the run uses), and designate a Captain. Deliberately more generous than the run's lean 11, since your deck won't grow during the game and you'll pick a difficulty to match.
 - **Pick a difficulty**, which sets the opponent's tier: **Easy → D/C · Medium → B · Hard → A · Legendary → S** (a World Cup champion). Same historic-team pool as the run (§13).
 - Play one match under the **standard rules** (90 minutes, mercy at a 3-goal lead, xG, fatigue, formations, the card cap, single-use Tactical Cards).
 - **Level at full time → extra time** decides it, same as the run — so a Quickplay match always produces a winner. *(If you'd prefer casual draws here, that's a one-line toggle — see §19.)*
@@ -96,7 +112,7 @@ MATCH: vs one historic team, 0–0, full 90' (10 rounds). Lead by 3 → instant 
        else most goals at full time wins; level → golden-goal extra time (§14).
 ROUND: draw up to 5 → refresh stamina (8, then 10 after R5, 12 after R8) → pick FORMATION, commit lineup to
        ATTACK/DEFENSE lanes, play single-use TACTICAL CARDS (cards face-up, lineup hidden)
-       → REVEAL lineups → add xG to both meters → GOAL on any crossing of 1.0
+       → REVEAL lineups → fill both pressure meters → a FULL meter takes a SHOT (≈80%+) → GOAL or SAVED
        → fatigue updates → spent stars lock, tacticals exile → check score (HT reset at R5)
 ```
 
@@ -113,7 +129,7 @@ Each player has **ATK** and **DEF**, from one `overall` + position. ATK feeds yo
 | DEF | `round(overall × 0.55)` | `overall` | **Cover** — suppresses opponent xG |
 | GK | `0` | `overall + 5` | **Saves** — defense-lane only; extra xG suppression (§7) |
 
-`cost` (per-round stamina to field), `rarity`, `slots` from the `overall` band: Common 60–79 (0 slots, **cost 2**) · Rare 80–86 (1 slot, **cost 2**) · Epic 87–91 (2 slots, **cost 3**) · Legendary 92–99 (3 slots, **cost 4**). *(The per-round field cost is the **gentle curve** from the v10 balance pass — flattened from the old 2/3/4/6 so premium decks can put 3–4 bodies on the pitch; the **slot** costs that bound deck-building are unchanged. A lane with a premium also gets the **star-core discount**, §6.)*
+`cost` (per-round stamina to field), `rarity`, `slots` from the `overall` band: Common 60–79 (0 slots, **cost 2**) · Rare 80–86 (1 slot, **cost 2**) · Epic 87–89 (2 slots, **cost 3**) · Legendary 90–99 (3 slots, **cost 4**). *(The per-round field cost is the **gentle curve** from the v10 balance pass — flattened from the old 2/3/4/6 so premium decks can put 3–4 bodies on the pitch; the **slot** costs that bound deck-building are unchanged. A lane with a premium also gets the **star-core discount**, §6.)*
 
 **Rarity multiplier — a LANE force-multiplier (v11).** A star's tier multiplier (**common ×1.0 · rare ×1.1 · epic ×1.2 · legendary ×1.3**) now multiplies the **whole lane's** effective stat, **but only when the lane has ≥2 cards** — so a star *lifts its lanemates*, not just itself. **Alone, a star gets no multiplier** (multiplying a single card is just inflating its overall, which is pointless), so the lever only matters when you build a line *around* the star. With multiple stars in a lane, the **highest tier wins**. **Gold goalkeepers** (legendary-tier colour, overall ≥ `GOLD_THRESHOLD` = 87) anchor at the **×1.3** legendary multiplier even if their rating only reaches the epic band — elite keepers are defensive keystones; no other position gets this bump. The match UI shows the active **×mult badge** on the top star card the moment a 2nd card joins its lane. (Previously this was a per-card `stat × rarityMult` applied unconditionally; v11 gates it to ≥2 and applies it lane-wide so pairing a star with support is the rewarded play.) Still gentle — the **card cap** (§6) and **diminishing returns on lane stacking** (§7) remain the primary anti-flooding levers; this is shine on top and the easiest dial to turn back toward 1.0.
 
@@ -122,8 +138,8 @@ Each player has **ATK** and **DEF**, from one `overall` + position. ATK feeds yo
 ## 5. Your Squad & Progression
 
 - **Start:** spend a **slot budget of 10** on **premium players** (Rare 1 / Epic 2 / Legendary 3) to form your core, designate a **Captain** (always in your opening hand, grants Captain's Pride), and optionally include **one** Tactical Card. Your roster is **11 players** total.
-- **Commons are rolled, not picked.** Once your budget is spent (or you choose to stop), the remaining roster spots **auto-fill with random commons** — the free, 0-slot tier. You **can't hand-pick which commons** you get: otherwise you'd just grab every top-rated common (all the 79s in a 60–79 pool) and the budget would mean nothing. Random commons keep the budget honest and make your bench real squad depth, not a free batch of near-stars. *(Same in Quickplay; rolled once at deck creation.)*
-- **After each win:** **+1 random player** (rarity odds improve as you advance) and a **Tactical Card reward (choose 1 of 3)**.
+- **Commons: pick your own, or auto-fill (v12).** Once your slot budget is spent on premiums, you fill the remaining roster spots with **commons you've collected** (the 0-slot tier — this is the **Arcade Run**; **Quickplay** offers the full pool, §2): **hand-pick them**, or hit **"Fill randomly"** to let the game complete the roster from your owned commons. *(Commons are now earned, not a free pool — see the collection economy, §20 — so you can only field commons you actually own.)* **Balance note:** picking your best commons is a small power bump over random (under diminishing returns the lane's *top* card lands at full weight), so the star-vs-common balance is being re-checked in the sim (§19); if it over-tilts, the diminishing-returns weights or the common OVR band are the dials. The ownership gate softens the old cherry-pick worry — a newcomer can't pick 79s they don't own — but deep collections can optimise.
+- **After each win:** **+1 random player** (rarity odds improve as you advance) and a **Tactical Card reward (choose 1 of 3)**. *(These are run-scoped; permanent collection growth comes from boxes, §20.)*
 - **Tactical deck cap (~4, tunable):** you carry at most **~4 Tactical Cards** in your Run deck. Once you're at the cap, a Tactical reward becomes a **swap** — take the new one and exile one you hold, or decline. This lines up with the 4-per-match play cap (§6), so you almost never draw a tactical you can't use, and it makes the reward a real *choice* (à la Slay the Spire) rather than endless piling-on. *(This is the fix for "7 tacticals by the Final" — the deck cap bounds the count, the per-half play cap bounds the burst.)*
 - Deck grows from ~11–12 cards to roughly **~17 players + ~4 Tactical Cards** by the Final — stronger every round, but with a hard ceiling on tactical spam. *(Optional StS touch: occasionally offer to remove a player card too.)*
 
@@ -173,13 +189,13 @@ A full meter no longer auto-scores (the old `cross 1.0 → guaranteed goal` prod
 xG_round = clamp( 0.05 + max(0, Δ) / 210 , 0 , 0.50 )
 ```
 - `0.05` is a small floor (even a stifled attack nicks a chance now and then — keeps games from stalling at 0–0).
-- `/210` slope and `0.50` cap are the **v10-tuned** scoring knobs (down from `/150` and `0.60` once the gentle stamina curve let both sides field fuller lineups — otherwise scoring spiralled into 9–9 games). They hold total output to a **lively-but-sane ~5–6 goals/match**. The **3-goal mercy** mainly ends **lopsided** games (you clearly outclassing a weaker side, who get spared a blowout); **evenly-matched** games stay close and tend to reach full time, with a fair share going to golden-goal extra time. That tight feel is **by design** — good balance means both sides field comparable lineups, so the better deck usually wins by a goal (or in sudden death) rather than running away. Tune so **defense still visibly suppresses goals** (a strong back line concedes clearly less, or defenders/GKs lose their point) and scoring stays in that ~5–6 band.
+- `/210` slope and `0.50` cap are the **v10-tuned** scoring knobs (down from `/150` and `0.60` once the gentle stamina curve let both sides field fuller lineups — otherwise scoring spiralled into 9–9 games). They hold total output to a **lively-but-sane ~5–6 goals/match** (probabilistic finishing nudges this to roughly ~4–6). The **3-goal mercy** mainly ends **lopsided** games (you clearly outclassing a weaker side, who get spared a blowout); **evenly-matched** games stay close and tend to reach full time, with a fair share going to golden-goal extra time. That tight feel is **by design** — good balance means both sides field comparable lineups, so the better deck usually wins by a goal (or in sudden death) rather than running away. Tune so **defense still visibly suppresses goals** (a strong back line concedes clearly less, or defenders/GKs lose their point) and scoring stays in that band.
 
 **Defense is rate-control, not drain.** Your `DEF_eff` is the term subtracted from the opponent's attack, so **playing defenders lowers how fast *their* bar fills — it does not reduce xG they've already banked.** Stack defenders and their add this round drops toward the `0.05` floor (to `0.025` under Catenaccio, to `0` for a round under Time Wasting), so you can stall them, but you score nothing yourself (empty attack lane → your add ~0.05) and a defense-heavy round raises your fatigue, which later lets their bar climb faster. If **both** sides turtle, both bars still creep up by the floor and both tire — so it drifts toward a goal rather than deadlocking. A **GK** is the most efficient defensive piece (high DEF + a flat save-suppression on their xG). *(Whether a dominant defensive round should actively **drain** banked xG is an open lever — §19.)*
 
 **Effective stats** (`ATK_eff`, `DEF_eff`) fold in, in this order: each card's **`stat × rarityMult`** (§4), then **combined across the lane with diminishing returns** (the lane's contributions are sorted high-to-low and weighted `[1.00, 0.85, 0.70, 0.55, 0.40, 0.25]`, so the 4th–5th body in a lane adds little) → **synergies & Captain's Pride** → **formation multiplier** (§9) → **fatigue penalty on defense** (§8) → active Tactical Cards. **Diminishing returns is the v10 lever that makes quality beat quantity:** a fifth common stacked into a lane barely moves the needle, while a single high-rated star (amplified by its rarity multiplier) lands at full weight. **Position roles flow straight into xG**: a FWD in attack raises `ATK_eff` (more xG = higher chance to score, exactly as intended); a **GK or DEF** in defense raises `DEF_eff` (less opponent xG = higher chance to keep it out). A **GK additionally applies a flat xG-suppression ("save quality")** beyond its DEF, so keepers matter.
 
-> **Why xG instead of a coin-flip per round?** It keeps the variance low and skill-driven — sustained good play *reliably* accumulates into goals ("they were good for two tonight"), so you rarely lose a match you dominated, while a tight game can still swing on a single late chance. Smoother than rolling each round, still unmistakably football.
+> **Why xG instead of a coin-flip per round?** It keeps the variance low and skill-driven — sustained good play *reliably* accumulates into chances, so you rarely lose a match you dominated, while a tight game can still swing on a single late shot. Smoother than rolling each round, still unmistakably football.
 
 ---
 
@@ -256,10 +272,10 @@ Three categories: **Instant** (resolves first, reactive — e.g. VAR), **Skill**
 | **High Press** | Skill | 1 | ≥2 **FWD/MID** | Opponent gains **Pressed** (DEF −10, **fatigue +6**) next round. |
 | **Long Ball** | Skill | 1 | a **FWD** | A direct chance: **+0.45 xG** this round, ignoring the opponent's defense. |
 | **Nutmeg** | Skill | 1 | a **FWD** | That FWD **ignores the opponent's defense** this round (its full ATK feeds your xG). |
-| **Penalty Kick** | Skill | 2 | a **FWD** | The FWD takes a penalty: **+0.85 xG** this round (a near-certain goal). |
+| **Penalty Kick** | Skill | 2 | a **FWD** | The FWD takes a penalty: forces a **SHOT this round at ≈0.78 conversion**, regardless of build-up (v11; was +0.85 xG). |
 | **Halftime Team Talk** | Skill | 1 | — | Remove all debuffs from your cards, **clear your fatigue**, draw 2. |
-| **Time Wasting** | Skill | 1 | — | Opponent draws **1 fewer** next round and their xG floor is **0** next round. |
-| **Hand of God** | Power | 3 | a **FWD** | **Once per match:** instantly **+1.0 xG** (a guaranteed goal) through that FWD. |
+| **Time Wasting** | Skill | 1 | — | The opponent's **xG floor drops to 0** next round (a passive attack creates nothing). *(v11: the original "draws 1 fewer" half is not implemented in the shipped engine.)* |
+| **Hand of God** | Power | 3 | a **FWD** | **Once per match:** forces a near-certain **SHOT at ≈0.95 conversion** through that FWD (v11; was an automatic +1.0 xG goal). |
 | **Fortress** | Power | 3 | — | Persistent: **+8 to your DEF_eff** every round. |
 | **Talisman** | Power | 2 | — | Persistent: your **Captain's-nation** cards **+3 ATK / +3 DEF**. |
 | **Total Football** | Power | 3 | — | Persistent: each player also gives **50% of its other stat to the opposite lane**. |
@@ -293,7 +309,7 @@ Matchmaking: filter the pool to allowed tiers, exclude defeated teams, draw one 
 - **A round resolves fully before the score is checked** — both xG meters update, *then* the game evaluates the result. Goals in the same passage both count.
 - **Mercy rule:** the instant a side leads by **3 goals** (3-0, 4-1, 5-2…), the match **ends immediately** — that side wins. Spares a hopeless side from playing out a blowout, and is never ambiguous (a 3-goal lead can only belong to one team). *(This retires the old simultaneous-3 problem entirely.)*
 - **Full time (90'):** if no mercy triggered, **whoever is ahead on goals wins.**
-- **Level at full time → Extra Time:** sudden death — **first to score wins (golden goal).** ET rounds resolve as **true sudden death**: the first meter to cross 1.0 ends the match, and **unlike regulation both sides cannot bank a goal in the same passage** — so ET settles in a round or two instead of trading goals into a 9–9 marathon (the v10 fix). To keep it fast, **each ET round's xG is doubled**, and ET begins with **both xG meters reset to 0**, **all locked players returned**, and **fatigue cleared** (a clean, fresh sprint — not an instant goal off a near-full meter). *Safety:* if somehow still level after ~5 ET rounds, the **higher accumulated ET xG** wins. ET produces a winner in **both** modes (no draws).
+- **Level at full time → Extra Time:** sudden death — **first to score wins (golden goal).** ET rounds resolve as **true sudden death** (v11): both sides build pressure, then the **higher-pressure side shoots first** and the **first goal ends the match** — only one side can score per passage, so ET settles in a round or two instead of trading goals into a 9–9 marathon. To keep it fast, **each ET round's xG fill is doubled**, and ET begins with **both xG meters reset to 0**, **all locked players returned**, and **fatigue cleared** (a clean, fresh sprint). *Safety:* if somehow still level after ~5 ET rounds, the **higher accumulated ET xG** wins. ET produces a winner in **both** modes (no draws).
 - **Lose → run over** (Arcade Run). **Win the run:** take the Final.
 - **Momentum / On Form:** scoring, or 3 high-pressure rounds in a row, grants **+0.10 xG** next round.
 
@@ -303,12 +319,12 @@ The score is a normal **scoreboard** (e.g. "ARG 3 – 2 BRA") with the clock —
 
 ## 15. Tuning Table (every knob)
 
-| Parameter | v10 value |
+| Parameter | value |
 |---|---|
 | Run length | 7 matches (3 group · R16 · QF · SF · Final) · loss = run over |
 | Match length | **10 rounds = 90'** (≈9'/round); halftime R5 (45'), full time R10 (90') |
 | Win condition | **lead by 3 → instant win**; else **most goals at full time**; level → extra time |
-| Extra time | **golden goal**, **xG ×2**, meters reset to 0, stars + fatigue refreshed; **true sudden death — both sides can't score in the same passage**; safety: higher ET xG after ~5 ET rounds |
+| Extra time | **golden goal**, **xG fill ×2**, meters reset to 0, stars + fatigue refreshed; **shot-based sudden death — higher-pressure side shoots first, first goal ends it** (only one side can score per passage); safety: higher ET xG after ~5 ET rounds |
 | xG per round (fill) | `clamp(0.05 + max(0, ATK_eff − DEF_eff)/210, 0, 0.50)` → fills the pressure meter; a **full meter takes a SHOT** (v11 finishing, §7) — no longer an auto-goal |
 | Finishing (v11) | full meter → shot at `P` = `BASE_CONVERSION` 0.80 + pity + momentum, cap 0.95; goal empties, miss drops half; Penalty 0.78 / Hand of God 0.95 forced shots |
 | Card flow | grays cycle freely · **premium players lock → return at halftime / start of ET** (once-per-half) · **Tactical Cards single-use (exiled)** |
@@ -316,12 +332,13 @@ The score is a normal **scoreboard** (e.g. "ARG 3 – 2 BRA") with the clock —
 | Quickplay deck | ~16 players, slot budget **20**, + **up to 3** Tactical; pick difficulty → opponent tier |
 | Slot costs | Common 0 · Rare 1 · Epic 2 · Legendary 3 · Tactical 1 (legendary Tacticals 2–3) |
 | **Per-card stamina cost** (to field/round) | **Common 2 · Rare 2 · Epic 3 · Legendary 4** (gentle curve, v10; was 2/3/4/6) |
-| Reward / win | +1 random player (rarity by stage) + choose-1-of-3 Tactical |
+| Commons (v12) | **collectible & pickable** — pick from your owned commons, or "Fill randomly"; balance re-sim pending (§19) |
+| Reward / win | +1 random player (rarity by stage) + choose-1-of-3 Tactical *(run-scoped; permanent unlocks via boxes, §20)* |
 | Opening hand / draw | open 5 (Captain) · **draw up to 5 each round (minimum hand 5)**; grays reshuffle mid-draw to guarantee the refill |
 | Tactical limits | **≤2 plays per half (4/match)** · Run **deck cap ~4** (swap past cap) · single-use (exiled) — all tunable |
 | Stamina | **8**/round (R1–5), **10** (R6–8), **12** (R9–10), both players |
 | **Card cap / round** | **4** (R1–5) · **5** (R6–8) · **6** (R9–10) — player cards only, attack+defense combined |
-| **Rarity multiplier** | Common ×1.0 · Rare ×1.1 · Epic ×1.2 · Legendary ×1.3 (applied to each card's stat) |
+| **Rarity multiplier** | Common ×1.0 · Rare ×1.1 · Epic ×1.2 · Legendary ×1.3 — **lane force-multiplier, lane ≥2 cards** (v11); GK ≥87 anchors ×1.3 |
 | **Diminishing returns** (lane stacking, v10) | per lane, contributions sorted high→low × `[1.00, 0.85, 0.70, 0.55, 0.40, 0.25]` — quality beats count |
 | **Star-core discount** (v10) | in a lane with ≥1 premium, non-anchor cards cost **×0.5 stamina** (round down, min 1); all-common lane = no discount |
 | ATK/DEF split | FWD 1.0/0.55 · MID 0.85/0.78 · DEF 0.55/1.0 · GK 0/+5 def-only (+ save xG-suppression) |
@@ -332,6 +349,7 @@ The score is a normal **scoreboard** (e.g. "ARG 3 – 2 BRA") with the clock —
 | Counter-Attack xG | +0.40 (capped) on a successful defense |
 | Momentum | +0.10 xG next round |
 | Intent | formation + Tactical Cards + card-count + stamina (lineups hidden) |
+| **Collection / boxes** (v12) | see §20 — Group / Knockout / Champions boxes (5 cards); dupes → craft (or XP); nation perks; run / level / welcome-bundle box grants |
 
 ---
 
@@ -339,9 +357,9 @@ The score is a normal **scoreboard** (e.g. "ARG 3 – 2 BRA") with the clock —
 
 North star: **FIFA Ultimate Team card art on a Slay-the-Spire run.** Stadium-at-night, glossy. Card frames by rarity (silver/blue/purple/gold), position badge, **ATK (red) / DEF (blue)** pips. The player figure is a **per-nation football-jersey kit** — a procedural SVG rendered in the nation's colours (solid / vertical-stripe / checkerboard), in place of a generic role silhouette; unknown nations fall back to flag-derived colours. *(Kit-art handoff: `design/design_handoff_jersey_cards/`.)*
 
-1. **Main menu / Mode select** — **Arcade Run** vs **Quickplay**, plus Collection and How to Play. Choosing **Quickplay** opens a **difficulty picker** (Easy / Medium / Hard / Legendary → opponent tier) and the **loaded-deck builder** (~16 players / **20 slots** + **up to 3 Tactical Cards**); then straight into a single match.
+1. **Entry / Main menu** — three options open **without login**: **Quickplay**, **Login with Google**, **How to Play**. After login, four more enable: **Arcade Run**, **Multiplayer** *(future mode — the PvP flagged in §19/§20)*, and **Account** (with **Collection** inside it); first registration also prompts for a **username**, and grants the **4-box welcome bundle** (§20). **Quickplay** (no login) opens a **difficulty picker** (Easy / Medium / Hard / Legendary → opponent tier) and the **loaded-deck builder** (~16 players / **20 slots** + up to 3 Tactical Cards, **all players available**); then straight into a single match.
 2. **Run Map / Bracket** — 7-stop ladder, progress lit, next opponent crest + year + difficulty stars; Final glows.
-3. **XI Builder** — pick **premium players** from a filterable pool against a **Slot Budget meter** (x/10 in the Run, **x/20 in Quickplay**), set a Captain, and stock the **Tactical tray** (start ≤**1** in the Run → cap **~4** via rewards; **up to 3** in Quickplay). A **"Fill with Commons" button** completes the roster with **random commons** — individual commons aren't pickable (no cherry-picking the best ones). ATK/DEF + cost curves shown for the premiums.
+3. **XI Builder** — pick **premium players** from a filterable pool against a **Slot Budget meter** (x/10 in the Run, **x/20 in Quickplay**), set a Captain, and stock the **Tactical tray** (start ≤**1** in the Run → cap **~4** via rewards; **up to 3** in Quickplay). You **pick the commons** that complete your roster — from your **collection** in the Arcade Run (§20), or from the **full pool** in Quickplay (all players) — or hit a **"Fill randomly"** button to auto-complete. ATK/DEF + cost curves shown for the premiums.
 4. **Locker Room** *(Arcade Run only)* — reward player reveal, **choose-1-of-3 Tactical**, set Captain, deck list, next-opponent preview.
 5. **Match Board (centerpiece):**
    - **Scoreboard + match clock:** a normal **numeric scoreboard** ("ARG 2 – 1 BRA") and a **running clock** — kickoff → **45' HALFTIME** (round 5) → **90' FULL TIME** (round 10) → **ET** if level. A subtle **"–3 to win"** marker hints at the mercy threshold.
@@ -351,10 +369,11 @@ North star: **FIFA Ultimate Team card art on a Slay-the-Spire run.** Stadium-at-
    - **Tactical Cards play face-up in a prominent center slot** with a clear callout ("⚠ OFFSIDE TRAP", "PENALTY!") — visible to both, and they visibly **burn/exile** after resolving. Lineups stay face-down until reveal.
    - **Intent strip:** "Opponent: Offensive (3-4-3) · 3 cards · 6 stamina · played **Catenaccio**."
    - Booked = yellow corner; Red Card animates off; **Halftime (45')** = a "Fresh Legs" beat — benched stars slide back to the deck, fatigue cools, for both sides; **Extra Time** = a distinct golden-goal mode (decks refreshed, doubled-xG bars, "next goal wins" banner).
-6. **Result / Run-over / Trophy** — final score + **MVP** (most xG/goals); in the Run, a loss → run summary + restart, the Final → trophy lift; in Quickplay, **Win / Loss** + rematch (ET means no draw by default).
+6. **Result / Run-over / Trophy** — final score + **MVP** (most xG/goals); in the Run, a loss → run summary + restart, the Final → trophy lift; in Quickplay, **Win / Loss** + rematch (ET means no draw by default). **Reward boxes** open here (§20).
 7. **Card detail modal** — ATK/DEF, ability/Tactical text, World Cup tag, (opponents) team blurb.
+8. **Collection / Store** *(meta, §20)* — browse the collection by nation with **nation-perk tracks** and completion %, **open boxes** (the 5-card reveal), and **craft** missing players from duplicate Scraps.
 
-Feel: snappy drag-to-lane and formation toggles; **the GOAL animation is the money moment** — make it big; Tactical Cards land with weight then burn away (single-use); fatigue heat creeps visibly; the halftime fresh-legs and golden-goal extra-time beats are distinct, dramatic moments.
+Feel: snappy drag-to-lane and formation toggles; **the GOAL animation is the money moment** — make it big; Tactical Cards land with weight then burn away (single-use); fatigue heat creeps visibly; the halftime fresh-legs and golden-goal extra-time beats are distinct, dramatic moments; the **box-open** is its own little ceremony.
 
 ---
 
@@ -368,13 +387,22 @@ type Formation = "offensive" | "balanced" | "defensive";
 type TacticalCat = "instant" | "skill" | "power";
 type Tier = "S" | "A" | "B" | "C" | "D";
 
-const RARITY_MULT: Record<Rarity, number> =        // applied to each card's stat contribution
-  { common: 1.0, rare: 1.1, epic: 1.2, legendary: 1.3 };
+const RARITY_MULT: Record<Rarity, number> =        // v11: a LANE force-multiplier (applied to the
+  { common: 1.0, rare: 1.1, epic: 1.2, legendary: 1.3 };     //   whole lane, only when laneSize >= 2; highest tier wins)
+const GOLD_THRESHOLD = 87;                          // v11: a GK at/above this overall anchors its lane at ×1.3 (legendary)
 const COST_BY_RARITY: Record<Rarity, number> =     // per-round stamina to FIELD a card (v10 gentle curve)
   { common: 2, rare: 2, epic: 3, legendary: 4 };
 const STACK_WEIGHTS = [1.00, 0.85, 0.70, 0.55, 0.40, 0.25];  // v10 diminishing returns, per lane (apply to sorted-desc contributions)
 const STAR_SYNERGY_DISCOUNT = 0.5;                 // v10: non-anchor cards in a lane with >=1 premium pay this fraction of cost (min 1)
-const XG_FLOOR = 0.05, XG_SLOPE = 210, XG_CAP = 0.50;        // v10-tuned scoring curve
+const XG_FLOOR = 0.05, XG_SLOPE = 210, XG_CAP = 0.50;        // xG FILL curve (per round, into the meter)
+// v11 probabilistic finishing — a full meter takes a shot that converts at P:
+const PRESSURE_FULL = 1.0;                          // meter value that triggers a shot
+const BASE_CONVERSION = 0.80;                       // base shot conversion at a full meter
+const CONVERSION_CAP = 0.95;                        // open play is never certain
+const MISS_DROP_FRAC = 0.5;                         // fraction of the meter lost on a miss
+const PITY_STEP = 0.07, PITY_CAP = 0.25;           // +conversion per consecutive miss (bad-luck protection)
+const MOMENTUM_CONVERSION = 0.06;                  // max conversion bonus from momentum
+const PENALTY_CONVERSION = 0.78, HAND_OF_GOD_CONVERSION = 0.95;   // tactical forced-shot floors
 const STAMINA  = (round: number) => round <= 5 ? 8  : round <= 8 ? 10 : 12;
 const CARD_CAP = (round: number) => round <= 5 ? 4  : round <= 8 ? 5  : 6;   // player cards/round
 
@@ -417,7 +445,8 @@ interface OpponentTeam {
 
 interface PlayerState {
   goals: number;                 // uncapped; mercy at a 3-goal lead, else most at full time
-  xg: number;                    // accumulating meter; goal each crossing of 1.0 (carry remainder); reset to 0 for ET
+  xg: number;                    // v11 PRESSURE meter [0..PRESSURE_FULL]; a full meter takes a shot — goal empties it,
+                                 //   miss drops it by MISS_DROP_FRAC; reset to 0 for ET (NOT accumulate-and-carry)
   fatigue: number;               // 0..30, the xG fill-rate dial (NOT a second meter)
   scoredFirstAt: number | null;  // round of first goal (kept for reference)
   maxStamina: number;            // STAMINA(round): 8 / 10 / 12
@@ -430,6 +459,7 @@ interface PlayerState {
   formation: Formation;
   powers: TacticalCard[];        // active Power tacticals for the match
   captainId: string; momentum: number; handOfGodUsed: boolean;
+  missStreak: number;            // v11: consecutive missed shots → pity conversion bonus on the next shot
 }
 
 const HAND_SIZE = 5;             // draw up to this each round (minimum hand)
@@ -447,19 +477,23 @@ interface MatchState {
 
 interface RunState {
   matchIndex: number; stage: "group" | "r16" | "qf" | "sf" | "final";
-  deck: Card[];                  // premiums you picked + random commons filled to roster size
+  deck: Card[];                  // premiums you picked + commons you picked (or random-filled), to roster size
   captainId: string; defeated: string[]; alive: boolean;
 }
 ```
 
 **Round resolution (pseudocode):**
 ```
-// Deck build: the budget buys premiums; the rest of the roster is RANDOM commons (no cherry-picking):
-function buildDeck(picks, rosterSize, commonPool):
-    assert all(c.rarity != "common" for c in picks)
-    assert sum(slotCost(c) for c in picks) <= BUDGET            // 10 run / 20 quickplay
-    fillers = sample(commonPool, rosterSize - picks.length)     // uniform random; player has no say
-    return shuffle(picks + fillers)
+// Deck build: budget buys premiums; commons (0-slot) are PICKED from your OWNED commons,
+// or auto-filled at random from them. (v12: pick-your-own; commons must be owned — §20.)
+function buildDeck(premiumPicks, commonPicks, rosterSize, ownedCommons):
+    assert all(c.rarity != "common" for c in premiumPicks)
+    assert all(c in ownedCommons for c in commonPicks)          // can only field commons you own
+    assert sum(slotCost(c) for c in premiumPicks) <= BUDGET     // 10 run / 20 quickplay (commons are 0-slot)
+    chosen = premiumPicks + commonPicks
+    if chosen.length < rosterSize:                              // "Fill randomly" / remaining slots
+        chosen += sample(ownedCommons \ commonPicks, rosterSize - chosen.length)
+    return shuffle(chosen)
 
 // At commit/lock-in: reject a lineup if it exceeds the card cap or stamina.
 // Per-round stamina uses the v10 star-core discount, computed PER LANE:
@@ -514,23 +548,42 @@ function resolveRound(m):
         atk[p] = round(atk[p] * fo.atkMult)
         def[p] = round(def[p] * fo.defMult) * (1 - m.players[p].fatigue/60)   // fatigue saps defense
 
-    // per-side xG add this round (curve constants are v10-tuned):
+    // per-side xG FILL this round (curve constants are v10-tuned):
     function xgAddFor(scorer):
         delta = atk[scorer] - def[1 - scorer]
         x = clamp(XG_FLOOR + max(0, delta)/XG_SLOPE, 0, XG_CAP)
-        x = applyTacticalXg(m, scorer, x)         // Tiki-Taka, Long Ball, Penalty, Counter, Nutmeg, Momentum...
-        if m.extraTime: x *= 2                     // golden-goal ET resolves fast
+        x = applyTacticalXg(m, scorer, x)         // Tiki-Taka, Long Ball, Counter, Nutmeg, Momentum...
+        if m.extraTime: x *= 2                     // golden-goal ET fills fast
         return x
 
-    if not m.extraTime:                            // REGULATION: both meters add; simultaneous goals count (mercy handles it)
+    // v11 finishing: a full meter takes a shot that converts at P (pity+momentum); goal empties, miss drops half
+    function takeShot(scorer) -> {scored}:
+        forced = forcedShotPending(m, scorer)               // Penalty (0.78) / Hand of God (0.95)
+        if m.players[scorer].xg < PRESSURE_FULL and not forced: return {scored:false}
+        P = forced ? forcedConversion(m, scorer)
+                   : min(CONVERSION_CAP, BASE_CONVERSION
+                         + min(PITY_CAP, PITY_STEP * m.players[scorer].missStreak)
+                         + momentumBonus(m, scorer))         // up to MOMENTUM_CONVERSION
+        if roll() < P:
+            m.players[scorer].goals += 1
+            m.players[scorer].xg = 0                         // goal empties the meter
+            m.players[scorer].missStreak = 0
+            return {scored:true}
+        else:
+            m.players[scorer].xg *= MISS_DROP_FRAC           // miss: keep pressing
+            m.players[scorer].missStreak += 1
+            return {scored:false}
+
+    if not m.extraTime:                            // REGULATION: both meters fill; simultaneous goals count (mercy handles it)
         for scorer in [0,1]:
             addPressure(scorer, xgAddFor(scorer))  // fill the meter [0,1]
-            takeShot(scorer)                       // if full/forced: roll P → goal++ (empty) or miss (drop) — v11 §7
-    else:                                          // EXTRA TIME: true sudden death — only the better passage can score
+            takeShot(scorer)                       // full/forced → roll P
+    else:                                          // EXTRA TIME: shot-based sudden death — first goal ends it
         m.etRound += 1
-        a0 = xgAddFor(0); a1 = xgAddFor(1)
-        lead = (a0 >= a1) ? 0 : 1                   // the side that created the bigger chance this passage
-        addXg(m, lead, (lead == 0 ? a0 : a1))      // if this crosses 1.0 -> golden goal; the trailing side does NOT also score
+        addPressure(0, xgAddFor(0)); addPressure(1, xgAddFor(1))   // both build (fill already ×2)
+        order = (xgOf(m,0) >= xgOf(m,1)) ? [0,1] : [1,0]           // higher-pressure side shoots first
+        for s in order:
+            if takeShot(s).scored: break                          // first golden goal ends the passage
 
     for p in [0,1]:
         m.players[p].fatigue = clamp(m.players[p].fatigue + fatigueDelta(m,p), 0, 30)   // defend↑ attack↓
@@ -548,6 +601,7 @@ function beginExtraTime(m):                          // level at full time → f
     m.extraTime = true; m.etRound = 0
     for p in [0,1]:
         m.players[p].xg = 0                            // meters reset, goals carry (e.g. 2–2 stays)
+        m.players[p].missStreak = 0
         m.players[p].drawPile += m.players[p].locked; shuffle(m.players[p].drawPile)
         m.players[p].locked = []; m.players[p].fatigue = 0; m.players[p].tacticalsThisHalf = 0
 
@@ -564,7 +618,7 @@ function checkWin(m):                                // ONCE, after the full rou
         if m.etRound >= 5: m.winner = (xgOf(m,0) >= xgOf(m,1) ? 0 : 1)   // safety: scoreless ET
 ```
 
-**Generating data:** ingest a rating dataset → `overall/position/nation/worldCup`; derive `atk/def`, `saveBonus` for GKs, `cost`, `rarity/slots`. Build `OpponentTeam`s (22 champions mandatory Tier-S + ~20–30 more). Seed the ~19 Tactical Cards with their `requiresPosition`/`requiresCount` gates.
+**Generating data:** ingest a rating dataset → `overall/position/nation/worldCup`; derive `atk/def`, `saveBonus` for GKs, `cost`, `rarity/slots`. Build `OpponentTeam`s (22 champions mandatory Tier-S + ~20–30 more). Seed the ~19 Tactical Cards with their `requiresPosition`/`requiresCount` gates. The ~7k-player dataset also populates the **collection** and the **box drop pools** (§20).
 
 ---
 
@@ -572,10 +626,10 @@ function checkWin(m):                                // ONCE, after the full rou
 
 **MVP — build Quickplay first** (a single match is the fastest path to a playable core; the run shell wraps it afterward):
 - **Quickplay flow:** deck builder → difficulty picker → one match → **Win/Loss + rematch** (ET decides level games). No run shell, no rewards needed yet.
-- Deck builder (slot budget + Captain + Tactical tray) — used by both modes.
+- Deck builder (slot budget + Captain + Tactical tray + pick-or-random commons) — used by both modes.
 - Card flow: **draw up to a 5-card hand each round** (grays reshuffle if the pile empties), **premium players lock until halftime**, **Tactical Cards single-use (exiled) and capped at 2 plays/half**; **ramping stamina (8/10/12)**; **per-round card cap (4/5/6)**; lane combat + **3 formations**.
-- **Rarity multiplier** on stat contribution (trivial — a lookup), so legendaries beat equal-count commons.
-- **xG engine + win logic** (per-team meters, goal at 1.0; **3-goal-lead mercy → instant win**, full-time leader wins, **golden-goal extra time** with doubled xG when level; **halftime reset** at round 5).
+- **Rarity lane multiplier** (lane ≥2 cards) + **diminishing returns** + **star-core discount**, so legendaries beat equal-count commons.
+- **xG engine + v11 finishing + win logic** (per-team pressure meters, full meter → shot at P; **3-goal-lead mercy → instant win**, full-time leader wins, **shot-based golden-goal extra time** when level; **halftime reset** at round 5).
 - **Fatigue** (defend↑/attack↓, cleared at halftime/ET, defense penalty).
 - Intent (formation + Tactical Cards + counts).
 - ~6 Tactical Cards incl. at least two player-gated ones (Penalty Kick→FWD, Catenaccio→DEF) plus Water Break (fatigue reset), Offside Trap, Counter-Attack, Referee's Whistle.
@@ -584,7 +638,7 @@ function checkWin(m):                                // ONCE, after the full rou
 
 **V2 — wrap the run around it:** the 7-match **Arcade Run** shell (bracket, permadeath, score resets), **Locker Room** + post-match rewards, full Tactical set + all gates, statuses, Powers, Momentum, all 22 champions + extended pool, signature formations/Tacticals, animation polish, trophy screen, card-removal reward.
 
-**V3:** meta-progression, online leaderboards (fastest/cleanest runs), Arcade Continues, 2026 champion content.
+**V3 — meta-progression (§20):** the **collection + boxes + team perks** layer (box opening, duplicate craft, nation-perk tracks, run/level/welcome box grants), online leaderboards (fastest/cleanest runs), Arcade Continues, 2026 champion content.
 
 **AI heuristic (MVP):** track its own xG/fatigue → pick formation (Defensive when fresh & protecting a lead, Offensive to chase or when its fatigue is high so it rests by attacking); split lanes to balance scoring vs exposure; play gated Tacticals only when it fields the required role; hold Penalty/Hand of God to convert; use VAR/Offside reactively against visible Tacticals/big commits. Keep it legible.
 
@@ -592,21 +646,66 @@ function checkWin(m):                                // ONCE, after the full rou
 
 ## 19. Open questions to playtest
 
-1. **xG curve** (`0.05` floor, **`/210` slope, `0.50` cap** — v10-tuned) — locked from the sim to ~5–6 goals/match. Remaining watch item is **absolute-scoring drift** if other knobs change: re-check that a strong back line still **visibly suppresses goals** (defenseImpact positive vs the toughest tiers) and totals stay in the ~5–6 band. Note the mercy/ET *mix* is **structural, not curve-tunable** — good balance makes close games, so mercy mainly fires in lopsided matchups and a fair share of even games reach golden-goal ET; don't chase that with the curve.
+1. **xG curve** (`0.05` floor, **`/210` slope, `0.50` cap** — v10-tuned) — locked from the sim to ~5–6 goals/match (probabilistic finishing nudges to ~4–6). Remaining watch item is **absolute-scoring drift** if other knobs change: re-check that a strong back line still **visibly suppresses goals** (defenseImpact positive vs the toughest tiers) and totals stay in band. Note the mercy/ET *mix* is **structural, not curve-tunable** — good balance makes close games, so mercy mainly fires in lopsided matchups and a fair share of even games reach golden-goal ET; don't chase that with the curve.
 2. **Fatigue weight** (`F/60` defense penalty, gain/loss rate) — strong enough to punish turtling and create late goals, but not a death-spiral? Watch defensive-stack decks (Fortress + Catenaccio).
-3. **Tactical xG values & limits** (Penalty 0.85, Long Ball 0.45, Tiki-Taka 0.20, Counter 0.40) — balanced now that each Tactical is **single-use** and you can play **only 2 a half (4/match)** from a **~4-card tactical deck**? Tune the **2/half** and **deck-cap ~4** in the sim: confirm the Final isn't decided by tactical spam, but tacticals still feel impactful when fired.
+3. **Tactical xG values & limits** (Penalty/Hand of God forced shots, Long Ball 0.45, Tiki-Taka 0.20, Counter 0.40) — balanced now that each Tactical is **single-use** and you can play **only 2 a half (4/match)** from a **~4-card tactical deck**? Tune the **2/half** and **deck-cap ~4** in the sim: confirm the Final isn't decided by tactical spam, but tacticals still feel impactful when fired.
 4. **Visible Tacticals timing game** — does telegraphing make players hoard their one-shot Tacticals to the last second? If lock-in feels like a stare-down, add a short planning timer.
-5. **Extra time** — the v10 sudden-death fix (both sides can't score the same passage) makes ET resolve in **1–2 rounds** in the sim, marathons gone. Still a feel check worth doing: with good balance a fair share of competitive games reach ET, so confirm sudden death feels exciting rather than repetitive. If it grates, the clean alternative is to break ties by **accumulated xG** instead of always playing ET (one-line change; rewards the better-performing deck). A penalty-shootout minigame remains a possible flavour option.
+5. **Extra time** — the v10/v11 sudden-death fix (one side scores per passage) makes ET resolve in **1–2 rounds** in the sim, marathons gone. Still a feel check worth doing: with good balance a fair share of competitive games reach ET, so confirm shot-based sudden death feels exciting rather than repetitive. If it grates, the clean alternative is to break ties by **accumulated xG** instead of always playing ET. A penalty-shootout minigame remains a possible flavour option.
 6. **Formation ±25%** — still swingy now that it scales xG? Try ±15–20% if goal output spikes on Offensive.
 7. **Player-gated Tacticals & lineup leak** — playing "Penalty Kick" reveals you have a FWD; fun read or annoyance?
-8. **Do premiums feel worth their slots? — RESOLVED in v10.** The original inversion (cheap all-common decks beating star-led ones) is fixed: in the sim a realistic star-led Run deck *and* a loaded Quickplay all-star deck both clearly beat an all-common deck at every tier, via **diminishing returns** (§7) + the **star-core discount** (§6) + the **gentle field-cost curve** (§4). Dials if it ever drifts: the rarity multiplier (toward 1.0 if stars get too strong), the stack weights, or the discount fraction.
+8. **Do premiums feel worth their slots? — RESOLVED in v10.** The original inversion (cheap all-common decks beating star-led ones) is fixed: in the sim a realistic star-led Run deck *and* a loaded Quickplay all-star deck both clearly beat an all-common deck at every tier, via **diminishing returns** (§7) + the **star-core discount** (§6) + the **gentle field-cost curve** (§4). Dials if it ever drifts: the rarity multiplier (toward 1.0 if stars get too strong), the stack weights, or the discount fraction. *(Re-verify under v12 pickable commons — item 15.)*
 9. **Defense: throttle-only or drain?** Defense currently only slows the opponent's fill rate. If defending feels too passive, add a **small capped drain** when `DEF_eff` decisively beats `ATK_eff` (held in reserve; the sim decides).
 10. **Quickplay draws** — ET makes every match decisive; if you'd rather allow casual 90' draws in Quickplay, that's a one-line toggle (skip ET when level).
 11. **Premium-heavy decks & the half-lock** — a 20-slot Quickplay deck has many stars to rotate; a lean run deck burns through its few stars fast each half. Confirm both feel good (front-loaded star bursts then gray-grind, refreshed at halftime).
-12. **Random-common variance** — commons fill randomly (§5) and the pool spans ~60–79 OVR, so a bad roll gives a slightly weaker bench. Since commons are low-impact by design this should be mild, but if it ever feels punishing, soften with a **draft-style "fill from a random 3 per slot"** (a little agency without cherry-picking) or narrow the common OVR band.
+12. **Random-common variance** — the **"Fill randomly"** option (§5) draws from a ~60–79 OVR pool, so a lazy fill gives a slightly weaker bench than hand-picking. Mild by design (commons are low-impact); if it ever feels punishing, offer a **draft-style "fill from a random 3 per slot"** middle ground.
 13. **Rares are a weak middle tier (v10 sim).** A rare-heavy "balanced" deck underperforms — it trades common sustain for only a small stat bump over commons. Consider widening the rare OVR band (or nudging its rarity multiplier) so rares feel worth a slot, or accept rares as a minor step-up. Tuning item, after the structure is locked.
 14. **Tactical Cards are net-negative for an otherwise-common deck (v10 sim).** Adding tacticals to the all-common deck *lowered* its win rate and goals — a played tactical costs a player slot that round, and the current values/caps don't pay it back. Re-check the tactical xG values and the 2/half cap on a realistic (not all-common) deck before concluding, but the values likely want a small buff.
+15. **Pick-your-own commons — balance re-sim (v12).** Commons are now hand-picked (§5), not rolled. Add a **"best-owned-commons" deck archetype** to the sim and confirm star-led decks still clearly win; if picking over-tilts toward commons, tighten the diminishing-returns weights or the common OVR band. (Ownership-gating softens it — you can only pick what you've collected — but deep collections can optimise.) Re-runs §8 with the new fill rule.
+16. **Team-perk balance (v12, §20).** Nation perks add flat stat bonuses to fielded players, touching the xG fill math. Sim a **"+3/+3 nation" deck** before locking the perk tiers; if a maxed nation outruns the curve, lower the tier bonuses or gate the top tier behind a higher %.
+17. **Collection pacing (v12, §20).** Box odds + the ~7k pool set "time to a full nation" and "time to a given legendary." Pull the per-nation and per-rarity counts from the dataset and re-tune the box tables and perk % thresholds to the target pace.
 
 ---
 
-*End of v10. A full 90-minute match: lead by 3 to end it early, else most goals at full time, true sudden-death golden-goal extra time if level. Your budget buys a premium core and the bench fills with random commons; stars are once-per-half trumps; Tactical Cards are single-use and capped at 2 a half (deck cap ~4); commons are the sustain engine and you always draw back to a 5-card hand. The v10 balance pass makes premium investment pay off — diminishing returns on lane stacking, a star-core stamina discount, a gentle field-cost curve, and a retuned xG curve — so a star-led deck clearly beats a wall of commons, while scoring stays in a lively ~5–6 band and matches play like tense football. Every value in §15 is a knob.*
+## 20. Collection, Boxes & Team Perks *(v12 — the meta layer)*
+
+A persistent layer wraps the run. Players are unlocked from **boxes**; duplicates convert; owning a nation's players unlocks **team perks**. *(Full spec: `wc-clash-collection-and-box-economy.md`.)*
+
+**Foundations.**
+- **Commons are collectible**, not free — the ~7k-player dataset is mostly commons, which fills the boxes and gives the collection a long tail. WCC is **collection-gated** (like FUT) **for the Arcade Run + meta**: your collection is your run-start pool, so a newcomer needs the welcome bundle to cold-start. **Quickplay is ungated** — all players available, no login — the try-before-you-register sandbox (§2).
+- **In-run unlocks (the post-win reward player, §5) stay temporary;** the **box** is the persistent reward.
+- **Box-tier names** are kept off the card rarities: **Group / Knockout / Champions** (a "Group box" can still drop a legendary).
+
+**Boxes — 5 cards, 1 guaranteed headliner + 4 filler.** The headliner is a **random reveal** (no choosing) — boxes are the random thrill; **crafting** (dupes → Scraps) is the deliberate control. Per-slot odds (C/R/E/L, each column sums to 100):
+
+| Box | Headliner (×1) | Filler (×4) | P(≥1 Legendary) |
+|---|---|---|---|
+| **Group** (entry) | R 83 · E 15 · L 2 | C 82 · R 16 · E 1.7 · L 0.3 | ~3% |
+| **Knockout** (mid) | R 58 · E 37 · L 5 | C 57 · R 33 · E 9 · L 1 | ~9% |
+| **Champions** (premium) | E 72 · L 28 | C 26 · R 42 · E 28 · L 4 | ~38% |
+| **Champions — Trophy** *(win the Final)* | **L 100** | C 26 · R 42 · E 28 · L 4 | **100%** |
+
+*(Optional pity: N legendary-less Champions boxes → next headliner forced Legendary.)*
+
+**Where boxes come from.**
+- **New-player welcome bundle (on registration):** logging in + choosing a username grants **4 boxes — 2 Group + 1 Knockout + 1 Champions**, the welcome Champions box guaranteeing a **Legendary headliner** — every player opens with a star and a nation to chase (≈ 10 commons / 6–7 rares / ~2 epics / ~1.3 legendaries; enough for a first Run deck).
+- **Run-end rewards** (skill faucet; no run wasted): group-stage exit → **1 Group**; exit before semis → **1 Group + 1 Knockout**; lose semi/final → **2 Knockout**; **win the Final → 1 Champions — Trophy** (guaranteed Legendary).
+- **Account level** (slow, time-based faucet): **XP from playing** — participation + win, escalating with arcade depth (Quickplay a little ≈25/win; **Multiplayer** much more ≈90/win — between Quickplay and a full run; a full winning run ≈570; *Multiplayer is a future, undesigned mode*) — fills a bar; each level-up grants a box. Tier is a **milestone overlay**: **Group** every level, **Knockout** every 5th, **Champions** every 10th, which keeps Champions boxes scarce even at high level. XP to advance from level L ≈ `min(25 × L, 300)` — front-loaded (level 2 after ~one match), then a flat 300/level plateau so high levels stay reachable (level 50 ≈ 23 runs or ~145 Multiplayer wins, not 70). Run-winning stays the primary path to Champions boxes; this is the trickle. **Prestige:** at **level 50** you can reset to level 1 for a **prestige rank** (Prestige I–X) + an exclusive cosmetic badge — keep all cards/boxes, and re-leveling repeats the full box rewards (milestones included, a mild Champions boost). The badge is a cosmetic flex (profile / Multiplayer / leaderboards), never power or matchmaking. *(Full detail: economy doc §7.)* *(XP from playing is separate from the duplicate → Scraps → craft track.)*
+
+**Duplicates.** You field only one of each player, so any further copy is a duplicate. **Recommended:** dupes → "Scraps" currency → **craft the exact missing player** (priced by rarity) — the genre's best anti-frustration lever. *(Simpler alt: dupes → account XP → boxes.)* With ~7k mostly-common players the conversion faucet stays slow (you pull new commons for a long time).
+
+**Team perks — the reason commons are worth collecting.** Owning players of a nation feeds a **nation collection track**; thresholds (as **% of that nation's pool**) unlock equippable perks for that nation's players when fielded:
+
+| Track | Owned (% of nation) | Perk |
+|---|---|---|
+| Bronze | 20% | +1 ATK / +1 DEF |
+| Silver | 40% | +2 / +2 |
+| Gold | 60% | +3 / +3 + a nation-flavoured Tactical Card |
+| Icon | 85% | a signature passive |
+
+**Equip 1–2 nation perks per run** — building a run *around* a nation, stacking with Chemistry (3+ same nation) and Captain's Pride (§15). *Iconic XI:* completing a famous side's **actual XI** (the real Brazil 1970 eleven) unlocks a unique reward. **Balance:** perks add flat stat bonuses to fielded players, so they get a sim archetype before locking (§19, items 16–17).
+
+**Earned-only.** Boxes are won through play + duplicate conversion, **not purchased** — sidestepping loot-box regulation/ethics (odds disclosure, regional bans, ESRB "random items" labels). Keep them non-purchasable.
+
+---
+
+*End of v12. A full 90-minute match: lead by 3 to end it early, else most goals at full time, shot-based sudden-death golden-goal extra time if level. Finishing is probabilistic — a full xG meter takes a shot (≈80% + pity/momentum), not an automatic goal — and a star multiplies its whole lane when paired. Your slot budget buys a premium core and you fill the bench with commons you've collected (pick them, or "Fill randomly"); stars are once-per-half trumps; Tactical Cards are single-use and capped at 2 a half. Wrapping it all is the meta layer (§20): unlock players from Group/Knockout/Champions boxes, convert duplicates, and assemble nations for team perks — the reason the long common tail is worth collecting. The v10 balance pass keeps premium investment paying off (diminishing returns, star-core discount, gentle field cost, the retuned xG curve); v12's pickable commons and team perks each get a sim re-check (§19) before they lock. Every value in §15 is a knob.*

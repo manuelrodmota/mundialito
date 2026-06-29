@@ -11,6 +11,8 @@ export const en = {
   'run.scoreline': 'YOU {g0} – {g1} {opponent} · Most dangerous: {mvp}',
   'run.rematch': 'Rematch',
   'run.mainMenu': 'Main Menu',
+  'run.rewardsTitle': 'Reward boxes',
+  'run.openBoxes': 'Open boxes',
 
   // RunMap — stage display labels
   'run.stageGroup1': 'Group 1',
@@ -92,6 +94,8 @@ export const es: typeof en = {
   'run.scoreline': 'TÚ {g0} – {g1} {opponent} · Más peligroso: {mvp}',
   'run.rematch': 'Revancha',
   'run.mainMenu': 'Menú principal',
+  'run.rewardsTitle': 'Cajas de recompensa',
+  'run.openBoxes': 'Abrir cajas',
 
   // RunMap — stage display labels
   'run.stageGroup1': 'Grupo 1',

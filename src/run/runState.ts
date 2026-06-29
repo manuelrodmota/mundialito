@@ -1,4 +1,5 @@
 import type { Card, RunState } from "../engine";
+import type { BoxTier } from "../meta/boxes";
 
 /** Total number of matches in a run ladder (Group×3 + R16 + QF + SF + Final). */
 const RUN_LENGTH = 7;
@@ -76,4 +77,24 @@ export function isRunOver(run: RunState): boolean {
  */
 export function isRunWon(run: RunState): boolean {
   return run.alive && run.matchIndex > FINAL_INDEX;
+}
+
+/**
+ * Run-end reward boxes (economy spec §8): depth scales the reward, no run is wasted.
+ * Final win → Champions-Trophy (guaranteed Legendary). Otherwise by how far you got.
+ */
+export function runEndReward(run: RunState): BoxTier[] {
+  if (isRunWon(run)) return ["trophy"];
+  switch (run.stage) {
+    case "group":
+      return ["group"];
+    case "r16":
+    case "qf":
+      return ["group", "knockout"];
+    case "sf":
+    case "final":
+      return ["knockout", "knockout"];
+    default:
+      return ["group"];
+  }
 }

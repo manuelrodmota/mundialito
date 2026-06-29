@@ -14,9 +14,9 @@ export const SLOTS_BY_RARITY: Record<Rarity, number> = {
   legendary: 3,
 } as const satisfies Record<Rarity, number>;
 
-/** GDD §4 overall → rarity band mapping. */
+/** GDD §4 overall → rarity band mapping. Legendary 90+ · Epic 87–89 · Rare 80–86 · Common <80. */
 export function deriveRarity(overall: number): Rarity {
-  if (overall >= 92) return "legendary";
+  if (overall >= 90) return "legendary";
   if (overall >= 87) return "epic";
   if (overall >= 80) return "rare";
   return "common";
