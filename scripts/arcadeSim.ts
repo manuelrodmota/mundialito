@@ -22,7 +22,7 @@ import {
   type OpponentTeam,
   type RunState,
 } from "../src/engine/index.ts";
-import { newRun, drawOpponent, advanceRun, isRunWon, stageForIndex, rollPlayerReward, applyReward, STAGE_AI_STRENGTH } from "../src/run/index.ts";
+import { newRun, drawOpponent, advanceRun, isRunWon, stageForIndex, rollPlayerReward, applyReward, aiStrengthMultFor } from "../src/run/index.ts";
 import { players as staticPlayerPool } from "../src/data/players.ts";
 import { tacticals as ALL_TACTICALS } from "../src/data/tacticals.ts";
 import { buildQuickplayDeck } from "../src/ui/quickplay/buildQuickplayDeck.ts";
@@ -95,8 +95,8 @@ function simMatch(
     opponent,
     "run",
   );
-  // Per-stage AI handicap, scaled for sweeping (scale=1 → the shipped curve).
-  m.aiStrengthMult = 1 + (STAGE_AI_STRENGTH[stage] - 1) * scale;
+  // Per-stage AI handicap + v12 champion strength-floor, scaled for sweeping (scale=1 → shipped curve).
+  m.aiStrengthMult = 1 + (aiStrengthMultFor(stage, opponent) - 1) * scale;
 
   startRound(m, rng);
   let guard = 0;
@@ -109,7 +109,7 @@ function simMatch(
   const p0 = m.players[0]!;
   const p1 = m.players[1]!;
   const winner = m.winner ?? (p0.goals >= p1.goals ? 0 : 1);
-  return { winner, you: p0.goals, them: p1.goals, et: m.extraTime };
+  return { winner, you: p0.goals, them: p1.goals, et: m.extraTime, tb: m.decidedByTieBreak ?? false };
 }
 
 interface StageStat {
@@ -127,16 +127,21 @@ function run(numRuns: number, scale: number) {
   let totalGoalsThem = 0;
   let totalMatches = 0;
   let etMatches = 0;
+  let tbMatches = 0;
   const reachedStage: Record<string, number> = { group: 0, r16: 0, qf: 0, sf: 0, final: 0 };
+  // Distinct stages each run reaches (group counted once even though it spans 3 matches) → the funnel.
+  const reach: Record<string, number> = { group: 0, r16: 0, qf: 0, sf: 0, final: 0 };
 
   for (let i = 0; i < numRuns; i++) {
     const rng = makeRng(1000 + i);
     const { deck, captainId } = buildPlayerDeck(rng);
     let runState: RunState = newRun(deck, captainId);
+    const seen = new Set<string>();
 
     while (runState.alive && !isRunWon(runState)) {
       const stage = stageForIndex(runState.matchIndex);
       reachedStage[stage] = (reachedStage[stage] ?? 0) + 1;
+      seen.add(stage);
       let opponent: OpponentTeam;
       try {
         opponent = drawOpponent(stage, runState.defeated, rng);
@@ -152,6 +157,7 @@ function run(numRuns: number, scale: number) {
       totalGoalsYou += res.you;
       totalGoalsThem += res.them;
       if (res.et) etMatches++;
+      if (res.tb) tbMatches++;
 
       runState = advanceRun(runState, won, opponent.id);
       if (won && !isRunWon(runState)) {
@@ -161,18 +167,39 @@ function run(numRuns: number, scale: number) {
       }
     }
 
+    for (const s of seen) reach[s] = (reach[s] ?? 0) + 1;
     if (isRunWon(runState)) completions++;
   }
 
   const pct = (n: number, d: number) => (d === 0 ? "—" : `${((100 * n) / d).toFixed(1)}%`);
   console.log(`\nArcade Monte-Carlo — ${numRuns} runs (both sides = engine AI; permadeath; handicap scale ${scale})\n`);
-  console.log("Per-stage win rate (when the stage is reached):");
+
+  // ── Run funnel — how likely a run reaches each stage and beats it ──────────────────────────────
+  // "clear" a stage = win it and advance: clearing group → reach R16, clearing the Final → win the run.
+  const cleared: Record<string, number> = {
+    group: reach.r16!, r16: reach.qf!, qf: reach.sf!, sf: reach.final!, final: completions,
+  };
+  const stageLabel: Record<string, string> = {
+    group: "Group (×3)", r16: "Round of 16", qf: "Quarter-final", sf: "Semi-final", final: "Final",
+  };
+  console.log("Run funnel:");
+  console.log("  stage            reach a run   beat the stage   clear through (cumulative)");
   for (const s of stages) {
-    console.log(`  ${s.padEnd(6)}  win ${pct(stat[s]!.won, stat[s]!.played).padStart(6)}   (reached ${reachedStage[s]})`);
+    const r = reach[s] ?? 0;
+    const c = cleared[s] ?? 0;
+    console.log(
+      `  ${stageLabel[s]!.padEnd(15)}  ${pct(r, numRuns).padStart(10)}   ${pct(c, r).padStart(14)}   ${pct(c, numRuns).padStart(15)}`,
+    );
   }
   console.log(`\nFull-run completion (won the Final): ${pct(completions, numRuns)}  (${completions}/${numRuns})`);
+  console.log("\nPer-match win rate by stage (the older view — group is per group-match, not per run):");
+  for (const s of stages) {
+    console.log(`  ${s.padEnd(6)}  win ${pct(stat[s]!.won, stat[s]!.played).padStart(6)}   (matches played ${reachedStage[s]})`);
+  }
   console.log(`Avg goals/match:  you ${(totalGoalsYou / totalMatches).toFixed(2)}  ·  them ${(totalGoalsThem / totalMatches).toFixed(2)}`);
-  console.log(`Matches to extra time: ${pct(etMatches, totalMatches)}`);
+  console.log(`Matches to extra time: ${pct(etMatches, totalMatches)}   ·   decided by xG tie-break: ${pct(tbMatches, totalMatches)}`);
+  // Compact, grep-friendly summary line for the balance sweep (scripts loop over SIM_* env knobs).
+  console.log(`SUMMARY goalsTotal=${((totalGoalsYou + totalGoalsThem) / totalMatches).toFixed(2)} et=${pct(etMatches, totalMatches).trim()} tiebreak=${pct(tbMatches, totalMatches).trim()} completion=${pct(completions, numRuns).trim()}`);
 }
 
 const n = Number(process.argv[2] ?? 3000);

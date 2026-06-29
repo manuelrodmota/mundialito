@@ -135,6 +135,12 @@ export interface PlayerState {
   lastShot?: ShotResult;
   /** v11 finishing: the xG (pressure) this player built this round, for the report UI. Optional. */
   lastFill?: number;
+  /**
+   * v12 §19#5: total xG (chances) accumulated across the match — the SUM of every round's fill,
+   * independent of the pressure meter (which resets on a shot). Drives the partial xG tie-break that
+   * decides a level-at-full-time game when one side has a clear chance-creation edge. Optional.
+   */
+  xgAccum?: number;
 }
 
 /** Outcome of a single shot attempt (v11 probabilistic finishing). */
@@ -145,6 +151,10 @@ export interface ShotResult {
   scored: boolean;
   /** The conversion probability the shot was taken at (0 when no shot). */
   p: number;
+  /** v12 Snap Shot: this was an early shot on a partial meter (a near-maxed attacking round). */
+  snap?: boolean;
+  /** v12 Park the Bus: the opponent's stacked back line cut this open-play shot's conversion. */
+  busApplied?: boolean;
 }
 
 export interface MatchState {
@@ -160,6 +170,18 @@ export interface MatchState {
    * The Arcade run sets it per ladder stage so later rounds are sharper; defaults to 1 (off).
    */
   aiStrengthMult?: number;
+  /**
+   * Optional rules toggles (default: all enabled). The balance sim flips these to A/B-measure a
+   * mechanic's effect; production never sets this, so the v12 mechanics are on by default.
+   */
+  rules?: {
+    /** v12 Park the Bus: stacked back line cuts the opponent's open-play conversion. Default on. */
+    parkTheBus?: boolean;
+    /** v12 Snap Shot: near-maxed attacking round can fire an early shot on a partial meter. Default on. */
+    snapShot?: boolean;
+  };
+  /** v12 §19#5: set when a level-at-full-time game was decided by the partial xG tie-break (no ET). */
+  decidedByTieBreak?: boolean;
 }
 
 export interface RunState {

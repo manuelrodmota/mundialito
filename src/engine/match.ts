@@ -10,10 +10,10 @@
  * side banks the goal (GDD §14 line 284, §17 lines 512-519).
  */
 
-import type { Card, MatchState, OpponentTeam, PlayerState } from "./types.ts";
+import type { Card, MatchState, OpponentTeam, PlayerCard, PlayerState } from "./types.ts";
 import type { Rng } from "./rng.ts";
 import { makeRng } from "./rng.ts";
-import { HALFTIME_ROUND, ET_XG_MULT, STAMINA, DEF_COEFF, XG_FLOOR } from "./constants.ts";
+import { HALFTIME_ROUND, ET_XG_MULT, STAMINA, DEF_COEFF, XG_FLOOR, PARK_THE_BUS_PENALTY } from "./constants.ts";
 import type { ShotResult } from "./types.ts";
 import { buildOpeningHand, drawToHand, returnLockedToDrawPile, routeCard } from "./cards.ts";
 import { xgAdd, addPressure, takeShot } from "./xg.ts";
@@ -84,6 +84,7 @@ function buildPlayerState(input: NewMatchInput, rng: Rng): PlayerState {
     captainId: input.captainId,
     momentum: 0,
     handOfGodUsed: false,
+    xgAccum: 0,
   };
 
   buildOpeningHand(state, rng);
@@ -142,25 +143,53 @@ export function cleanupBoards(m: MatchState): void {
 function fillPressure(m: MatchState, idx: 0 | 1, fillXg: number, hasAtk: boolean): void {
   const pl = m.players[idx]!;
   pl.lastFill = hasAtk ? fillXg : 0;
-  if (hasAtk) addPressure(pl, fillXg);
+  if (hasAtk) {
+    addPressure(pl, fillXg);
+    // Accumulate total chances created (independent of the resetting pressure meter) for the §19#5
+    // tie-break. ET fills land here too, but the tie-break is read at full time, before any ET.
+    pl.xgAccum = (pl.xgAccum ?? 0) + fillXg;
+  }
 }
 
 /**
- * Resolves one side's shot for the round: rolls conversion if the meter is full (or a tactical
- * forces it), consumes Hand of God, and records the outcome on `lastShot`. v11 §14.
+ * v12 Park the Bus: a side parks the bus when its defensive lane stacks the back line this round —
+ * a goalkeeper + ≥2 defenders, or ≥3 defenders (counting fielded player cards). It cuts the
+ * OPPONENT's open-play shot conversion (resolved in takeShot). §7
  */
-function resolveSideShot(m: MatchState, idx: 0 | 1, hasAtk: boolean, rng: Rng): ShotResult {
+function parksTheBus(pl: PlayerState): boolean {
+  let gk = 0;
+  let def = 0;
+  for (const cip of pl.board.defense) {
+    if (cip.card.type !== "player") continue;
+    const pos = (cip.card as PlayerCard).position;
+    if (pos === "GK") gk++;
+    else if (pos === "DEF") def++;
+  }
+  return (gk >= 1 && def >= 2) || def >= 3;
+}
+
+/**
+ * Resolves one side's shot for the round: rolls conversion if the meter is full, a tactical forces
+ * it, or (v12) a Snap Shot fires on a near-maxed attacking round. Applies the opponent's Park the
+ * Bus penalty (open play only), consumes Hand of God, records the outcome on `lastShot`. §7 / §14.
+ */
+function resolveSideShot(m: MatchState, idx: 0 | 1, hasAtk: boolean, rng: Rng, allowSnap: boolean): ShotResult {
   const pl = m.players[idx]!;
   if (!hasAtk) {
     pl.lastShot = { took: false, scored: false, p: 0 };
     return pl.lastShot;
   }
+  const opp = m.players[idx === 0 ? 1 : 0]!;
+  const busPenalty = m.rules?.parkTheBus !== false && parksTheBus(opp) ? PARK_THE_BUS_PENALTY : 0;
   const mods = shotModifiers(pl);
   const shot = takeShot(pl, {
     round: m.round,
     rng,
     forceShot: mods.forceShot,
     convFloor: mods.convFloor,
+    busPenalty,
+    xgRound: pl.lastFill ?? 0,
+    snapEnabled: allowSnap && m.rules?.snapShot !== false,
   });
   if (shot.took && mods.handOfGod) pl.handOfGodUsed = true;
   pl.lastShot = shot;
@@ -239,7 +268,9 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
     const order: (0 | 1)[] = m.players[0]!.xg >= m.players[1]!.xg ? [0, 1] : [1, 0];
     for (const idx of order) {
       const hasAtk = idx === 0 ? hasAtk0 : hasAtk1;
-      const shot = resolveSideShot(m, idx, hasAtk, rng);
+      // ET is its own sudden-death passage (higher-pressure side shoots first); Snap Shot stays a
+      // regulation tempo mechanic, so it's off here. Park the Bus still applies.
+      const shot = resolveSideShot(m, idx, hasAtk, rng, false);
       if (shot.scored) break;
     }
 
@@ -254,8 +285,8 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
     fillPressure(m, 0, xg0, hasAtk0);
     fillPressure(m, 1, xg1, hasAtk1);
 
-    const shot0 = resolveSideShot(m, 0, hasAtk0, rng);
-    const shot1 = resolveSideShot(m, 1, hasAtk1, rng);
+    const shot0 = resolveSideShot(m, 0, hasAtk0, rng, true);
+    const shot1 = resolveSideShot(m, 1, hasAtk1, rng, true);
 
     updateMomentum(m.players[0]!, shot0.scored);
     updateMomentum(m.players[1]!, shot1.scored);

@@ -162,14 +162,17 @@ interface MatchSession {
   seed: number
 }
 
+// v12 (8-round match): fixed minute lookup. Halftime after R4 (45'); R5 reads 46' so the 2nd-half
+// kickoff sits apart from the 45' halftime whistle; full time after R8 (90').
+const MATCH_CLOCK = [0, 15, 30, 45, 46, 60, 75, 90]
 function roundToMinute(round: number, extraTime: boolean): string {
-  if (extraTime) return `90+${(round - ROUND_CAP) * 9}'`
-  return `${round * 9}'`
+  if (extraTime) return `90+${(round - ROUND_CAP) * 15}'`
+  return `${MATCH_CLOCK[round - 1] ?? 90}'`
 }
 
 function computePhase(round: number, extraTime: boolean): string {
   if (extraTime) return 'EXTRA TIME'
-  if (round <= 5) return '1ST HALF'
+  if (round <= 4) return '1ST HALF'
   return '2ND HALF'
 }
 

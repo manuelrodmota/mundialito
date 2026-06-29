@@ -42,7 +42,7 @@ import type { MatchState, Card, Formation, CardInPlay, PlayerCard, PlayerState, 
 import type { Intent } from '../../engine/board'
 import type { Rng } from '../../engine/rng'
 import type { RunState } from '../../engine/types'
-import { newRun, stageForIndex, advanceRun, isRunOver, isRunWon, runEndReward, STAGE_AI_STRENGTH } from '../../run'
+import { newRun, stageForIndex, advanceRun, isRunOver, isRunWon, runEndReward, aiStrengthMultFor } from '../../run'
 import { drawOpponent, allowedTiersForStage } from '../../run'
 import { rollPlayerReward, offerTacticals, applyReward, swapTactical, removeCard, countTacticals } from '../../run'
 import { players as staticPlayerPool } from '../../data/players'
@@ -322,8 +322,9 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
         opponent,
         'run',
       )
-      // Per-stage difficulty handicap — later opponents are sharper (tuned via scripts/arcadeSim.ts).
-      match.aiStrengthMult = STAGE_AI_STRENGTH[run.stage]
+      // Per-stage difficulty handicap + v12 champion strength-floor (a weak champion drawn for the
+      // Final is normalized up so the Final is reliably the hardest stage). Tuned via scripts/arcadeSim.ts.
+      match.aiStrengthMult = aiStrengthMultFor(run.stage, opponent)
 
       startRound(match, rng)
       matchRef.current = match
