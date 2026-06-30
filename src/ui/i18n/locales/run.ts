@@ -8,6 +8,7 @@ export const en = {
   // ResultScreen — headline + scoreline
   'run.victory': 'Victory!',
   'run.defeat': 'Defeat',
+  'run.fullTime': 'Full time',
   'run.decidedOnChances': 'Decided on chances created (xG)',
   'run.scoreline': 'YOU {g0} – {g1} {opponent} · Most dangerous: {mvp}',
   'run.rematch': 'Rematch',
@@ -92,6 +93,7 @@ export const es: typeof en = {
   // ResultScreen — headline + scoreline
   'run.victory': '¡Victoria!',
   'run.defeat': 'Derrota',
+  'run.fullTime': 'Final',
   'run.decidedOnChances': 'Definido por ocasiones generadas (xG)',
   'run.scoreline': 'TÚ {g0} – {g1} {opponent} · Más peligroso: {mvp}',
   'run.rematch': 'Revancha',

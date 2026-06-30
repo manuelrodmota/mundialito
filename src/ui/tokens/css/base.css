@@ -145,6 +145,13 @@ body {
 .mp-waiting { opacity: 0.85; animation: mp-pulse 1.6s ease-in-out infinite; }
 @keyframes mp-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.95; } }
 
+/* Result screen: "your opponent wants a rematch" prompt above the action buttons. */
+.mp-rematch-prompt {
+  position: relative; z-index: 1; text-align: center;
+  font-weight: 800; color: #f4cf6b; letter-spacing: 0.02em;
+  animation: mp-pulse 1.6s ease-in-out infinite;
+}
+
 .menu { align-items: center; justify-content: center; gap: 36px; }
 .menu .logo-block { text-align: center; position: relative; z-index: 1; }
 .menu .kicker { color: var(--gold); font-weight: 700; letter-spacing: 0.34em; font-size: 13px; text-transform: uppercase; }

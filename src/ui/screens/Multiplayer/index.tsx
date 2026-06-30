@@ -107,6 +107,8 @@ export function Multiplayer({ onBack }: MultiplayerProps) {
         match={viewState.match}
         onRematch={() => void rematch()}
         onBack={handleLeave}
+        rematchPending={viewState.youWantRematch}
+        opponentWantsRematch={viewState.opponentWantsRematch}
       />
     )
   }

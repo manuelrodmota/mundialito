@@ -1,6 +1,20 @@
 import { describe, it, expect } from "vitest";
 import { synthMatch, mapReveal } from "./synthMatch";
-import type { PublicState, PrivateView, RoundResult } from "../../engine/multiplayer";
+import {
+  resolvePending,
+  replayMoves,
+  publicRevealState,
+  placeholderOpponent,
+} from "../../engine/multiplayer";
+import type {
+  PublicState,
+  PrivateView,
+  RoundResult,
+  Commit,
+  MatchInputs,
+  ResolvedMove,
+  PlayerMeta,
+} from "../../engine/multiplayer";
 import type { CardInPlay, PlayerCard } from "../../engine/types";
 
 function card(id: string): PlayerCard {
@@ -38,6 +52,7 @@ const pub: PublicState = {
     { displayName: "Ana", captainNation: "Brazil" },
     { displayName: "Beto", captainNation: "Italy" },
   ],
+  planDeadline: null,
   plan: { lockedIn: [false, true], playedTacticals: [[], []], planDeadline: null },
 };
 
@@ -148,5 +163,67 @@ describe("mapReveal perspective", () => {
     expect(creator.roundReport.youGoalsTotal).toBe(1);
     expect(creator.roundReport.themGoalsTotal).toBe(2);
     expect(creator.revealBoards.you.attack[0].card.id).toBe("a-p0");
+  });
+});
+
+// Regression for "the winner saw Defeat": drive a real match to a decision through the SAME
+// pipeline the server uses (resolvePending → publicRevealState), then assert the winning seat maps
+// to Victory (synthetic winner 0) and the losing seat to Defeat (1) — what ResultScreen reads.
+describe("winner survives the full server→client pipeline", () => {
+  function strongCard(id: string): PlayerCard {
+    return { ...card(id), overall: 95, atk: 95, def: 95 };
+  }
+  function weakCard(id: string): PlayerCard {
+    return { ...card(id), overall: 40, atk: 30, def: 30 };
+  }
+  // Creator (player 0) is overwhelmingly stronger → wins deterministically (mercy / full-time).
+  const inputs: MatchInputs = {
+    seed: 99,
+    in0: { deck: Array.from({ length: 14 }, (_, i) => strongCard(`a${i}`)), captainId: "a0" },
+    in1: { deck: Array.from({ length: 14 }, (_, i) => weakCard(`b${i}`)), captainId: "b0" },
+  };
+  const meta: [PlayerMeta, PlayerMeta] = [
+    { displayName: "Creator", captainNation: "Brazil" },
+    { displayName: "Joiner", captainNation: "Brazil" },
+  ];
+  const opp = placeholderOpponent();
+
+  it("the actual winner sees Victory (winner===0) and the loser sees Defeat (1)", () => {
+    let moves: ResolvedMove[] = [];
+    let out: ReturnType<typeof resolvePending> | undefined;
+    for (let i = 0; i < 20; i++) {
+      const handle = replayMoves(inputs, opp, moves);
+      if (handle.match.winner !== null) break;
+      const lineup = (ids: string[], n: number): Commit => ({
+        formation: "balanced",
+        attackIds: ids.slice(0, n),
+        defenseIds: [],
+        tacticalIds: [],
+      });
+      out = resolvePending(
+        inputs,
+        opp,
+        moves,
+        lineup(handle.match.players[0]!.hand.map((c) => c.id), 2),
+        lineup(handle.match.players[1]!.hand.map((c) => c.id), 1),
+      );
+      moves = out.moves;
+      if (out.match.winner !== null) break;
+    }
+
+    expect(out).toBeDefined();
+    const serverWinner = out!.match.winner;
+    expect(serverWinner).not.toBeNull();
+
+    // publicRevealState (what the server pushes to BOTH clients) must carry the winner unchanged.
+    const pub = publicRevealState(out!.match, meta, out!.result, null);
+    expect(pub.winner).toBe(serverWinner);
+    expect(pub.planDeadline).toBeNull();
+
+    // The winning seat maps to a synthetic win (0 → ResultScreen Victory); the other seat to a loss.
+    const winnerSeat = serverWinner as 0 | 1;
+    const loserSeat = (winnerSeat === 0 ? 1 : 0) as 0 | 1;
+    expect(synthMatch(pub, null, winnerSeat, true).winner).toBe(0);
+    expect(synthMatch(pub, null, loserSeat, true).winner).toBe(1);
   });
 });

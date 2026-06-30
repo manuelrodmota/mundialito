@@ -77,6 +77,17 @@ export interface PublicState {
   /** Active match-long Power tacticals per side (played face-up, so public). */
   powers: [TacticalCard[], TacticalCard[]];
   meta: [PlayerMeta, PlayerMeta];
+  /**
+   * Epoch ms after which the current planning window may be force-resolved. Mirrors
+   * plan.planDeadline but is ALSO carried on the reveal state so the client can show/run the
+   * countdown for the upcoming round (the reveal carries no `plan`). Null when the match has ended.
+   */
+  planDeadline: number | null;
+  /**
+   * Rematch votes after a finished match — [creator, joiner]. The server starts a fresh match
+   * only once BOTH are true; until then the result screen shows a "waiting for opponent" handshake.
+   */
+  rematch?: [boolean, boolean];
   /** Present while phase === 'plan'. */
   plan?: PublicPlan;
   /** Present while phase === 'reveal'. */
@@ -146,6 +157,7 @@ export function publicPlanState(
     fatigues: fatigues(m),
     powers: powersPair(m),
     meta,
+    planDeadline,
     plan: {
       lockedIn: [pending[0].lockedIn, pending[1].lockedIn],
       playedTacticals: [
@@ -165,6 +177,7 @@ export function publicRevealState(
   m: MatchState,
   meta: [PlayerMeta, PlayerMeta],
   result: RoundResult,
+  nextPlanDeadline: number | null,
 ): PublicState {
   return {
     status: result.winner !== null ? "finished" : "playing",
@@ -177,6 +190,8 @@ export function publicRevealState(
     fatigues: fatigues(m),
     powers: powersPair(m),
     meta,
+    // The reveal carries no `plan`, so the upcoming round's deadline rides here for the countdown.
+    planDeadline: nextPlanDeadline,
     reveal: result,
   };
 }
