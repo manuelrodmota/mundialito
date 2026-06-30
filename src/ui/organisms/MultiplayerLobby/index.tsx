@@ -7,22 +7,22 @@ interface MultiplayerLobbyProps {
   phase: MpPhase
   roomCode: string | null
   error: string | null
-  onCreate: (name: string) => void
-  onJoin: (code: string, name: string) => void
+  /** The signed-in account name shown and used for this match. */
+  playerName: string
+  onCreate: () => void
+  onJoin: (code: string) => void
   onBack: () => void
 }
 
 /**
- * Pre-match lobby: pick a display name, then either create a room (and share the code while
- * waiting) or join an existing one by code. Shown after the deck is built.
+ * Pre-match lobby: create a room (and share the code while waiting) or join one by code. The
+ * display name comes from the signed-in account (Multiplayer is gated on login). Shown after the
+ * deck is built.
  */
-export function MultiplayerLobby({ phase, roomCode, error, onCreate, onJoin, onBack }: MultiplayerLobbyProps) {
+export function MultiplayerLobby({ phase, roomCode, error, playerName, onCreate, onJoin, onBack }: MultiplayerLobbyProps) {
   const { t } = useLang()
-  const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [copied, setCopied] = useState(false)
-
-  const displayName = name.trim() || t('mp.lobby.namePlaceholder')
 
   // Creator is waiting in a room: show the code + waiting state.
   if (phase === 'lobby' && roomCode) {
@@ -66,21 +66,10 @@ export function MultiplayerLobby({ phase, roomCode, error, onCreate, onJoin, onB
         <div style={{ textAlign: 'center' }}>
           <h1>{t('mp.menu.title')}</h1>
           <p className="note" style={{ marginTop: 8 }}>{t('mp.menu.subtitle')}</p>
+          <p className="note mp-playing-as">{t('mp.lobby.playingAs', { name: playerName })}</p>
         </div>
 
-        <label className="mp-field">
-          <span className="note">{t('mp.lobby.nameLabel')}</span>
-          <input
-            className="mp-input"
-            type="text"
-            value={name}
-            maxLength={16}
-            placeholder={t('mp.lobby.namePlaceholder')}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </label>
-
-        <Button variant="gold" size="big" onClick={() => onCreate(displayName)}>
+        <Button variant="gold" size="big" onClick={onCreate}>
           {t('mp.lobby.create')}
         </Button>
 
@@ -100,7 +89,7 @@ export function MultiplayerLobby({ phase, roomCode, error, onCreate, onJoin, onB
           </label>
           <Button
             variant="primary"
-            onClick={() => code.trim() && onJoin(code.trim(), displayName)}
+            onClick={() => code.trim() && onJoin(code.trim())}
           >
             {t('mp.lobby.joinCta')}
           </Button>

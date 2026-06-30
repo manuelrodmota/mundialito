@@ -188,7 +188,7 @@ export function useMultiplayerMatch(): UseMultiplayerMatchReturn {
       try {
         patch({ phase: "connecting", error: null });
         uiPhaseRef.current = "connecting";
-        const uid = await mp.ensureAnonSession();
+        const uid = await mp.ensureMpSession();
         const { roomId, code } = await mp.createRoom(deck, captainId, displayName);
         roomIdRef.current = roomId;
         selfIndexRef.current = 0;
@@ -209,7 +209,7 @@ export function useMultiplayerMatch(): UseMultiplayerMatchReturn {
       try {
         patch({ phase: "connecting", error: null });
         uiPhaseRef.current = "connecting";
-        await mp.ensureAnonSession();
+        await mp.ensureMpSession();
         const { roomId } = await mp.joinRoom(code, deck, captainId, displayName);
         roomIdRef.current = roomId;
         selfIndexRef.current = 1;

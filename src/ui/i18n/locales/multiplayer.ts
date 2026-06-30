@@ -20,6 +20,7 @@ export const en = {
   'mp.lobby.back': 'Back',
   'mp.lobby.nameLabel': 'Your name',
   'mp.lobby.namePlaceholder': 'Player',
+  'mp.lobby.playingAs': 'Playing as {name}',
 
   // Match
   'mp.match.oppPlanning': 'Opponent planning…',
@@ -56,6 +57,7 @@ export const es: typeof en = {
   'mp.lobby.back': 'Volver',
   'mp.lobby.nameLabel': 'Tu nombre',
   'mp.lobby.namePlaceholder': 'Jugador',
+  'mp.lobby.playingAs': 'Jugás como {name}',
 
   'mp.match.oppPlanning': 'Rival planificando…',
   'mp.match.oppLockedIn': 'Rival confirmó ✓',

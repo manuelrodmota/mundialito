@@ -2,7 +2,8 @@
  * Multiplayer transport — the client's only door to the authoritative server.
  *
  * Responsibilities:
- *  - ensure an anonymous Supabase session (so RLS can scope the room rows to this tab);
+ *  - ensure a Supabase session (the real signed-in user; anon only as a local-dev fallback) so
+ *    RLS can scope the room rows to this account;
  *  - invoke the `mp` Edge Function (create / join / commit / …) — the server validates and
  *    resolves; the client never runs the engine or writes game state;
  *  - subscribe to Realtime Postgres Changes on the room's public row + this player's private
@@ -38,13 +39,18 @@ function db(): SupabaseClient {
   return getSupabaseClient() as unknown as SupabaseClient;
 }
 
-/** Signs in anonymously if there's no session yet. Idempotent. */
-export async function ensureAnonSession(): Promise<string> {
+/**
+ * Returns the current user id for multiplayer. Prefers the existing authenticated session (real
+ * Google sign-in — Multiplayer is gated on being logged in, so in production this is always set).
+ * Falls back to an anonymous session only when there's no session yet (local/stub dev), which
+ * requires `enable_anonymous_sign_ins` on that Supabase project. Idempotent.
+ */
+export async function ensureMpSession(): Promise<string> {
   const client = getSupabaseClient();
   const { data: existing } = await client.auth.getSession();
   if (existing.session) return existing.session.user.id;
   const { data, error } = await client.auth.signInAnonymously();
-  if (error || !data.user) throw new Error(`anon sign-in failed: ${error?.message ?? "no user"}`);
+  if (error || !data.user) throw new Error(`mp sign-in failed: ${error?.message ?? "no user"}`);
   return data.user.id;
 }
 
@@ -58,7 +64,7 @@ type MpAction =
   | "abandon";
 
 async function invokeMp<T>(action: MpAction, payload: Record<string, unknown>): Promise<T> {
-  await ensureAnonSession();
+  await ensureMpSession();
   const { data, error } = await getSupabaseClient().functions.invoke("mp", {
     body: { action, ...payload },
   });

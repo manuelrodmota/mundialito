@@ -14,12 +14,13 @@ import * as screens from './locales/screens'
 import * as run from './locales/run'
 import * as card from './locales/card'
 import * as meta from './locales/meta'
+import * as multiplayer from './locales/multiplayer'
 
 export type Lang = 'en' | 'es'
 export type Dict = Record<string, string>
 
 // Add a new area module here to register its strings.
-const parts: { en: Dict; es: Dict }[] = [menu, common, match, builder, screens, run, card, meta]
+const parts: { en: Dict; es: Dict }[] = [menu, common, match, builder, screens, run, card, meta, multiplayer]
 
 export const messages: Record<Lang, Dict> = {
   en: Object.assign({}, ...parts.map((p) => p.en)),
