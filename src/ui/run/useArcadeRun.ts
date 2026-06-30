@@ -544,13 +544,16 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
       const rng = rngRef.current
       if (!run || !rng) return
 
-      const updated = applyReward(run, player, tactical)
-      setRunState(updated)
+      // Functional update so a same-tick swapTacticalReward (the at-cap flow calls onSwap then
+      // onClaim in one click) is not clobbered: applyReward composes onto the already-swapped
+      // deck instead of a stale pre-swap snapshot.
+      setRunState((prev) => (prev ? applyReward(prev, player, tactical) : prev))
       setReward(null)
       setPhase('map')
 
       try {
-        const nextOpp = drawOpponent(updated.stage, updated.defeated, rng)
+        // stage/defeated are untouched by reward/swap, so the `run` snapshot is correct here.
+        const nextOpp = drawOpponent(run.stage, run.defeated, rng)
         setNextOpponentState(nextOpp)
       } catch {
         setNextOpponentState(null)
@@ -561,13 +564,11 @@ export function useArcadeRun(initialSeed?: number): UseArcadeRunReturn {
 
   const swapTacticalReward = useCallback(
     (takeCard: TacticalCard, exileId: string) => {
-      const run = runState
-      if (!run) return
-
-      const updated = swapTactical(run, takeCard, exileId)
-      setRunState(updated)
+      // Functional update (see claimReward): composes with the claimReward that follows it in the
+      // same at-cap confirm, instead of both reading the same stale runState and clobbering.
+      setRunState((prev) => (prev ? swapTactical(prev, takeCard, exileId) : prev))
     },
-    [runState],
+    [],
   )
 
   const declineReward = useCallback(() => {

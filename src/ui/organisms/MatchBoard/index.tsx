@@ -842,8 +842,17 @@ export function MatchBoard({
   const hasPremiumInDefense = defenseCards.some((c) => c.rarity !== 'common')
   const showStarCore = hasPremiumInAttack || hasPremiumInDefense
 
-  const minute = ROUND_TO_MINUTE(match.round, match.extraTime)
-  const phaseLabel = ROUND_TO_PHASE(match.round, match.extraTime, t)
+  // During the reveal/report, freeze the clock on the round that just resolved. By then the engine
+  // has already advanced match.round to the next round (and may have flipped extraTime on if ET just
+  // began), which otherwise makes the last two reports both read 90'. A reported round within the
+  // regulation count is regulation even if ET began on its resolution (so R8→ET still reads 90').
+  const onReport = isReveal && roundReport
+  const clockRound = onReport ? roundReport.round : match.round
+  const clockEt = onReport
+    ? roundReport.extraTime && roundReport.round > MATCH_CLOCK.length
+    : match.extraTime
+  const minute = ROUND_TO_MINUTE(clockRound, clockEt)
+  const phaseLabel = ROUND_TO_PHASE(clockRound, clockEt, t)
 
   const mercyDiff = Math.abs(p0.goals - p1.goals)
   const mercyLabel = mercyDiff > 0 ? t('match.mercy', { n: 3 - mercyDiff }) : undefined
@@ -1270,12 +1279,20 @@ export function MatchBoard({
             {roundReport.decided && (
               <div className={`result-banner ${match.winner === 0 ? 'win' : 'loss'}`}>
                 {match.winner === 0 ? t('run.victory') : t('run.defeat')}
+                {match.decidedByTieBreak && (
+                  <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, opacity: 0.75, marginTop: '4px' }}>
+                    {t('run.decidedOnChances')}
+                  </span>
+                )}
               </div>
             )}
             <h4>
               {t('match.report.heading', {
-                phase: roundReport.extraTime
-                  ? t('match.report.extraTime', { n: (roundReport.round - 10) * 9 })
+                // ET minute consistent with the live clock (90+{n}'); the old (round-10)*9 was a
+                // stale 10-round formula that rendered negative minutes. A reported round within the
+                // regulation count stays "Round N" even if ET began on its resolution.
+                phase: roundReport.extraTime && roundReport.round > MATCH_CLOCK.length
+                  ? t('match.report.extraTime', { n: (roundReport.round - MATCH_CLOCK.length) * 15 })
                   : t('match.report.round', { n: roundReport.round }),
               })}
             </h4>
