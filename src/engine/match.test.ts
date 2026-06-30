@@ -267,6 +267,37 @@ describe("aiStrengthMult difficulty handicap", () => {
     };
     expect(run(1.3)).toBeGreaterThan(run(1.0));
   });
+
+  it("does NOT let the handicap inflate xgAccum — the §19#5 tie-break stays fair", () => {
+    const run = (mult: number) => {
+      const m = newMatch(
+        5,
+        { deck: makeDeck(10, "y"), captainId: "y0" },
+        { deck: makeDeck(10, "x"), captainId: "x0" },
+        makeOpp(),
+      );
+      const rng = makeRng(5);
+      startRound(m, rng);
+      m.aiStrengthMult = mult;
+      m.players[1]!.board = {
+        attack: [{ card: makePlayerCard("atk", { atk: 100, def: 40, position: "FWD" }), lane: "attack", statuses: [], faceDown: true }],
+        defense: [],
+      };
+      m.players[0]!.board = {
+        attack: [],
+        defense: [{ card: makePlayerCard("def", { atk: 30, def: 50, position: "DEF" }), lane: "defense", statuses: [], faceDown: true }],
+      };
+      resolveRound(m, rng);
+      return { live: m.players[1]!.xg + m.players[1]!.goals, accum: m.players[1]!.xgAccum ?? 0 };
+    };
+    const base = run(1.0);
+    const boosted = run(1.3);
+    // Live pressure/goals still scale with difficulty (the AI is harder to beat)...
+    expect(boosted.live).toBeGreaterThan(base.live);
+    // ...but accumulated xG (the tie-break input) is handicap-free, so it's identical.
+    expect(boosted.accum).toBeCloseTo(base.accum, 6);
+    expect(base.accum).toBeGreaterThan(0);
+  });
 })
 
 describe("full headless match — end-to-end", () => {

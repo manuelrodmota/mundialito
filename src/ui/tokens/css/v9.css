@@ -289,6 +289,11 @@
 }
 .pick-row .rt { font-weight: 800; width: 24px; text-align: center; font-size: 13px; }
 .pick-row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.pick-row .nm-flag {
+  display: inline-block; width: 17px; height: 17px; vertical-align: -4px;
+  margin-right: 6px; border-radius: 50%; object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
 .pick-row .sl { color: var(--gold); font-size: 11px; font-weight: 800; width: 30px; text-align: right; }
 .pick-row .cap2 { background: none; border: 0; cursor: pointer; font-size: 14px; color: var(--txt-dim); padding: 1px 3px; }
 .pick-row .cap2.on { color: var(--gold); }
@@ -409,7 +414,7 @@
 .bracket-head .sub { color: var(--txt-dim); font-size: 13.5px; margin-top: 6px; }
 
 .ladder { display: flex; align-items: flex-start; z-index: 1; }
-.ladder .seg { display: flex; align-items: center; }
+.ladder .lseg { display: flex; align-items: center; }
 .ladder .link {
   width: clamp(18px, 3.4vw, 56px); height: 3px; margin-top: 26px;
   background: rgba(255, 255, 255, 0.12); border-radius: 2px;

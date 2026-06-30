@@ -24,7 +24,7 @@ function RunNode({ stage, number, done, now, final: isFinal, beaten, crest, isLa
     .join(' ')
 
   return (
-    <div className="seg" style={{ display: 'flex', alignItems: 'flex-start' }}>
+    <div className="lseg" style={{ display: 'flex', alignItems: 'flex-start' }}>
       <div className={cls}>
         <div className="dot">
           {crest ? (

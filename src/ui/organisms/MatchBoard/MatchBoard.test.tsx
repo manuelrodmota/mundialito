@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MatchBoard } from './index'
 import type { MatchState, PlayerState, OpponentTeam } from '../../../engine/types'
+import type { RoundReport, SideReport } from '../../run/useArcadeRun'
 
 vi.mock('framer-motion', async (orig) => ({
   ...(await orig<typeof import('framer-motion')>()),
@@ -62,6 +63,25 @@ function makeMatch(overrides: Partial<MatchState> = {}): MatchState {
   }
 }
 
+function makeSideReport(overrides: Partial<SideReport> = {}): SideReport {
+  return {
+    atkEff: 50, defEff: 50, formation: 'balanced', atkMult: 1, defMult: 1,
+    fatigue: 5, fatigueDefMult: 1, rarityBonus: 0, synAtk: 0, synDef: 0,
+    scored: false, xg: 0.3, pressureBefore: 0.2, pressureAfter: 0.3,
+    ...overrides,
+  }
+}
+
+function makeRoundReport(overrides: Partial<RoundReport> = {}): RoundReport {
+  return {
+    round: 7, extraTime: false, halftime: false,
+    youXg: 0.3, themXg: 0.2, youGoalsThisRound: 0, themGoalsThisRound: 0,
+    youGoalsTotal: 1, themGoalsTotal: 0, decided: false,
+    you: makeSideReport(), them: makeSideReport(),
+    ...overrides,
+  }
+}
+
 describe('MatchBoard', () => {
   it('renders scoreboard with current score', () => {
     render(
@@ -93,6 +113,34 @@ describe('MatchBoard', () => {
       />,
     )
     expect(screen.getByText('1ST HALF')).toBeInTheDocument()
+  })
+
+  it('clock during a reveal freezes on the resolved round, not the already-advanced match.round', () => {
+    // Engine advanced match.round to 8 after round 7 resolved; the report is for round 7.
+    // Before the fix the scoreboard read match.round (8 → 90'); it must read the resolved round (75').
+    render(
+      <MatchBoard
+        match={makeMatch({ round: 8 })}
+        phase="reveal"
+        roundReport={makeRoundReport({ round: 7 })}
+        onCommit={() => {}}
+      />,
+    )
+    expect(document.querySelector('.sb-min')?.textContent).toBe("75'")
+  })
+
+  it('the full-time round that triggers ET still reads 90 (not an ET minute) in its report', () => {
+    // Round 8 resolved into ET: match.round=9, match.extraTime=true, but the round-8 report's
+    // extraTime flag is the post-resolution value. A regulation-count round must read 90'.
+    render(
+      <MatchBoard
+        match={makeMatch({ round: 9, extraTime: true })}
+        phase="reveal"
+        roundReport={makeRoundReport({ round: 8, extraTime: true })}
+        onCommit={() => {}}
+      />,
+    )
+    expect(document.querySelector('.sb-min')?.textContent).toBe("90'")
   })
 
   it('renders EXTRA TIME banner when in ET', () => {
