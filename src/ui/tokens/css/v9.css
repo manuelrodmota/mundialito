@@ -395,6 +395,10 @@
 .formation-picker button b { font-size: 13.5px; color: var(--txt); letter-spacing: 0.02em; }
 .formation-picker button span { font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
 .formation-picker button i { font-style: normal; font-size: 10px; font-weight: 600; color: var(--txt-dim); white-space: nowrap; }
+.formation-picker button .fp-fat { font-style: normal; font-size: 9.5px; font-weight: 700; white-space: nowrap; margin-top: 1px; }
+.formation-picker button .fp-fat[data-fat="offensive"] { color: #7ec898; }
+.formation-picker button .fp-fat[data-fat="balanced"] { color: var(--txt-dim); }
+.formation-picker button .fp-fat[data-fat="defensive"] { color: #ff9d92; }
 .formation-picker button.on { border-color: var(--gold); background: rgba(232, 200, 115, 0.1); }
 .formation-picker button.on b { color: var(--gold); }
 .formation-picker button.on[data-f="offensive"] { border-color: rgba(232, 85, 74, 0.7); background: rgba(232, 85, 74, 0.1); }

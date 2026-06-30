@@ -2,12 +2,20 @@
  * WCC-010 — Fatigue system (GDD v10 §8 / §17).
  *
  * Fatigue (0–30) degrades the defending team's effective DEF each round.
- * Defending increases fatigue; attacking rests it. Both halftime and ET
- * entry clear fatigue to 0.
+ * Defending increases fatigue (faster late, and much faster in a defensive formation);
+ * attacking rests it. Halftime recovers only part of it; ET entry clears it.
  */
 
-import type { PlayerState, CardInPlay } from "./types.ts";
-import { FATIGUE_MAX, FATIGUE_DIV, FATIGUE_GAIN, FATIGUE_LOSS } from "./constants.ts";
+import type { PlayerState, CardInPlay, Formation } from "./types.ts";
+import {
+  FATIGUE_MAX,
+  FATIGUE_DIV,
+  FATIGUE_GAIN_FOR,
+  FATIGUE_LOSS,
+  FATIGUE_BALANCED_GAIN,
+  FORMATIONS,
+  HALFTIME_FATIGUE_RECOVERY,
+} from "./constants.ts";
 import { clamp } from "./util.ts";
 
 /**
@@ -37,26 +45,34 @@ function roundShape(
 
 /**
  * Computes the fatigue delta for a round given the committed board.
- * Defense-heavy rounds increase fatigue; attack-heavy rest it; balanced is neutral.
+ * Defense-heavy rounds increase fatigue (more late in the match via FATIGUE_GAIN_FOR, and scaled by
+ * the formation's fatigueMult); attack-heavy rest it; balanced is neutral.
  * Result is clamped to keep total fatigue within [0, FATIGUE_MAX]. GDD §8 lines 179-180.
  */
 export function fatigueDelta(
   attack: CardInPlay[],
   defense: CardInPlay[],
   currentFatigue: number,
+  round = 1,
+  formation: Formation = "balanced",
 ): number {
   const shape = roundShape(attack, defense);
   let delta = 0;
 
   switch (shape) {
     case "defense":
-      delta = FATIGUE_GAIN;
+      delta = Math.round(FATIGUE_GAIN_FOR(round) * FORMATIONS[formation].fatigueMult);
       break;
     case "attack":
       delta = -FATIGUE_LOSS;
       break;
     case "balanced":
-      delta = 0;
+      // An even split costs a little (only attacking truly rests); a fully empty/idle board is
+      // neutral — you don't tire from fielding nothing.
+      delta =
+        attack.length === 0 && defense.length === 0
+          ? 0
+          : Math.round(FATIGUE_BALANCED_GAIN * FORMATIONS[formation].fatigueMult);
       break;
   }
 
@@ -65,20 +81,31 @@ export function fatigueDelta(
 }
 
 /**
- * Updates a player's fatigue for the current round based on board allocation.
- * GDD §17 line 522.
+ * Updates a player's fatigue for the current round based on board allocation, the round number
+ * (later rounds tire faster), and the player's formation. GDD §17 line 522.
  */
-export function updateFatigue(state: PlayerState): void {
+export function updateFatigue(state: PlayerState, round = 1): void {
   const delta = fatigueDelta(
     state.board.attack,
     state.board.defense,
     state.fatigue,
+    round,
+    state.formation,
   );
   state.fatigue = clamp(state.fatigue + delta, 0, FATIGUE_MAX);
 }
 
 /**
- * Resets fatigue to 0. Called at halftime, ET entry, and by Water Break tactical.
+ * Recovers part of a player's fatigue at halftime — HALFTIME_FATIGUE_RECOVERY of it is shaken off,
+ * the rest carries into the second half. Replaces the old full wipe so a first-half grind still
+ * weighs on the legs after the break. GDD §8 line 182.
+ */
+export function recoverFatigueAtHalftime(state: PlayerState): void {
+  state.fatigue = Math.round(state.fatigue * (1 - HALFTIME_FATIGUE_RECOVERY));
+}
+
+/**
+ * Resets fatigue to 0. Called at ET entry and by the Water Break / Fresh Legs tactical.
  * GDD §8 line 182.
  */
 export function resetFatigue(state: PlayerState): void {

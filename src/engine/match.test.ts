@@ -3,6 +3,7 @@ import { newMatch, startRound, resolveRound, halftime, cleanupBoards } from "./m
 import { makeRng } from "./rng.ts";
 import { commitCard } from "./board.ts";
 import { decideTurn } from "./ai.ts";
+import { FATIGUE_MAX } from "./constants.ts";
 import type { Card, MatchState, OpponentTeam, PlayerCard } from "./types.ts";
 
 function makePlayerCard(
@@ -184,7 +185,7 @@ describe("resolveRound", () => {
     expect(inDiscard).toBe(true);
   });
 
-  it("halftime fires at R4: locked cards return and fatigue resets", () => {
+  it("halftime fires at R4: locked cards return and fatigue partially recovers", () => {
     const premiumCard = makePlayerCard("leg0", { rarity: "legendary", cost: 4 });
     const deck: Card[] = [premiumCard, ...makeDeck(7, "a")];
     const m = newMatch(42, { deck, captainId: "a0" }, { deck: makeDeck(8, "b"), captainId: "b0" }, makeOpp());
@@ -200,7 +201,9 @@ describe("resolveRound", () => {
     resolveRound(m, rng);
 
     if (m.round >= 5 || m.winner !== null) {
-      expect(m.players[0]!.fatigue).toBe(0);
+      // Halftime now partially recovers fatigue (carries the rest into the 2nd half), not a full wipe.
+      expect(m.players[0]!.fatigue).toBeGreaterThan(0);
+      expect(m.players[0]!.fatigue).toBeLessThan(20);
       expect(m.players[0]!.locked).toHaveLength(0);
     }
   });
@@ -266,6 +269,36 @@ describe("aiStrengthMult difficulty handicap", () => {
       return m.players[1]!.xg + m.players[1]!.goals;
     };
     expect(run(1.3)).toBeGreaterThan(run(1.0));
+  });
+
+  it("a held attack leaks MORE against a tired defender (fatigue-scaled xG floor)", () => {
+    const leakAgainst = (defenderFatigue: number): number => {
+      const m = newMatch(
+        7,
+        { deck: makeDeck(10, "y"), captainId: "y0" },
+        { deck: makeDeck(10, "x"), captainId: "x0" },
+        makeOpp(),
+      );
+      const rng = makeRng(7);
+      startRound(m, rng);
+      // p0 fields a lone weak attacker; p1 holds with an overwhelming defender, so the attack never
+      // beats the defense even when the defender is gassed — isolating the FLOOR as p0's only xG.
+      m.players[0]!.board = {
+        attack: [{ card: makePlayerCard("atk", { atk: 10, def: 10, position: "FWD" }), lane: "attack", statuses: [], faceDown: true }],
+        defense: [],
+      };
+      m.players[1]!.board = {
+        attack: [],
+        defense: [{ card: makePlayerCard("def", { atk: 10, def: 600, position: "DEF" }), lane: "defense", statuses: [], faceDown: true }],
+      };
+      m.players[1]!.fatigue = defenderFatigue;
+      resolveRound(m, rng);
+      return m.players[0]!.lastFill ?? 0;
+    };
+    const vsFresh = leakAgainst(0);
+    const vsGassed = leakAgainst(FATIGUE_MAX);
+    expect(vsFresh).toBeCloseTo(0.1, 2); // a fresh wall concedes only the base floor
+    expect(vsGassed).toBeGreaterThan(vsFresh); // a tired wall leaks more even while holding
   });
 
   it("does NOT let the handicap inflate xgAccum — the §19#5 tie-break stays fair", () => {
@@ -356,7 +389,7 @@ describe("full headless match — end-to-end", () => {
 });
 
 describe("halftime (direct)", () => {
-  it("resets fatigue and returns locked cards", () => {
+  it("partially recovers fatigue and returns locked cards", () => {
     const deck = makeDeck(10, "a");
     const m = newMatch(42, { deck, captainId: "a0" }, { deck: makeDeck(10, "b"), captainId: "b0" }, makeOpp());
     const rng = makeRng(42);
@@ -368,7 +401,10 @@ describe("halftime (direct)", () => {
 
     halftime(m, rng);
 
-    expect(m.players[0]!.fatigue).toBe(0);
+    // Halftime now recovers only part of the fatigue (carries the rest into the 2nd half), so a
+    // first-half grind still lingers — it is no longer a full wipe to 0.
+    expect(m.players[0]!.fatigue).toBeGreaterThan(0);
+    expect(m.players[0]!.fatigue).toBeLessThan(20);
     expect(m.players[0]!.locked).toHaveLength(0);
     expect(m.players[0]!.drawPile.some((c) => c.id === "leg")).toBe(true);
     expect(m.players[0]!.tacticalsThisHalf).toBe(0);

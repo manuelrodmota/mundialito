@@ -29,6 +29,9 @@ import {
   CAPTAIN_PRIDE_DEF,
   FATIGUE_MAX,
   FATIGUE_DIV,
+  FATIGUE_GAIN_FOR,
+  FLOOR_FATIGUE_BONUS,
+  xgFloorFor,
   COUNTER_ATTACK_XG,
   MOMENTUM_XG,
 } from "./constants.ts";
@@ -152,6 +155,29 @@ describe("formation multipliers", () => {
   it("defensive weakens attack and boosts defense (v10.1 softened ±18%)", () => {
     expect(FORMATIONS.defensive.atkMult).toBe(0.8);
     expect(FORMATIONS.defensive.defMult).toBe(1.2);
+  });
+
+  it("fatigueMult: offensive tires least, defensive tires most", () => {
+    expect(FORMATIONS.offensive.fatigueMult).toBe(0.5);
+    expect(FORMATIONS.balanced.fatigueMult).toBe(1.0);
+    expect(FORMATIONS.defensive.fatigueMult).toBe(1.5);
+  });
+});
+
+describe("fatigue ramp and the fatigue-scaled xG floor", () => {
+  it("FATIGUE_GAIN_FOR ramps up across the match (R1-4 < R5-6 < R7-8/ET)", () => {
+    expect(FATIGUE_GAIN_FOR(4)).toBe(4);
+    expect(FATIGUE_GAIN_FOR(6)).toBe(5);
+    expect(FATIGUE_GAIN_FOR(8)).toBe(6);
+    expect(FATIGUE_GAIN_FOR(9)).toBe(6); // ET keeps the late rate
+  });
+
+  it("xgFloorFor grows the floor from XG_FLOOR (fresh) to XG_FLOOR+bonus (gassed)", () => {
+    expect(xgFloorFor(0)).toBeCloseTo(0.1, 6); // fresh defender → base floor
+    expect(xgFloorFor(FATIGUE_MAX)).toBeCloseTo(0.1 + FLOOR_FATIGUE_BONUS, 6); // maxed → full bonus
+    // monotonic: a more tired defender always leaks at least as much
+    expect(xgFloorFor(17)).toBeGreaterThan(xgFloorFor(8));
+    expect(xgFloorFor(25)).toBeGreaterThan(xgFloorFor(17));
   });
 });
 
