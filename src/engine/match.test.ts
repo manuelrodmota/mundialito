@@ -184,7 +184,7 @@ describe("resolveRound", () => {
     expect(inDiscard).toBe(true);
   });
 
-  it("halftime fires at R4: locked cards return and fatigue resets", () => {
+  it("halftime fires at R4: locked cards return and fatigue partially recovers", () => {
     const premiumCard = makePlayerCard("leg0", { rarity: "legendary", cost: 4 });
     const deck: Card[] = [premiumCard, ...makeDeck(7, "a")];
     const m = newMatch(42, { deck, captainId: "a0" }, { deck: makeDeck(8, "b"), captainId: "b0" }, makeOpp());
@@ -200,7 +200,9 @@ describe("resolveRound", () => {
     resolveRound(m, rng);
 
     if (m.round >= 5 || m.winner !== null) {
-      expect(m.players[0]!.fatigue).toBe(0);
+      // Halftime now partially recovers fatigue (carries the rest into the 2nd half), not a full wipe.
+      expect(m.players[0]!.fatigue).toBeGreaterThan(0);
+      expect(m.players[0]!.fatigue).toBeLessThan(20);
       expect(m.players[0]!.locked).toHaveLength(0);
     }
   });
@@ -356,7 +358,7 @@ describe("full headless match — end-to-end", () => {
 });
 
 describe("halftime (direct)", () => {
-  it("resets fatigue and returns locked cards", () => {
+  it("partially recovers fatigue and returns locked cards", () => {
     const deck = makeDeck(10, "a");
     const m = newMatch(42, { deck, captainId: "a0" }, { deck: makeDeck(10, "b"), captainId: "b0" }, makeOpp());
     const rng = makeRng(42);
@@ -368,7 +370,10 @@ describe("halftime (direct)", () => {
 
     halftime(m, rng);
 
-    expect(m.players[0]!.fatigue).toBe(0);
+    // Halftime now recovers only part of the fatigue (carries the rest into the 2nd half), so a
+    // first-half grind still lingers — it is no longer a full wipe to 0.
+    expect(m.players[0]!.fatigue).toBeGreaterThan(0);
+    expect(m.players[0]!.fatigue).toBeLessThan(20);
     expect(m.players[0]!.locked).toHaveLength(0);
     expect(m.players[0]!.drawPile.some((c) => c.id === "leg")).toBe(true);
     expect(m.players[0]!.tacticalsThisHalf).toBe(0);

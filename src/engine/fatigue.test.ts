@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { applyFatiguePenalty, fatigueDelta, resetFatigue, updateFatigue } from "./fatigue.ts";
+import { applyFatiguePenalty, fatigueDelta, resetFatigue, updateFatigue, recoverFatigueAtHalftime } from "./fatigue.ts";
 import type { PlayerState, CardInPlay, PlayerCard } from "./types.ts";
 
 function makeCardInPlay(): CardInPlay {
@@ -95,10 +95,47 @@ describe("fatigueDelta", () => {
     const delta = fatigueDelta(attack, defense, 0);
     expect(delta).toBe(0);
   });
+
+  it("ramps up later in the match (defending tires faster in the 2nd half / ET)", () => {
+    const defense = [makeCardInPlay(), makeCardInPlay()];
+    const early = fatigueDelta([], defense, 0, 3, "balanced"); // R1–4 → +4
+    const mid = fatigueDelta([], defense, 0, 5, "balanced"); // R5–6 → +5
+    const late = fatigueDelta([], defense, 0, 7, "balanced"); // R7–8/ET → +6
+    expect(early).toBe(4);
+    expect(mid).toBe(5);
+    expect(late).toBe(6);
+  });
+
+  it("scales with formation: defensive tires much more, offensive barely tires", () => {
+    const defense = [makeCardInPlay(), makeCardInPlay()];
+    const offensive = fatigueDelta([], defense, 0, 1, "offensive"); // 4 × 0.5 → 2
+    const balanced = fatigueDelta([], defense, 0, 1, "balanced"); // 4 × 1.0 → 4
+    const defensive = fatigueDelta([], defense, 0, 1, "defensive"); // 4 × 1.5 → 6
+    expect(offensive).toBeLessThan(balanced);
+    expect(defensive).toBeGreaterThan(balanced);
+    expect(offensive).toBe(2);
+    expect(defensive).toBe(6);
+  });
+});
+
+describe("recoverFatigueAtHalftime", () => {
+  it("recovers only part of fatigue (carries the rest into the 2nd half)", () => {
+    const s = makeState({ fatigue: 20 });
+    recoverFatigueAtHalftime(s);
+    expect(s.fatigue).toBeGreaterThan(0); // not a full wipe
+    expect(s.fatigue).toBeLessThan(20); // but some is shaken off
+    expect(s.fatigue).toBe(12); // 20 × (1 − 0.4)
+  });
+
+  it("leaves zero fatigue at zero", () => {
+    const s = makeState({ fatigue: 0 });
+    recoverFatigueAtHalftime(s);
+    expect(s.fatigue).toBe(0);
+  });
 });
 
 describe("resetFatigue", () => {
-  it("resets fatigue to 0 (halftime)", () => {
+  it("resets fatigue to 0 (full reset)", () => {
     const s = makeState({ fatigue: 20 });
     resetFatigue(s);
     expect(s.fatigue).toBe(0);

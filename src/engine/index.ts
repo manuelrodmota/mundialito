@@ -50,8 +50,9 @@ export {
   CAPTAIN_PRIDE_DEF,
   FATIGUE_MAX,
   FATIGUE_DIV,
-  FATIGUE_GAIN,
+  FATIGUE_GAIN_FOR,
   FATIGUE_LOSS,
+  HALFTIME_FATIGUE_RECOVERY,
   COUNTER_ATTACK_XG,
   MOMENTUM_XG,
   PRESSURE_FULL,
@@ -82,7 +83,7 @@ export { computeSynergies, atkSynergy, defSynergy } from "./synergies.ts";
 export type { SynergyDeltas } from "./synergies.ts";
 
 // WCC-010 — Fatigue
-export { applyFatiguePenalty, fatigueDelta, updateFatigue, resetFatigue } from "./fatigue.ts";
+export { applyFatiguePenalty, fatigueDelta, updateFatigue, resetFatigue, recoverFatigueAtHalftime } from "./fatigue.ts";
 
 // WCC-011 — Card flow
 export { drawToHand, refreshStamina, routeCard, returnLockedToDrawPile, buildOpeningHand, isPremium, isCommonPlayer, isTactical } from "./cards.ts";

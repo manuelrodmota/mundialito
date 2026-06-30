@@ -134,12 +134,16 @@ export function CARD_CAP(round: number): number {
   return round <= 4 ? 4 : round <= 6 ? 5 : 6;
 }
 
-/** ATK and DEF multipliers per formation. §15 */
-export const FORMATIONS: Record<Formation, { atkMult: number; defMult: number }> = {
-  offensive: { atkMult: 1.2, defMult: 0.8 },
-  balanced: { atkMult: 1.0, defMult: 1.0 },
-  defensive: { atkMult: 0.8, defMult: 1.2 },
-} as const satisfies Record<Formation, { atkMult: number; defMult: number }>;
+/**
+ * ATK and DEF multipliers per formation, plus a fatigueMult that scales how fast a defending lane
+ * tires: an offensive shape pushes forward and saps little; a defensive shape grinds and tires much
+ * faster. Makes the formation choice a real fatigue trade-off, not just an ATK/DEF swap. §15
+ */
+export const FORMATIONS: Record<Formation, { atkMult: number; defMult: number; fatigueMult: number }> = {
+  offensive: { atkMult: 1.2, defMult: 0.8, fatigueMult: 0.5 },
+  balanced: { atkMult: 1.0, defMult: 1.0, fatigueMult: 1.0 },
+  defensive: { atkMult: 0.8, defMult: 1.2, fatigueMult: 1.5 },
+} as const satisfies Record<Formation, { atkMult: number; defMult: number; fatigueMult: number }>;
 
 // Match structure. §15 — v12: match cut 10 → 8 rounds (halftime R4 / 45', full time R8 / 90').
 export const MERCY_LEAD = 3;
@@ -175,10 +179,21 @@ export const CAPTAIN_PRIDE_DEF = 2;
 export const FATIGUE_MAX = 30;
 /** Fatigue→DEF penalty divisor: DEF_eff = DEF × (1 − F/DIV). Lower = defenses fray harder late. §15 */
 export const FATIGUE_DIV = tunable("SIM_FATIGUE_DIV", 60);
-/** Fatigue gained per round of defending. §15 */
-export const FATIGUE_GAIN = tunable("SIM_FATIGUE_GAIN", 3);
+/**
+ * Base fatigue gained per defense-heavy round, ramping as the match wears on (mirrors the stamina
+ * ramp at R5/R7). Scaled by the formation's fatigueMult and clamped to FATIGUE_MAX. So sustained
+ * defending — especially in a defensive shape, late — is what reaches the "hot"/"gassed" tiers. §15
+ */
+export function FATIGUE_GAIN_FOR(round: number): number {
+  return round <= 4 ? 4 : round <= 6 ? 5 : 6;
+}
 /** Fatigue lost per round of attacking (rest). §15 */
 export const FATIGUE_LOSS = 3;
+/**
+ * Fraction of accumulated fatigue RECOVERED at halftime — the rest carries into the second half, so
+ * a first-half grind still weighs on tired legs after the break (no longer a full wipe). §15
+ */
+export const HALFTIME_FATIGUE_RECOVERY = tunable("SIM_HALFTIME_FATIGUE_RECOVERY", 0.4);
 
 // Tactical xG values. §15
 export const COUNTER_ATTACK_XG = 0.4;

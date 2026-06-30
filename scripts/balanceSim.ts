@@ -170,16 +170,16 @@ function resolveRoundParam(m: MatchState, rng: Rng, cfg: CurveCfg, tel: Tel): Ma
     const scored = addXgP(m.players[lead]!, lead === 0 ? xg0 : xg1, m.round, cfg.threshold);
     updateMomentum(m.players[0]!, lead === 0 && scored);
     updateMomentum(m.players[1]!, lead === 1 && scored);
-    updateFatigue(m.players[0]!);
-    updateFatigue(m.players[1]!);
+    updateFatigue(m.players[0]!, m.round);
+    updateFatigue(m.players[1]!, m.round);
     m.etRound += 1;
   } else {
     const s0 = addXgP(m.players[0]!, xg0, m.round, cfg.threshold);
     const s1 = addXgP(m.players[1]!, xg1, m.round, cfg.threshold);
     updateMomentum(m.players[0]!, s0);
     updateMomentum(m.players[1]!, s1);
-    updateFatigue(m.players[0]!);
-    updateFatigue(m.players[1]!);
+    updateFatigue(m.players[0]!, m.round);
+    updateFatigue(m.players[1]!, m.round);
     if (m.round === HALFTIME_ROUND) halftime(m, rng);
   }
 

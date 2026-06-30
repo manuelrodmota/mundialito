@@ -18,7 +18,7 @@ import type { ShotResult } from "./types.ts";
 import { buildOpeningHand, drawToHand, returnLockedToDrawPile, routeCard } from "./cards.ts";
 import { xgAdd, addPressure, takeShot } from "./xg.ts";
 import { computeEffectiveStats } from "./effectiveStats.ts";
-import { updateFatigue, resetFatigue } from "./fatigue.ts";
+import { updateFatigue, recoverFatigueAtHalftime } from "./fatigue.ts";
 import { checkWin } from "./checkWin.ts";
 import { resolveInstants, resetTacticalCounters, applyTacticalXg, applyDefensiveTacticals, applyCatenaccio, applyHighPress, applyTimeWasting, shotModifiers } from "./tacticals.ts";
 import { tickStatuses } from "./status.ts";
@@ -108,13 +108,13 @@ export function startRound(m: MatchState, rng: Rng): MatchState {
 
 /**
  * Applies the halftime reset at R5:
- *   locked → drawPile, fatigue = 0, tactical counters reset for both players.
+ *   locked → drawPile, PARTIAL fatigue recovery (not a full wipe), tactical counters reset.
  * GDD §6 / §17.
  */
 export function halftime(m: MatchState, rng: Rng): void {
   for (const p of m.players) {
     returnLockedToDrawPile(p, rng);
-    resetFatigue(p);
+    recoverFatigueAtHalftime(p);
     resetMomentum(p);
   }
   resetTacticalCounters(m);
@@ -286,8 +286,8 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
     updateMomentum(m.players[0]!, m.players[0]!.lastShot?.scored ?? false);
     updateMomentum(m.players[1]!, m.players[1]!.lastShot?.scored ?? false);
 
-    updateFatigue(m.players[0]!);
-    updateFatigue(m.players[1]!);
+    updateFatigue(m.players[0]!, m.round);
+    updateFatigue(m.players[1]!, m.round);
 
     m.etRound += 1;
   } else {
@@ -300,8 +300,8 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
     updateMomentum(m.players[0]!, shot0.scored);
     updateMomentum(m.players[1]!, shot1.scored);
 
-    updateFatigue(m.players[0]!);
-    updateFatigue(m.players[1]!);
+    updateFatigue(m.players[0]!, m.round);
+    updateFatigue(m.players[1]!, m.round);
 
     if (m.round === HALFTIME_ROUND) {
       halftime(m, rng);
