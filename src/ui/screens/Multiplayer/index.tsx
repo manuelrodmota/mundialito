@@ -1,8 +1,11 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { Card } from '../../../engine/types'
 import { laneFx } from '../../../engine'
 import { useLang } from '../../i18n'
+import { useAuth } from '../../../auth/AuthProvider'
+import { useAccount } from '../../../account/AccountProvider'
 import { useMultiplayerMatch } from '../../multiplayer/useMultiplayerMatch'
+import { fetchOwnedCounts } from '../../../data/user/userCards.repo'
 import { DeckBuilder } from '../DeckBuilder'
 import { MultiplayerLobby } from '../../organisms/MultiplayerLobby'
 import { MatchBoard } from '../../organisms/MatchBoard'
@@ -20,9 +23,23 @@ interface MultiplayerProps {
  */
 export function Multiplayer({ onBack }: MultiplayerProps) {
   const { t } = useLang()
+  const { user } = useAuth()
+  const { profile } = useAccount()
+  // The multiplayer display name is the account name (Multiplayer is gated on being signed in).
+  const displayName = profile?.username ?? user?.displayName ?? 'Player'
   const [preMatch, setPreMatch] = useState<'deckbuilder' | 'lobby'>('deckbuilder')
   const [deck, setDeck] = useState<Card[] | null>(null)
   const [captainId, setCaptainId] = useState<string | null>(null)
+  // Multiplayer is collection-gated: players build only from the cards they own. Loaded once on mount.
+  const [ownedIds, setOwnedIds] = useState<Set<number> | null>(null)
+
+  useEffect(() => {
+    let active = true
+    fetchOwnedCounts()
+      .then((counts) => { if (active) setOwnedIds(new Set(counts.keys())) })
+      .catch(() => { if (active) setOwnedIds(new Set()) })
+    return () => { active = false }
+  }, [])
 
   const {
     viewState,
@@ -40,13 +57,13 @@ export function Multiplayer({ onBack }: MultiplayerProps) {
     setPreMatch('lobby')
   }, [])
 
-  const handleCreate = useCallback((name: string) => {
-    if (deck && captainId) void createRoom(deck, captainId, name)
-  }, [deck, captainId, createRoom])
+  const handleCreate = useCallback(() => {
+    if (deck && captainId) void createRoom(deck, captainId, displayName)
+  }, [deck, captainId, displayName, createRoom])
 
-  const handleJoin = useCallback((code: string, name: string) => {
-    if (deck && captainId) void joinRoom(code, deck, captainId, name)
-  }, [deck, captainId, joinRoom])
+  const handleJoin = useCallback((code: string) => {
+    if (deck && captainId) void joinRoom(code, deck, captainId, displayName)
+  }, [deck, captainId, displayName, joinRoom])
 
   const handleLeave = useCallback(() => {
     leave()
@@ -110,7 +127,14 @@ export function Multiplayer({ onBack }: MultiplayerProps) {
 
   // ── Pre-match (deck → lobby) ────────────────────────────────────────────────
   if (preMatch === 'deckbuilder') {
-    return <DeckBuilder onDeckReady={handleDeckReady} onBack={onBack} />
+    if (ownedIds === null) {
+      return (
+        <div className="qp-loading">
+          <p>{t('quickChoose.ownedLoading')}</p>
+        </div>
+      )
+    }
+    return <DeckBuilder onDeckReady={handleDeckReady} onBack={onBack} ownedCardIds={ownedIds} />
   }
 
   return (
@@ -118,6 +142,7 @@ export function Multiplayer({ onBack }: MultiplayerProps) {
       phase={viewState.phase}
       roomCode={viewState.roomCode}
       error={viewState.error}
+      playerName={displayName}
       onCreate={handleCreate}
       onJoin={handleJoin}
       onBack={handleLeave}
