@@ -16,7 +16,7 @@ The complete design is the game design document, **[`APP_DEFINITION.md`](./APP_D
 
 ## How a match plays
 
-A full **90 minutes = 10 rounds**. There is no HP — each team fills an **xG meter** by attacking. When a meter fills, that team takes a **shot** — a strong chance, but **not a sure thing**: it converts on a probability, so a full meter can still be a great save. Score and the meter empties; miss and it drops a chunk, so you keep the pressure on. The better deck fills faster → shoots more often → wins.
+A full **90 minutes = 8 rounds**. There is no HP — each team fills an **xG meter** by attacking. When a meter fills, that team takes a **shot** — a strong chance, but **not a sure thing**: it converts on a probability, so a full meter can still be a great save. Score and the meter empties; miss and it drops a chunk, so you keep the pressure on. The better deck fills faster → shoots more often → wins.
 
 - **Lead by 3 → instant win** (mercy rule). Otherwise the **leader at full time** wins; **level → golden-goal extra time** (sudden death, stars + fatigue refreshed, xG ×2).
 - **xG fill per round:** `clamp(0.05 + max(0, ATK_eff − DEF_eff) / 210, 0, 0.50)`. A full meter then triggers a shot that converts at a base **~80%** (nudged by a pity bonus on misses and momentum) — finishing is **probabilistic, not automatic**. Scoring lands around **~4–6 goals/match**.
