@@ -187,13 +187,31 @@ export const FATIGUE_DIV = tunable("SIM_FATIGUE_DIV", 60);
 export function FATIGUE_GAIN_FOR(round: number): number {
   return round <= 4 ? 4 : round <= 6 ? 5 : 6;
 }
-/** Fatigue lost per round of attacking (rest). §15 */
+/** Fatigue lost per round of attacking (rest) — committing to attack is the ONLY way to recover. §15 */
 export const FATIGUE_LOSS = 3;
+/**
+ * Base fatigue from an even (balanced) board — splitting your lanes is no longer a free ride: it
+ * costs a little (scaled by the formation's fatigueMult), so you can't coast on balance forever and
+ * must periodically commit to ATTACK to recover. An empty/idle board stays neutral. §15
+ */
+export const FATIGUE_BALANCED_GAIN = tunable("SIM_FATIGUE_BALANCED_GAIN", 2);
 /**
  * Fraction of accumulated fatigue RECOVERED at halftime — the rest carries into the second half, so
  * a first-half grind still weighs on tired legs after the break (no longer a full wipe). §15
  */
 export const HALFTIME_FATIGUE_RECOVERY = tunable("SIM_HALFTIME_FATIGUE_RECOVERY", 0.4);
+/**
+ * A tiring defense leaks even while nominally holding: the attacker's xG floor grows from XG_FLOOR
+ * (fresh defender) up to XG_FLOOR + FLOOR_FATIGUE_BONUS (defender at FATIGUE_MAX). Turns the old
+ * binary "0.10 until the defender gasses, then a cliff to the cap" into a gradual crack that rewards
+ * sustained pressure on a tired back line. §8 / §15
+ */
+export const FLOOR_FATIGUE_BONUS = tunable("SIM_FLOOR_FATIGUE_BONUS", 0.3);
+
+/** The xG floor an attacker earns this round, scaled up by the DEFENDER's current fatigue. */
+export function xgFloorFor(defenderFatigue: number): number {
+  return XG_FLOOR + (defenderFatigue / FATIGUE_MAX) * FLOOR_FATIGUE_BONUS;
+}
 
 // Tactical xG values. §15
 export const COUNTER_ATTACK_XG = 0.4;

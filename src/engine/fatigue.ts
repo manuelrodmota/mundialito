@@ -12,6 +12,7 @@ import {
   FATIGUE_DIV,
   FATIGUE_GAIN_FOR,
   FATIGUE_LOSS,
+  FATIGUE_BALANCED_GAIN,
   FORMATIONS,
   HALFTIME_FATIGUE_RECOVERY,
 } from "./constants.ts";
@@ -66,7 +67,12 @@ export function fatigueDelta(
       delta = -FATIGUE_LOSS;
       break;
     case "balanced":
-      delta = 0;
+      // An even split costs a little (only attacking truly rests); a fully empty/idle board is
+      // neutral — you don't tire from fielding nothing.
+      delta =
+        attack.length === 0 && defense.length === 0
+          ? 0
+          : Math.round(FATIGUE_BALANCED_GAIN * FORMATIONS[formation].fatigueMult);
       break;
   }
 

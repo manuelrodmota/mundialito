@@ -3,6 +3,7 @@ import { newMatch, startRound, resolveRound, halftime, cleanupBoards } from "./m
 import { makeRng } from "./rng.ts";
 import { commitCard } from "./board.ts";
 import { decideTurn } from "./ai.ts";
+import { FATIGUE_MAX } from "./constants.ts";
 import type { Card, MatchState, OpponentTeam, PlayerCard } from "./types.ts";
 
 function makePlayerCard(
@@ -268,6 +269,36 @@ describe("aiStrengthMult difficulty handicap", () => {
       return m.players[1]!.xg + m.players[1]!.goals;
     };
     expect(run(1.3)).toBeGreaterThan(run(1.0));
+  });
+
+  it("a held attack leaks MORE against a tired defender (fatigue-scaled xG floor)", () => {
+    const leakAgainst = (defenderFatigue: number): number => {
+      const m = newMatch(
+        7,
+        { deck: makeDeck(10, "y"), captainId: "y0" },
+        { deck: makeDeck(10, "x"), captainId: "x0" },
+        makeOpp(),
+      );
+      const rng = makeRng(7);
+      startRound(m, rng);
+      // p0 fields a lone weak attacker; p1 holds with an overwhelming defender, so the attack never
+      // beats the defense even when the defender is gassed — isolating the FLOOR as p0's only xG.
+      m.players[0]!.board = {
+        attack: [{ card: makePlayerCard("atk", { atk: 10, def: 10, position: "FWD" }), lane: "attack", statuses: [], faceDown: true }],
+        defense: [],
+      };
+      m.players[1]!.board = {
+        attack: [],
+        defense: [{ card: makePlayerCard("def", { atk: 10, def: 600, position: "DEF" }), lane: "defense", statuses: [], faceDown: true }],
+      };
+      m.players[1]!.fatigue = defenderFatigue;
+      resolveRound(m, rng);
+      return m.players[0]!.lastFill ?? 0;
+    };
+    const vsFresh = leakAgainst(0);
+    const vsGassed = leakAgainst(FATIGUE_MAX);
+    expect(vsFresh).toBeCloseTo(0.1, 2); // a fresh wall concedes only the base floor
+    expect(vsGassed).toBeGreaterThan(vsFresh); // a tired wall leaks more even while holding
   });
 
   it("does NOT let the handicap inflate xgAccum — the §19#5 tie-break stays fair", () => {

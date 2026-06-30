@@ -75,11 +75,24 @@ describe("fatigueDelta", () => {
     expect(delta).toBeLessThan(0);
   });
 
-  it("is zero when balanced (equal ATK and DEF cards)", () => {
+  it("costs a little when balanced (an even split is no longer a free ride)", () => {
     const attack = [makeCardInPlay()];
     const defense = [makeCardInPlay()];
-    const delta = fatigueDelta(attack, defense, 10);
+    const delta = fatigueDelta(attack, defense, 10); // balanced formation default → +2
+    expect(delta).toBe(2);
+  });
+
+  it("is zero when the board is fully empty (idle — no cards fielded)", () => {
+    const delta = fatigueDelta([], [], 10);
     expect(delta).toBe(0);
+  });
+
+  it("balanced cost scales with formation (offensive < balanced < defensive)", () => {
+    const attack = [makeCardInPlay()];
+    const defense = [makeCardInPlay()];
+    expect(fatigueDelta(attack, defense, 10, 1, "offensive")).toBe(1); // 2 × 0.5
+    expect(fatigueDelta(attack, defense, 10, 1, "balanced")).toBe(2);
+    expect(fatigueDelta(attack, defense, 10, 1, "defensive")).toBe(3); // 2 × 1.5
   });
 
   it("clamps: delta is reduced when fatigue would exceed FATIGUE_MAX", () => {

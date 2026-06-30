@@ -6,6 +6,9 @@ export const en = {
   'formation.offensive': 'Offensive',
   'formation.balanced': 'Balanced',
   'formation.defensive': 'Defensive',
+  'formation.fatigueLow': 'Tires slowly',
+  'formation.fatigueNormal': 'Normal fatigue',
+  'formation.fatigueHigh': 'Tires fast',
 
   // ExtraTimeBanner
   'et.extraTime': 'EXTRA TIME',
@@ -74,6 +77,9 @@ export const es: typeof en = {
   'formation.offensive': 'Ofensiva',
   'formation.balanced': 'Equilibrada',
   'formation.defensive': 'Defensiva',
+  'formation.fatigueLow': 'Se cansa lento',
+  'formation.fatigueNormal': 'Cansancio normal',
+  'formation.fatigueHigh': 'Se cansa rápido',
 
   // ExtraTimeBanner
   'et.extraTime': 'TIEMPO EXTRA',

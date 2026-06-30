@@ -33,7 +33,7 @@ export const en = {
     "Every round you get an <b>energy budget</b> (<b>8 → 10 → 12</b> as the match goes on). Fielding each player and playing each tactical <b>spends energy</b> — so you can't field everything. A <b>star</b> in a lane makes its support cards cost half. Cards you can't afford are <b>dimmed</b> in your hand.",
   'screens.htpStaminaTitle': 'Attack vs. defend',
   'screens.htpStaminaBody':
-    "Attacking <b>rests your legs</b>; defending <b>tires them</b> — faster late in the match, and much faster in a <b>defensive formation</b> (an offensive shape barely tires). A tired back line lets the opponent score faster — so you can't park the bus forever. Halftime <b>recovers some</b> fatigue (not all); extra time clears it.",
+    "Only <b>attacking</b> rests your legs — defending <b>tires them</b> (faster late, and much faster in a <b>defensive formation</b>), and even an even split costs a little. A tired back line lets the opponent score faster — so you can't park the bus, or coast, forever. Halftime <b>recovers some</b> fatigue (not all); extra time clears it.",
   'screens.htpWinningTitle': 'Winning',
   'screens.htpWinningBody':
     "Most goals at <b>full time</b> (after round 8) takes the match. Level on goals? Whoever created the <b>better chances (xG)</b> edges it — and if those are level too, <span class=\"gold\">golden-goal extra time</span> decides it. There are no draws.",
@@ -101,7 +101,7 @@ export const es: typeof en = {
     'Cada ronda tenés un <b>presupuesto de energía</b> (<b>8 → 10 → 12</b> a medida que avanza el partido). Alinear cada jugador y jugar cada táctica <b>gasta energía</b> — así que no podés alinearlo todo. Una <b>estrella</b> en una banda hace que sus cartas de apoyo cuesten la mitad. Las cartas que no podés pagar se <b>atenúan</b> en tu mano.',
   'screens.htpStaminaTitle': 'Atacar vs. defender',
   'screens.htpStaminaBody':
-    'Atacar <b>descansa tus piernas</b>; defender <b>las cansa</b> — más rápido al final del partido, y mucho más en una <b>formación defensiva</b> (una formación ofensiva casi no cansa). Una línea defensiva cansada deja que el rival marque más rápido — así que no podés encerrarte para siempre. El descanso <b>recupera parte</b> de la fatiga (no toda); el tiempo extra la elimina.',
+    'Solo <b>atacar</b> descansa tus piernas — defender <b>las cansa</b> (más al final, y mucho más en una <b>formación defensiva</b>), y hasta un reparto parejo cansa un poco. Una línea defensiva cansada deja que el rival marque más rápido — así que no podés encerrarte, ni especular, para siempre. El descanso <b>recupera parte</b> de la fatiga (no toda); el tiempo extra la elimina.',
   'screens.htpWinningTitle': 'Ganar',
   'screens.htpWinningBody':
     'Quien tenga más goles al <b>tiempo completo</b> (tras la ronda 8) se lleva el partido. ¿Iguales en goles? Lo define quien generó las <b>mejores ocasiones (xG)</b> — y si eso también está igualado, decide el <span class="gold">tiempo extra de gol de oro</span>. No hay empates.',
