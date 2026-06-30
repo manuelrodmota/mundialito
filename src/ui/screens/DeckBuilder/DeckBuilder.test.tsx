@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { PlayerCard, Card } from '../../../engine/types'
 
@@ -131,6 +131,27 @@ describe('DeckBuilder', () => {
       await waitFor(() => {
         expect(screen.getByText(/up to 3 tactical cards/i)).toBeInTheDocument()
       })
+    })
+
+    it('opens the full-squad modal and removes a player from it', async () => {
+      mockFetchPlayers.mockResolvedValue([makePremium({ id: 'p1', name: 'Star Player' })])
+      const { DeckBuilder } = await import('./index')
+      const user = userEvent.setup()
+
+      render(<DeckBuilder onDeckReady={() => {}} onBack={() => {}} />)
+      await waitFor(() => expect(document.querySelector('.pool-cell [data-rarity]')).toBeInTheDocument())
+
+      // Add the premium, then open the full-squad modal.
+      await user.click(document.querySelector('.pool-cell [data-rarity]') as HTMLElement)
+      await user.click(screen.getByRole('button', { name: /Full squad/i }))
+
+      const modal = document.querySelector('.squad-modal') as HTMLElement
+      expect(modal).toBeInTheDocument()
+      expect(within(modal).getByText('Star Player')).toBeInTheDocument()
+
+      // Removing from the modal updates the live squad.
+      await user.click(within(modal).getByRole('button', { name: '✕' }))
+      expect(within(modal).queryByText('Star Player')).not.toBeInTheDocument()
     })
   })
 
@@ -277,8 +298,9 @@ describe('DeckBuilder', () => {
       await waitFor(() => screen.getByText(/10-slot budget/i))
 
       // Browse the common-sparse WC 1950 edition and pick its lone premium.
-      const edition = document.querySelector('.edition-select') as HTMLSelectElement
-      await user.selectOptions(edition, '1950')
+      // The WC-edition control is a custom dropdown: open it, then click the option.
+      await user.click(document.querySelector('.edition-select') as HTMLElement)
+      await user.click(await screen.findByRole('option', { name: /WC 1950/ }))
       await waitFor(() => expect(document.querySelector('.pool-cell [data-rarity]')).toBeInTheDocument())
       await user.click(document.querySelector('.pool-cell [data-rarity]') as HTMLElement)
       await user.click(screen.getByRole('button', { name: /Fill bench/i }))

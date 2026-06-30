@@ -1,6 +1,10 @@
+import type { ReactNode } from 'react'
 import { useLang, localizeCountry } from '../../i18n'
+import { Select, type SelectOption } from '../../molecules/Select'
 
 interface FiltersProps {
+  /** Leading controls rendered at the start of the bar (e.g. the assisted/free mode tabs). */
+  leading?: ReactNode
   searchValue?: string
   onSearchChange?: (value: string) => void
   /** Selected WC edition (season year). With seasonOptions, renders the edition selector. */
@@ -23,8 +27,10 @@ interface FiltersProps {
   onRatingMinChange?: (value: number) => void
 }
 
-/** Squad browser filter row — WC edition + country + text search + position + rarity + rating range. */
+/** Squad browser filter row — WC edition + country + text search + position + rarity + rating range.
+ *  Uses the custom Select dropdown (native <select> overflows / clips on mobile). */
 export function Filters({
+  leading,
   searchValue = '',
   onSearchChange,
   seasonValue,
@@ -49,47 +55,66 @@ export function Filters({
     Rare: t('builder.rarityRare'),
     Common: t('builder.rarityCommon'),
   }
+
+  const seasonOpts: SelectOption[] = (seasonOptions ?? []).map((s) => ({
+    value: String(s),
+    label: t('builder.wcEdition', { year: s }),
+  }))
+  const countryOpts: SelectOption[] = [
+    { value: 'all', label: t('builder.allCountries') },
+    ...(countryOptions ?? []).map((c) => ({ value: c, label: localizeCountry(c, lang) })),
+  ]
+  const positionOpts: SelectOption[] = [
+    { value: 'all', label: t('builder.allPositions') },
+    { value: 'FWD', label: t('builder.posFwd') },
+    { value: 'MID', label: t('builder.posMid') },
+    { value: 'DEF', label: t('builder.posDef') },
+    { value: 'GK', label: t('builder.posGk') },
+  ]
+  const rarityOpts: SelectOption[] = [
+    { value: 'all', label: rarityAllLabel ?? t('builder.allRarities') },
+    ...rarityOptions.map((r) => ({ value: r, label: RARITY_LABELS[r] ?? r })),
+  ]
+
   return (
-    <div className="filters" style={{ border: 'none', padding: '0 28px 16px', width: '100%' }}>
-      {seasonOptions && onSeasonChange && (
-        <select
+    <div className="filters">
+      {leading}
+      {seasonOpts.length > 0 && onSeasonChange && (
+        <Select
           className="edition-select"
+          ariaLabel={t('builder.wcEditionTitle')}
           value={String(seasonValue ?? '')}
-          onChange={(e) => onSeasonChange(Number(e.target.value))}
-          title={t('builder.wcEditionTitle')}
-        >
-          {seasonOptions.map((s) => (
-            <option key={s} value={s}>{t('builder.wcEdition', { year: s })}</option>
-          ))}
-        </select>
+          options={seasonOpts}
+          onChange={(v) => onSeasonChange(Number(v))}
+        />
       )}
       <input
         type="text"
+        className="filter-search"
         placeholder={t('builder.searchPlaceholder')}
         value={searchValue}
         onChange={(e) => onSearchChange?.(e.target.value)}
       />
       {onCountryChange && (
-        <select value={countryValue} onChange={(e) => onCountryChange(e.target.value)} title={t('builder.countryTitle')}>
-          <option value="all">{t('builder.allCountries')}</option>
-          {(countryOptions ?? []).map((c) => (
-            <option key={c} value={c}>{localizeCountry(c, lang)}</option>
-          ))}
-        </select>
+        <Select
+          ariaLabel={t('builder.countryTitle')}
+          value={countryValue}
+          options={countryOpts}
+          onChange={onCountryChange}
+        />
       )}
-      <select value={positionValue} onChange={(e) => onPositionChange?.(e.target.value)}>
-        <option value="all">{t('builder.allPositions')}</option>
-        <option value="FWD">{t('builder.posFwd')}</option>
-        <option value="MID">{t('builder.posMid')}</option>
-        <option value="DEF">{t('builder.posDef')}</option>
-        <option value="GK">{t('builder.posGk')}</option>
-      </select>
-      <select value={rarityValue} onChange={(e) => onRarityChange?.(e.target.value)}>
-        <option value="all">{rarityAllLabel ?? t('builder.allRarities')}</option>
-        {rarityOptions.map((r) => (
-          <option key={r} value={r}>{RARITY_LABELS[r] ?? r}</option>
-        ))}
-      </select>
+      <Select
+        ariaLabel={t('builder.allPositions')}
+        value={positionValue}
+        options={positionOpts}
+        onChange={(v) => onPositionChange?.(v)}
+      />
+      <Select
+        ariaLabel={rarityAllLabel ?? t('builder.allRarities')}
+        value={rarityValue}
+        options={rarityOpts}
+        onChange={(v) => onRarityChange?.(v)}
+      />
       <div className="range-wrap">
         <span>{t('builder.ratingMin', { n: ratingMin })}</span>
         <input

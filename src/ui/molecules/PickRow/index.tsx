@@ -1,9 +1,12 @@
 import { useLang } from '../../i18n'
+import { crestSrc } from '../../data/nations'
 
 interface PickRowProps {
   rating: number | string
   name: string
   slots?: number
+  /** Nation — renders a small round crest before the name when an emblem image exists. */
+  nation?: string
   isCaptain?: boolean
   onCaptainToggle?: () => void
   onRemove?: () => void
@@ -17,6 +20,7 @@ export function PickRow({
   rating,
   name,
   slots,
+  nation,
   isCaptain,
   onCaptainToggle,
   onRemove,
@@ -25,6 +29,7 @@ export function PickRow({
   highlighted,
 }: PickRowProps) {
   const { t } = useLang()
+  const crest = !isTactic && nation ? crestSrc(nation) : null
   const cls = [
     'pick-row',
     isTactic ? 'tactic-row' : '',
@@ -36,6 +41,7 @@ export function PickRow({
   return (
     <div className={cls} style={highlighted ? { borderColor: 'var(--gold)' } : undefined}>
       <span className="rt">{rating}</span>
+      {crest && <img className="nm-flag" src={crest} alt="" loading="lazy" draggable={false} />}
       <span className="nm">{name}</span>
       {slots !== undefined && <span className="sl">{t('builder.slotsShort', { n: slots })}</span>}
       {!isTactic && onCaptainToggle && (

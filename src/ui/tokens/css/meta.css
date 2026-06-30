@@ -144,6 +144,10 @@
 .topbar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 40;
   display: flex; align-items: center; gap: 16px; padding: 16px 28px;
+  /* Solid blurred bar so scrolling content never bleeds through it. */
+  background: rgba(7, 9, 15, 0.86);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
 }
 .topbar .brand-min {
   font-family: inherit; font-weight: 800; letter-spacing: -0.01em; font-size: 16px; color: var(--txt);
@@ -405,7 +409,9 @@
 
 /* ===== QUICKPLAY CHOOSER ===================================================== */
 .qp-menu-back { position: fixed; top: 20px; left: 24px; z-index: 5; }
-.qp-choose-title { font-size: clamp(30px, 5vw, 50px); white-space: normal; }
+/* Scoped to .home so it beats `.home h1` (which is nowrap + a larger clamp) — otherwise
+   the long Spanish title can't wrap and overflows the screen. */
+.home h1.qp-choose-title { font-size: clamp(28px, 5vw, 50px); white-space: normal; }
 .qp-choose-grid { grid-template-columns: repeat(2, 260px); }
 @media (max-width: 620px) { .qp-choose-grid { grid-template-columns: 1fr; } }
 
