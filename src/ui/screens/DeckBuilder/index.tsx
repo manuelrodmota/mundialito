@@ -11,6 +11,8 @@ import { Filters } from '../../organisms/Filters'
 import { AssistedPool } from '../../organisms/AssistedPool'
 import { PickRow, SlotMeter } from '../../molecules/PickRow'
 import { CardDetailModal } from '../../organisms/CardDetailModal'
+import { LandscapeGate } from '../../organisms/LandscapeGate'
+import { Modal } from '../../organisms/Modal'
 import { TACTICAL_DESCRIPTION_KEYS, tacticalName } from '../../organisms/CardDetailModal/tacticalText'
 import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
@@ -76,6 +78,9 @@ export function DeckBuilder({
   // full flat grid. Both share the same picks/captain/slots state, so toggling never
   // loses a selection. Default to assisted so newcomers get the guided path first.
   const [mode, setMode] = useState<'assisted' | 'free'>('assisted')
+  // Full-squad review modal — the picks pane is cramped on phones, so this opens the
+  // complete selected squad (premiums + tacticals + bench) with per-player remove.
+  const [squadOpen, setSquadOpen] = useState(false)
 
   const [searchValue, setSearchValue] = useState('')
   const [positionValue, setPositionValue] = useState('all')
@@ -254,6 +259,7 @@ export function DeckBuilder({
   if (loadState === 'loading') {
     return (
       <div className="screen builder">
+        <LandscapeGate />
         <div className="stadium-bg" />
         <div className="builder-loading">
           <div className="loader-ring" aria-hidden="true" />
@@ -321,8 +327,66 @@ export function DeckBuilder({
     [t('builder.groupTactical'), tacPicks],
   ]
 
+  // Selected-squad rows (premium groups + tacticals + rolled bench). Shared by the
+  // inline picks-pane list and the full-squad review modal.
+  const squadRows = (
+    <>
+      {groups.map(([label, cards]) =>
+        cards.length ? (
+          <div key={label}>
+            <div className="group-h">{t('builder.groupHeader', { label, n: cards.length })}</div>
+            {cards.map((c) => {
+              if (c.type === 'tactical') {
+                return (
+                  <PickRow
+                    key={c.id}
+                    rating={c.cost}
+                    name={tacticalName(t, c.effect.kind, c.name)}
+                    slots={c.slots}
+                    isTactic
+                    onRemove={() => handleRemoveTactical(c as TacticalCard)}
+                  />
+                )
+              }
+              const player = c as PlayerCard
+              return (
+                <PickRow
+                  key={player.id}
+                  rating={player.overall}
+                  name={player.name}
+                  nation={player.nation}
+                  slots={player.slots}
+                  isCaptain={captainId === player.id}
+                  onCaptainToggle={() => handleToggleCaptain(player)}
+                  onRemove={() => handleRemovePlayer(player)}
+                />
+              )
+            })}
+          </div>
+        ) : null,
+      )}
+
+      {benchCommons.length > 0 && (
+        <div>
+          <div className="group-h">{t('builder.benchHeader', { n: benchCommons.length })}</div>
+          {benchCommons.map((player) => (
+            <PickRow
+              key={player.id}
+              rating={player.overall}
+              name={player.name}
+              nation={player.nation}
+              slots={player.slots}
+              onRemove={() => handleRemoveBenchCommon(player)}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  )
+
   return (
     <div className="screen builder">
+      <LandscapeGate />
       <div className="stadium-bg" />
       <div className="builder-head">
         <button className="btn btn-ghost builder-back" onClick={onBack}>
@@ -338,25 +402,27 @@ export function DeckBuilder({
 
       <div className="builder-body">
         <div className="pool-pane">
-          <div className="builder-tabs builder-mode-tabs" role="tablist" aria-label={t('builder.selectionModeLabel')}>
-            <button
-              role="tab"
-              aria-selected={mode === 'assisted'}
-              className={mode === 'assisted' ? 'on' : ''}
-              onClick={() => setMode('assisted')}
-            >
-              {t('builder.modeRecommended')}
-            </button>
-            <button
-              role="tab"
-              aria-selected={mode === 'free'}
-              className={mode === 'free' ? 'on' : ''}
-              onClick={() => setMode('free')}
-            >
-              {t('builder.modeAllPlayers')}
-            </button>
-          </div>
           <Filters
+            leading={
+              <div className="builder-tabs builder-mode-tabs" role="tablist" aria-label={t('builder.selectionModeLabel')}>
+                <button
+                  role="tab"
+                  aria-selected={mode === 'assisted'}
+                  className={mode === 'assisted' ? 'on' : ''}
+                  onClick={() => setMode('assisted')}
+                >
+                  {t('builder.modeRecommended')}
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={mode === 'free'}
+                  className={mode === 'free' ? 'on' : ''}
+                  onClick={() => setMode('free')}
+                >
+                  {t('builder.modeAllPlayers')}
+                </button>
+              </div>
+            }
             searchValue={searchValue}
             onSearchChange={setSearchValue}
             seasonValue={ownedMode ? undefined : seasonValue}
@@ -495,73 +561,33 @@ export function DeckBuilder({
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="builder-pick-actions">
             <button
-              className={`btn btn-ghost${shouldGlowFill ? ' glow-cta' : ''}`}
-              style={{ flex: 1, padding: '9px 10px', fontSize: 13 }}
+              className={`btn btn-ghost builder-fill-btn${shouldGlowFill ? ' glow-cta' : ''}`}
               onClick={handleFillCommons}
               disabled={commonPool.length === 0}
             >
               {t('builder.fillBench')}
             </button>
             <button
-              className="btn btn-ghost"
-              style={{ padding: '9px 12px', fontSize: 13 }}
+              className="btn btn-ghost builder-clear-btn"
               onClick={() => { setPicks([]); setTacPicks([]); setCaptainId(null); setBenchCommons([]) }}
             >
               {t('builder.clear')}
             </button>
           </div>
 
-          <div className="pick-rows" style={{ overflowY: 'auto', flex: 1 }}>
-            {groups.map(([label, cards]) =>
-              cards.length ? (
-                <div key={label}>
-                  <div className="group-h">{t('builder.groupHeader', { label, n: cards.length })}</div>
-                  {cards.map((c) => {
-                    if (c.type === 'tactical') {
-                      return (
-                        <PickRow
-                          key={c.id}
-                          rating={c.cost}
-                          name={tacticalName(t, c.effect.kind, c.name)}
-                          slots={c.slots}
-                          isTactic
-                          onRemove={() => handleRemoveTactical(c as TacticalCard)}
-                        />
-                      )
-                    }
-                    const player = c as PlayerCard
-                    return (
-                      <PickRow
-                        key={player.id}
-                        rating={player.overall}
-                        name={player.name}
-                        slots={player.slots}
-                        isCaptain={captainId === player.id}
-                        onCaptainToggle={() => handleToggleCaptain(player)}
-                        onRemove={() => handleRemovePlayer(player)}
-                      />
-                    )
-                  })}
-                </div>
-              ) : null
-            )}
+          <button
+            className="btn btn-ghost builder-see-squad"
+            type="button"
+            onClick={() => setSquadOpen(true)}
+            disabled={totalPicks === 0}
+          >
+            {t('builder.fullSquad', { n: totalPicks })}
+          </button>
 
-            {benchCommons.length > 0 && (
-              <div>
-                <div className="group-h">{t('builder.benchHeader', { n: benchCommons.length })}</div>
-                {benchCommons.map((player) => (
-                  <PickRow
-                    key={player.id}
-                    rating={player.overall}
-                    name={player.name}
-                    slots={player.slots}
-                    onRemove={() => handleRemoveBenchCommon(player)}
-                  />
-                ))}
-              </div>
-            )}
+          <div className="pick-rows" style={{ overflowY: 'auto', flex: 1 }}>
+            {squadRows}
           </div>
 
           <button
@@ -581,6 +607,19 @@ export function DeckBuilder({
         isCaptain={modalCard?.type === 'player' && modalCard.id === captainId}
         showMult={modalCard?.type === 'player' && modalCard.rarity !== 'common'}
       />
+
+      <Modal open={squadOpen} onClose={() => setSquadOpen(false)}>
+        <div className="squad-modal">
+          <h3 className="squad-modal-title">
+            {t('builder.fullSquadTitle')}
+            <span className="squad-modal-count">{totalPicks} / {rosterSize}</span>
+          </h3>
+          <div className="squad-modal-list">{squadRows}</div>
+          <button className="btn btn-ghost" type="button" onClick={() => setSquadOpen(false)}>
+            {t('card.close')}
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

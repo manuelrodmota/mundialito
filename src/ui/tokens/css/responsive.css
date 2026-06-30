@@ -1,0 +1,334 @@
+/* ============================================================================
+   WORLD CUP CLASH — responsive / mobile layer
+   Loaded LAST so these rules win the cascade. The game was designed for a
+   horizontal (landscape) layout; this layer (a) lets the portrait-friendly
+   menu screens scroll on short viewports, and (b) makes the dense, landscape-
+   designed screens (DeckBuilder, …) fit a phone held sideways, while nudging
+   portrait-phone users to rotate via <LandscapeGate/>.
+
+   Breakpoints used throughout:
+     • portrait phone  → (orientation: portrait)  and (max-width: 600px)
+     • landscape phone → (orientation: landscape) and (max-height: 600px)
+   600px keeps tablets (iPad mini portrait = 744px, landscape height ≥ 768px)
+   on the full desktop layout.
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   1. Menu / home — scroll instead of clip on short viewports.
+
+   The whole app is height-locked (`body{overflow:hidden}`, `#root{height:100vh}`),
+   and `.home` centers its content. When the menu is taller than the viewport
+   (small phones) the bottom tiles were clipped with no way to scroll. Bound
+   `.home` to the viewport and let it scroll internally; auto-margins on the
+   first/last in-flow children keep the menu centered when it *does* fit, and
+   collapse (so scrolling reaches the top) when it doesn't.
+   ---------------------------------------------------------------------------- */
+.home {
+  height: 100dvh;
+  overflow-y: auto;
+  justify-content: flex-start;
+  -webkit-overflow-scrolling: touch;
+}
+.home > .logo-block { margin-top: auto; }
+.home > .menu-grid { margin-bottom: auto; }
+
+/* Reclaim vertical space on short phones so the menu needs less (or no) scroll.
+   The 2-column phone grid from meta.css (@max-width:760px) is kept as-is. */
+@media (orientation: portrait) and (max-width: 600px) {
+  .home { padding: 64px 16px 32px; }
+  .home .logo-block { margin-bottom: 20px; }
+}
+
+/* Stadium gradient must anchor to the viewport, not the (now taller-than-screen)
+   scroll content — otherwise it drifts mid-page as you scroll. */
+.home > .stadium-bg,
+.screen.menu > .stadium-bg { position: fixed; }
+
+/* Language selector — was an inline position:fixed div; now a class so it can be
+   tuned per breakpoint. Shrink + tuck into the corner on phones so it stops
+   colliding with the big centered title. */
+.home-lang { position: fixed; top: 16px; right: 16px; z-index: 41; }
+@media (orientation: portrait) and (max-width: 600px) {
+  .home-lang { top: 12px; right: 12px; transform: scale(0.82); transform-origin: top right; }
+}
+
+/* Big display titles are `white-space: nowrap` by default (clean one-liner on
+   desktop). On phone-class widths — portrait OR landscape — let them wrap instead
+   of overflowing the screen. */
+@media (max-width: 920px) {
+  .home h1,
+  .screen.menu h1 { white-space: normal; }
+}
+
+/* ----------------------------------------------------------------------------
+   1b. Menu-style screens (DifficultyPicker, …) — scroll instead of clip.
+
+   `.screen.menu` centers a stack (logo + option list + buttons) inside a height-
+   locked screen; in landscape phones the top was clipped with no scroll. Same
+   technique as `.home`: scroll internally, auto-margins center when it fits.
+   ---------------------------------------------------------------------------- */
+.screen.menu {
+  overflow-y: auto;
+  justify-content: flex-start;
+}
+/* Structure-agnostic centering: the first in-flow child (right after the fixed
+   .stadium-bg) and the last child take auto margins, so the whole stack centers
+   when it fits and collapses to scroll-from-top when it doesn't. Works for every
+   .screen.menu variant (DifficultyPicker / ResultScreen / RunSummary). */
+.screen.menu > .stadium-bg + * { margin-top: auto; }
+.screen.menu > :last-child { margin-bottom: auto; }
+@media (orientation: landscape) and (max-height: 600px) {
+  .screen.menu { gap: 16px; padding: 16px; }
+  .screen.menu h1 { font-size: clamp(26px, 5vw, 40px); }
+  .screen.menu .sub { font-size: 13px; margin-top: 8px; }
+}
+
+/* ----------------------------------------------------------------------------
+   2. Rotate-to-landscape gate (<LandscapeGate/>).
+
+   Hidden everywhere by default; only a portrait phone surfaces it. Because it's
+   position:fixed and media-query driven, it reacts to rotation instantly with
+   no JS. It sits above everything so the (intentionally un-reflowed) landscape
+   layout behind it is never seen in portrait.
+   ---------------------------------------------------------------------------- */
+.rotate-gate { display: none; }
+
+@media (orientation: portrait) and (max-width: 600px) {
+  .rotate-gate {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    text-align: center;
+    background:
+      radial-gradient(80% 60% at 50% 40%, rgba(127, 86, 217, 0.18), transparent 70%),
+      var(--night-0, #07090f);
+  }
+}
+
+.rotate-gate-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 320px;
+}
+.rotate-gate-phone {
+  color: var(--gold, #e8c873);
+  transform-origin: 50% 50%;
+  animation: rotateGateHint 2.4s ease-in-out infinite;
+}
+.rotate-gate-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--txt, #eef0f6);
+  letter-spacing: -0.01em;
+}
+.rotate-gate-body {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--txt-dim, #98a0b3);
+}
+
+/* Phone tips from upright to landscape and back — a gentle "turn me" loop. */
+@keyframes rotateGateHint {
+  0%, 18% { transform: rotate(0deg); }
+  42%, 75% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rotate-gate-phone { animation: none; transform: rotate(-90deg); }
+}
+
+/* ----------------------------------------------------------------------------
+   3. DeckBuilder — landscape-phone compaction.
+
+   Keep the two-pane layout but shrink the chrome, cards, and picks pane so the
+   whole builder fits a ~844×390 phone held sideways. Cards size off the `--cw`
+   custom property the card components set inline; a stylesheet `!important`
+   declaration outranks an inline non-important one, so we scale every pool card
+   (player + tactic, normal + selected wrapper) by overriding `--cw` here.
+   ---------------------------------------------------------------------------- */
+@media (orientation: landscape) and (max-height: 600px) {
+  /* header: drop the hint line, tighten padding + title */
+  .builder .builder-head { padding: 6px 14px; gap: 8px; }
+  .builder .builder-head h2 { font-size: 15px; }
+  .builder .builder-head .hint { display: none; }
+  .builder .builder-back { font-size: 12px; padding: 6px 10px; }
+
+  /* control bar (mode tabs + filters): one thin horizontally-scrollable row */
+  .builder .filters {
+    padding: 5px 14px;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .builder .filters > * { flex: none; }
+  .builder .builder-mode-tabs { padding-right: 8px; margin-right: 2px; }
+  .builder .builder-tabs button { padding: 4px 11px; font-size: 12px; }
+  .builder .filters input[type="text"] { width: 116px; padding: 5px 9px; font-size: 12px; }
+  .builder .ui-select-trigger { padding: 5px 9px; font-size: 12px; max-width: 144px; }
+  .builder .filters .range-wrap { font-size: 11px; }
+
+  /* pool grid: smaller cards, more columns, tighter padding */
+  .builder .pool-scroll { padding: 20px 12px 48px; }
+  .builder .pool-grid2 { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+  .builder .pool-cell { width: 104px; }
+  .builder .pool-cell .wcard,
+  .builder .pool-cell .tcard { --cw: 104px !important; }
+  .builder .pool-cell .fan-card { width: 104px !important; }
+  .builder .pool-divider { margin: 18px 0 12px; }
+
+  /* assisted-mode section headers + spacing */
+  .builder .assist-section { margin-bottom: 16px; }
+  .builder .assist-head { margin-bottom: 10px; }
+
+  /* picks pane: narrower (override the inline 340px) + tighter */
+  .builder .picks-pane { width: 232px !important; padding: 12px; gap: 8px; }
+  .builder .picks-pane .btn-big { padding: 11px; font-size: 13px; }
+
+  /* Fill / Clear stack vertically (full-width) so their labels stop wrapping to
+     three cramped lines in the narrow pane. */
+  .builder .builder-pick-actions { flex-direction: column; gap: 6px; }
+  .builder .builder-fill-btn,
+  .builder .builder-clear-btn { flex: none; padding: 8px 10px; font-size: 12px; }
+}
+
+/* ----------------------------------------------------------------------------
+   4. Card detail modal (player / tactical) — fit a phone in landscape.
+
+   The modal lays a fixed size={230} card next to an info column in a flex row;
+   on a short screen the card alone is taller than the viewport. Shrink the card
+   (via --cw, beating the inline value with !important) and let the card scroll.
+   Applies on any landscape phone, including in-match card inspects.
+   ---------------------------------------------------------------------------- */
+@media (orientation: landscape) and (max-height: 600px) {
+  .modal-veil { padding: 10px; }
+  .modal-card {
+    max-height: 94dvh;
+    overflow-y: auto;
+    padding: 14px;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .modal-card .wcard,
+  .modal-card .tcard { --cw: 158px !important; }
+  .modal-card .info { max-width: 320px; gap: 8px; }
+  .modal-card .info h3 { font-size: 17px; }
+  .modal-card .info .tag { font-size: 12px; }
+  .modal-card .info .ab { padding: 9px 11px; font-size: 12px; line-height: 1.45; }
+}
+
+/* ----------------------------------------------------------------------------
+   5. Meta layer (Account / box opening / menu) — phone tweaks.
+   ---------------------------------------------------------------------------- */
+
+/* Welcome banner: stack on phones so the button drops to the bottom (full width)
+   instead of squeezing the text in a side-by-side row. */
+@media (max-width: 600px) {
+  .welcome-banner { flex-direction: column; align-items: stretch; gap: 12px; }
+  .welcome-banner .btn { width: 100%; }
+}
+
+/* Menu tiles: give a min-height on phone so a lone short tile (How to play) reads
+   the same size as the taller ones instead of looking ragged. Hide the full-width
+   "TUS MODOS" divider so the 6 tiles reflow into a clean 3×2 grid (no lone tiles).
+   Desktop keeps the divider (it separates always-available from gated modes). */
+@media (max-width: 760px) {
+  .menu-grid .tile { min-height: 190px; }
+  .menu-grid .group-label { display: none; }
+}
+
+/* Box opening overlay — landscape phone (height-constrained). The reveal/pick/
+   summary cards use fixed size props that overflow a short screen and collide with
+   the absolutely-positioned foot button. Shrink the cards (via --cw) and tighten
+   the chrome so everything fits without overlap. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .open-stage .stage-kick { top: 8px; }
+  .open-stage .stage-h { font-size: 15px; margin-bottom: 16px; }
+  .open-stage .wcard,
+  .open-stage .tcard { --cw: 100px !important; }
+  .open-stage .summary-grid .is-headliner .wcard { --cw: 120px !important; }
+  /* The pack sets --pw inline on .pack (260 for big), so override there — and scale
+     its emblem to match, since that size is an inline px derived from the big width. */
+  .bigpack .pack { --pw: 168px !important; }
+  .bigpack .pack .crest-ghost {
+    width: calc(var(--pw, 168px) * 0.46) !important;
+    height: calc(var(--pw, 168px) * 0.46) !important;
+  }
+  .bigpack-wrap { gap: 10px; }
+  .bigpack-wrap .stage-h { margin-bottom: 0; }
+  .reveal-row,
+  .summary-grid { gap: 8px; }
+  .pick-row { gap: 12px; }
+  .pick-stage { gap: 8px; }
+  .pick-stage .pick-title h2 { font-size: 17px; }
+  .pick-stage .pick-title p { font-size: 11px; margin-top: 2px; }
+  .open-stage .reveal-cell .nb { font-size: 9px; margin-top: 4px; padding: 2px 7px; }
+  .open-foot { bottom: 8px; }
+  .open-foot .btn-big { padding: 10px 18px; font-size: 14px; }
+}
+
+/* Box opening — portrait phone. Only the final summary state breaks (the 5 cards are
+   full-size and stagger/overflow). Make just that stage scroll from the top with a
+   tidy, shrunk, top-aligned wrap; the pack + reveal stages are fine as-is. */
+@media (orientation: portrait) and (max-width: 600px) {
+  .open-stage:has(.summary-grid) {
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding: 60px 8px 100px;
+  }
+  /* Pin the save button to the viewport so it doesn't scroll away with the cards. */
+  .open-stage:has(.summary-grid) .open-foot {
+    position: fixed;
+    background: linear-gradient(0deg, #04060c 55%, transparent);
+    padding-bottom: 14px;
+  }
+  .open-stage .summary-grid {
+    align-items: flex-start;
+    align-content: flex-start;
+    gap: 18px 10px;
+    max-width: 100%;
+  }
+  .open-stage .summary-grid .wcard { --cw: 108px !important; }
+  .open-stage .summary-grid .is-headliner .wcard { --cw: 120px !important; }
+  .open-stage .stage-h { font-size: 18px; }
+}
+
+/* Splash — give the wide kicker (large letter-spacing) room so it doesn't run edge
+   to edge on a phone. */
+@media (max-width: 600px) {
+  .splash { padding: 0 24px; }
+  .splash .kicker { letter-spacing: 0.16em; font-size: 11px; }
+}
+
+/* QuickplayChooser — only two tiles, so shrink the title + tiles on a landscape
+   phone enough to fit without scrolling (scoped to .qp-choose so the 6-tile main
+   menu, which legitimately scrolls, is untouched). */
+@media (orientation: landscape) and (max-height: 600px) {
+  .home { padding-top: 48px; padding-bottom: 24px; }
+  .home .logo-block { margin-bottom: 16px; }
+  .home .qp-choose-title { font-size: clamp(22px, 4.5vw, 30px); }
+  .home .qp-choose-grid .tile { min-height: 0; padding: 14px 16px; gap: 6px; }
+  .home .qp-choose-grid .tile .tile-name { font-size: 17px; }
+  .home .qp-choose-grid .tile .tile-desc { font-size: 12px; line-height: 1.4; }
+  .home .qp-choose-grid .tile .tile-ic { width: 24px; height: 24px; }
+}
+
+/* Multiplayer lobby (.menu-screen) — was min-height:100vh + center, so on a short
+   landscape phone the content clipped with no scroll. Same fix as the home menu:
+   bound the height and scroll, auto-margins center the panel when it fits. */
+.menu-screen {
+  height: 100dvh;
+  overflow-y: auto;
+  justify-content: flex-start;
+}
+.menu-screen > :first-child { margin-top: auto; }
+.menu-screen > :last-child { margin-bottom: auto; }
+@media (orientation: landscape) and (max-height: 600px) {
+  .menu-screen { gap: 14px; padding: 20px 24px; }
+}

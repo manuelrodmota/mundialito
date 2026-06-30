@@ -26,7 +26,7 @@ export function MainMenu({ onQuickplay, onArcade, onAccount, onMultiplayer, onHo
     <div className="home">
       <div className="stadium-bg" />
 
-      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 41 }}>
+      <div className="home-lang">
         <LanguageSelector />
       </div>
 
