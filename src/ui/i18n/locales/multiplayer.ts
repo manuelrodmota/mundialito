@@ -25,6 +25,8 @@ export const en = {
   // Match
   'mp.match.oppPlanning': 'Opponent planning…',
   'mp.match.oppLockedIn': 'Opponent locked in ✓',
+  'mp.match.oppThinking': 'Opponent is choosing…',
+  'mp.match.oppReadyWaiting': 'Opponent ready · waiting for you',
   'mp.match.waiting': 'Waiting for opponent…',
   'mp.match.timeLeft': 'Time left to plan',
   'mp.match.lockIn': 'Lock in',
@@ -32,6 +34,8 @@ export const en = {
 
   // End / status
   'mp.result.rematch': 'Rematch',
+  'mp.result.rematchWaiting': 'Waiting for opponent…',
+  'mp.result.oppWantsRematch': 'Your opponent wants a rematch',
   'mp.result.leave': 'Leave',
   'mp.abandoned.title': 'Opponent left',
   'mp.abandoned.body': 'Your opponent disconnected — the match has ended.',
@@ -61,12 +65,16 @@ export const es: typeof en = {
 
   'mp.match.oppPlanning': 'Rival planificando…',
   'mp.match.oppLockedIn': 'Rival confirmó ✓',
+  'mp.match.oppThinking': 'El rival está eligiendo…',
+  'mp.match.oppReadyWaiting': 'Rival listo · te espera',
   'mp.match.waiting': 'Esperando al rival…',
   'mp.match.timeLeft': 'Tiempo para planificar',
   'mp.match.lockIn': 'Confirmar',
   'mp.match.passRound': 'Pasar ronda',
 
   'mp.result.rematch': 'Revancha',
+  'mp.result.rematchWaiting': 'Esperando al rival…',
+  'mp.result.oppWantsRematch': 'Tu rival quiere la revancha',
   'mp.result.leave': 'Salir',
   'mp.abandoned.title': 'El rival se fue',
   'mp.abandoned.body': 'Tu rival se desconectó — el partido terminó.',

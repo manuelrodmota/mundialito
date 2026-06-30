@@ -473,6 +473,10 @@ export function MatchBoard({
   >([])
   const [discardPulse, setDiscardPulse] = useState(false)
   const [sweeping, setSweeping] = useState(false)
+  // Guards the Next-round button against double-fire: the discard sweep delays the actual round
+  // advance by ~1s, and without this the (still-visible) button invited a second click that
+  // re-triggered the whole sequence. Set on click, cleared when we leave the reveal.
+  const [advancing, setAdvancing] = useState(false)
 
   // Reveal cinematic, fully sequenced so each beat finishes before the next starts:
   //   1 your-attack clash → 2 YOUR goal (if scored, gated) → 3 their-attack clash
@@ -544,7 +548,10 @@ export function MatchBoard({
   // Deferred via a timer so the reset is not a synchronous setState in the effect body.
   useEffect(() => {
     if (isReveal) return
-    const t = setTimeout(() => setRevealStep(0), 0)
+    const t = setTimeout(() => {
+      setRevealStep(0)
+      setAdvancing(false)
+    }, 0)
     return () => clearTimeout(t)
   }, [isReveal])
 
@@ -705,11 +712,30 @@ export function MatchBoard({
     setSelectedHandId(null)
   }, [onCommit, onReveal, mpMode, formation, attackCards, defenseCards, tacticalCards])
 
+  // MP timer auto-submit: when the planning window runs out, lock in whatever is currently staged
+  // — exactly as if the player had pressed the button (an empty lineup is a "pass"). The server
+  // also force-resolves the round as a backstop, but committing locally fields the cards the player
+  // had actually laid out. Fires once per window (re-armed when a new planning window opens).
+  const autoCommitFiredRef = useRef(false)
+  useEffect(() => {
+    autoCommitFiredRef.current = false
+  }, [planDeadline, isReveal])
+  useEffect(() => {
+    if (!timerActive || secondsLeft === null || secondsLeft > 0) return
+    if (!canCommit || mpWaiting || autoCommitFiredRef.current) return
+    autoCommitFiredRef.current = true
+    handleCommit()
+  }, [timerActive, secondsLeft, canCommit, mpWaiting, handleCommit])
+
   // Next round: sweep the cards that were PLAYED on the pitch to the discard pile — your
   // own lane cards (l-yatk/l-ydef) fly to your discard pile; their cards fade off the pitch
   // (the opponent has no on-screen pile). The resting hand is left alone — unplayed cards
   // stay for next round, which is exactly what the engine does. Then advance + deal in.
   const handleNextRoundClick = useCallback(() => {
+    // Idempotent: ignore extra clicks while the advance is already in flight (the sweep below holds
+    // the round change for ~1s, during which the button stays mounted).
+    if (advancing) return
+    setAdvancing(true)
     // MP: cards were kept staged through the "waiting" window; clear them now that we're advancing
     // past the reveal so the next planning round starts from a fresh hand.
     if (mpMode) {
@@ -747,9 +773,10 @@ export function MatchBoard({
     for (let i = 0; i < n; i += 1) {
       setTimeout(() => matchSound.playCard(), i * DISCARD_CUE_GAP_MS)
     }
-    // Hold an extra second before dealing the new hand, so the redraw (cards + their draw cues)
-    // lands well clear of the discard riffle instead of slurring into it.
-    const REDRAW_HOLD_MS = 1000
+    // Hold an extra beat before dealing the new hand, so the redraw (cards + their draw cues) lands
+    // clear of the discard riffle. In MP the next round is server-driven and the local hand is
+    // already updated, so keep the hold short for snappy round-to-round advancement.
+    const REDRAW_HOLD_MS = mpMode ? 200 : 1000
     setDiscardGhosts(ghosts)
     setSweeping(true)
     setDiscardPulse(true)
@@ -759,7 +786,7 @@ export function MatchBoard({
       setDiscardGhosts([])
       setDiscardPulse(false)
     }, 460 + maxDelay + REDRAW_HOLD_MS)
-  }, [reduceMotion, onNextRound, mpMode])
+  }, [reduceMotion, onNextRound, mpMode, advancing])
 
   // Tactical staging — a selected tactical plays on commit (mirrors attack/defense staging).
   const canStageMoreTacticals = p0.tacticalsThisHalf + tacticalCards.length < TACTICALS_PER_HALF
@@ -1084,6 +1111,31 @@ export function MatchBoard({
               )}
             </div>
 
+            {/* MP: veil the opponent's half while they plan — a "thinking" state until they lock
+                in, then a green "ready · waiting for you" state. Decorative (no pointer capture). */}
+            {mpMode && !isReveal && (
+              <div
+                className={`mp-opp-veil${mpOpponentStatus?.lockedIn ? ' ready' : ''}`}
+                aria-hidden="true"
+              >
+                <div className="mp-opp-veil-inner">
+                  {mpOpponentStatus?.lockedIn ? (
+                    <>
+                      <span className="mp-opp-veil-ico">✓</span>
+                      <span className="mp-opp-veil-txt">{t('mp.match.oppReadyWaiting')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="mp-opp-veil-ico thinking">
+                        <i /><i /><i />
+                      </span>
+                      <span className="mp-opp-veil-txt">{t('mp.match.oppThinking')}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* xG floats during duel animation */}
             {showYouXg && roundReport && roundReport.youXg > 0 && (
               <div style={{ position: 'absolute', right: '6%', top: '30%', zIndex: 10 }}>
@@ -1280,7 +1332,12 @@ export function MatchBoard({
                 </div>
               </details>
             </div>
-            <button className="btn btn-gold" style={{ width: '100%' }} onClick={handleNextRoundClick}>
+            <button
+              className="btn btn-gold"
+              style={{ width: '100%' }}
+              onClick={handleNextRoundClick}
+              disabled={advancing}
+            >
               {roundReport.decided
                 ? t('match.report.next.result')
                 : roundReport.extraTime

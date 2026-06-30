@@ -29,10 +29,11 @@ import {
   type ResolvedMove,
   type PendingCommit,
   type PlayerMeta,
+  type PublicState,
 } from "../../../src/engine/multiplayer/index.ts";
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
 
-const PLAN_SECONDS = 60;
+const PLAN_SECONDS = 40;
 const REVEAL_BUDGET_SECONDS = 12;
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no ambiguous 0/O/1/I/L
 
@@ -52,6 +53,7 @@ interface RoomRow {
   player0_uid: string;
   player1_uid: string | null;
   plan_deadline: string | null;
+  public_state: PublicState | null;
 }
 
 function admin(): SupabaseClient {
@@ -148,15 +150,14 @@ async function resolveAndWrite(
     .update({ engine_state: { ...se, moves: out.moves }, updated_at: new Date().toISOString() })
     .eq("room_id", room.id);
 
-  const deadline = ended
-    ? null
-    : new Date(Date.now() + (REVEAL_BUDGET_SECONDS + PLAN_SECONDS) * 1000).toISOString();
+  const deadlineMs = ended ? null : Date.now() + (REVEAL_BUDGET_SECONDS + PLAN_SECONDS) * 1000;
+  const deadline = deadlineMs === null ? null : new Date(deadlineMs).toISOString();
 
   await db
     .from("mp_rooms")
     .update({
       status: ended ? "finished" : "playing",
-      public_state: publicRevealState(out.match, meta, out.result),
+      public_state: publicRevealState(out.match, meta, out.result, deadlineMs),
       plan_deadline: deadline,
       updated_at: new Date().toISOString(),
     })
@@ -364,10 +365,32 @@ async function handleRematch(db: SupabaseClient, uid: string, body: Record<strin
   const roomId = body.roomId as string;
   const room = await loadRoom(db, roomId);
   if (!room) return jsonResponse({ error: "room not found" }, 404);
-  if (indexOf(room, uid) === null) return jsonResponse({ error: "not a participant" }, 403);
+  const idx = indexOf(room, uid);
+  if (idx === null) return jsonResponse({ error: "not a participant" }, 403);
 
   const se = await loadEngine(db, roomId);
   if (!se.in1) return jsonResponse({ error: "match never started" }, 409);
+
+  // Two-sided handshake: accumulate this player's vote onto the (finished) public_state and only
+  // start a fresh match once BOTH players have asked for it. Until then the result screen stays up
+  // and shows "waiting for opponent".
+  const current = room.public_state;
+  const votes: [boolean, boolean] = current?.rematch
+    ? [current.rematch[0], current.rematch[1]]
+    : [false, false];
+  votes[idx] = true;
+  if (!(votes[0] && votes[1])) {
+    await db
+      .from("mp_rooms")
+      .update({
+        public_state: { ...current, rematch: votes },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", roomId);
+    return jsonResponse({ ok: true, waiting: true });
+  }
+
+  // Both want it — reset the match (votes are dropped: publicPlanState carries no `rematch`).
   se.seed = Math.floor(Math.random() * 2 ** 32);
   se.moves = [];
 
@@ -375,12 +398,12 @@ async function handleRematch(db: SupabaseClient, uid: string, body: Record<strin
   const deadline = new Date(Date.now() + PLAN_SECONDS * 1000).toISOString();
 
   await db.from("mp_engine_state").update({ engine_state: se }).eq("room_id", roomId);
-  for (const idx of [0, 1] as const) {
+  for (const seat of [0, 1] as const) {
     await db
       .from("mp_player_state")
-      .update({ private_view: privateView(match, idx), pending_commit: { ...EMPTY_PENDING } })
+      .update({ private_view: privateView(match, seat), pending_commit: { ...EMPTY_PENDING } })
       .eq("room_id", roomId)
-      .eq("player_index", idx);
+      .eq("player_index", seat);
   }
   await db
     .from("mp_rooms")

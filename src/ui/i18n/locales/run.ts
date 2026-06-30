@@ -8,6 +8,7 @@ export const en = {
   // ResultScreen — headline + scoreline
   'run.victory': 'Victory!',
   'run.defeat': 'Defeat',
+  'run.fullTime': 'Full time',
   'run.scoreline': 'YOU {g0} – {g1} {opponent} · Most dangerous: {mvp}',
   'run.rematch': 'Rematch',
   'run.mainMenu': 'Main Menu',
@@ -91,6 +92,7 @@ export const es: typeof en = {
   // ResultScreen — headline + scoreline
   'run.victory': '¡Victoria!',
   'run.defeat': 'Derrota',
+  'run.fullTime': 'Final',
   'run.scoreline': 'TÚ {g0} – {g1} {opponent} · Más peligroso: {mvp}',
   'run.rematch': 'Revancha',
   'run.mainMenu': 'Menú principal',

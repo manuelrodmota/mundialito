@@ -123,6 +123,59 @@ describe('ResultScreen', () => {
     expect(onRematch).toHaveBeenCalled()
   })
 
+  it('never shows Defeat when the winner is unknown', () => {
+    const match: MatchState = {
+      round: 10,
+      extraTime: false,
+      etRound: 0,
+      players: [makePlayer(2), makePlayer(2)],
+      opponent: makeOpponent(),
+      phase: 'end',
+      winner: null,
+    }
+    render(<ResultScreen match={match} onRematch={() => {}} onBack={() => {}} />)
+    expect(screen.queryByText('Defeat')).not.toBeInTheDocument()
+    expect(screen.getByText('Full time')).toBeInTheDocument()
+  })
+
+  it('shows a waiting label and disables Rematch once requested', () => {
+    const match: MatchState = {
+      round: 10,
+      extraTime: false,
+      etRound: 0,
+      players: [makePlayer(3), makePlayer(1)],
+      opponent: makeOpponent(),
+      phase: 'end',
+      winner: 0,
+    }
+    render(
+      <ResultScreen match={match} onRematch={() => {}} onBack={() => {}} rematchPending />,
+    )
+    const btn = screen.getByRole('button', { name: 'Waiting for opponent…' })
+    expect(btn).toBeDisabled()
+  })
+
+  it('prompts when the opponent wants a rematch', () => {
+    const match: MatchState = {
+      round: 10,
+      extraTime: false,
+      etRound: 0,
+      players: [makePlayer(1), makePlayer(3)],
+      opponent: makeOpponent(),
+      phase: 'end',
+      winner: 1,
+    }
+    render(
+      <ResultScreen
+        match={match}
+        onRematch={() => {}}
+        onBack={() => {}}
+        opponentWantsRematch
+      />,
+    )
+    expect(screen.getByText('Your opponent wants a rematch')).toBeInTheDocument()
+  })
+
   it('calls onBack when Main Menu is clicked', async () => {
     const onBack = vi.fn()
     const user = userEvent.setup()
