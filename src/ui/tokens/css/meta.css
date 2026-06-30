@@ -410,10 +410,12 @@
 @media (max-width: 620px) { .qp-choose-grid { grid-template-columns: 1fr; } }
 
 /* ===== DECK BUILDER HEADER (back button left, title centered) =============== */
-.builder-head { position: relative; justify-content: center; }
-.builder-head .builder-head-titles { text-align: center; }
+/* Grid keeps the back button IN FLOW on the left and the titles truly centered (1fr | auto | 1fr).
+   The old absolute button sat out of flow and overlapped the centered title/hint on tighter widths. */
+.builder-head { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+.builder-head .builder-head-titles { grid-column: 2; text-align: center; }
 .builder-head .builder-back {
-  position: absolute; left: 28px; top: 50%; transform: translateY(-50%);
+  grid-column: 1; justify-self: start;
   display: inline-flex; align-items: center; gap: 6px;
 }
 
