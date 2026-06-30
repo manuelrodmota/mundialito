@@ -72,7 +72,11 @@ export function checkWin(m: MatchState, rng: Rng): void {
     const a0 = p0!.xgAccum ?? 0;
     const a1 = p1!.xgAccum ?? 0;
     if (Math.abs(a0 - a1) >= XG_TIEBREAK_GAP) {
-      m.winner = a0 > a1 ? 0 : 1;
+      const w = a0 > a1 ? 0 : 1;
+      // The deciding chance goes in: award the winner a goal so the result reads as a scoreline
+      // (e.g. 2–2 → 3–2) and the reveal plays a goal animation, instead of a silent xG verdict.
+      m.players[w]!.goals += 1;
+      m.winner = w;
       m.decidedByTieBreak = true;
       m.phase = "end";
       return;
@@ -89,9 +93,12 @@ export function checkWin(m: MatchState, rng: Rng): void {
   }
 
   if (m.etRound >= ET_ROUND_CAP) {
-    const xg0 = p0!.xg;
-    const xg1 = p1!.xg;
-    m.winner = xg0 >= xg1 ? 0 : 1;
+    const w = p0!.xg >= p1!.xg ? 0 : 1;
+    // Golden chance converts — same dramatization as the regulation tie-break, so a scoreless ET
+    // still ends on a visible goal rather than a silent xG verdict.
+    m.players[w]!.goals += 1;
+    m.winner = w;
+    m.decidedByTieBreak = true;
     m.phase = "end";
   }
 }

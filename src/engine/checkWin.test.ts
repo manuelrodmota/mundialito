@@ -124,6 +124,10 @@ describe("checkWin — partial xG tie-break (v12 §19#5)", () => {
     expect(m.decidedByTieBreak).toBe(true);
     expect(m.extraTime).toBe(false);
     expect(m.phase).toBe("end");
+    // The deciding chance converts: winner gets a goal (2→3), loser unchanged — so the result is a
+    // legible 3–2 scoreline (with a goal animation), not a silent xG verdict.
+    expect(m.players[0]!.goals).toBe(3);
+    expect(m.players[1]!.goals).toBe(2);
   });
 
   it("player 1's clear xG edge wins the tie-break", () => {
@@ -209,6 +213,10 @@ describe("checkWin — ET golden goal", () => {
     checkWin(m, makeRng(42));
     expect(m.winner).toBe(0);
     expect(m.phase).toBe("end");
+    // Golden chance converts: winner gets the deciding goal (2→3) so ET ends on a visible goal.
+    expect(m.players[0]!.goals).toBe(3);
+    expect(m.players[1]!.goals).toBe(2);
+    expect(m.decidedByTieBreak).toBe(true);
   });
 
   it("ET safety at etRound=5: player 1 wins with higher xG", () => {

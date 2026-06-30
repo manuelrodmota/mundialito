@@ -8,6 +8,8 @@ import { renderHook, act } from '@testing-library/react'
 import { useArcadeRun } from './useArcadeRun'
 import { makeRng } from '../../engine/rng'
 import { buildQuickplayDeck } from '../quickplay/buildQuickplayDeck'
+import { countTacticals } from '../../run'
+import { RUN_TACTICAL_DECK_CAP } from '../../engine/constants'
 import type { PlayerCard, TacticalCard } from '../../engine/types'
 
 const FIXED_SEED = 42000
@@ -192,6 +194,46 @@ describe('useArcadeRun', () => {
     })
 
     expect(result.current.viewState.runState?.deck.length).toBe(initialDeckSize + 2)
+    expect(result.current.viewState.phase).toBe('map')
+  })
+
+  it('at cap: a same-tick swap + claim adds the take and player and removes the exile (regression)', () => {
+    const { result } = renderHook(() => useArcadeRun(FIXED_SEED))
+    const { deck, captainId } = buildTestDeck(FIXED_SEED)
+
+    const makeTac = (id: string): TacticalCard => ({
+      id,
+      type: 'tactical',
+      name: `Tac ${id}`,
+      category: 'skill',
+      cost: 1,
+      slots: 1,
+      rarity: 'common',
+      effect: { kind: 'timeWasting' },
+    })
+
+    // Start with a deck already at the tactical cap so the reward flow forces a swap.
+    const capTacticals = Array.from({ length: RUN_TACTICAL_DECK_CAP }, (_, i) => makeTac(`cap-tac-${i}`))
+    act(() => {
+      result.current.startRun([...deck, ...capTacticals], captainId, FIXED_SEED)
+    })
+    expect(countTacticals(result.current.viewState.runState!.deck)).toBe(RUN_TACTICAL_DECK_CAP)
+
+    const rewardPlayer = makePlayer('reward-cap-player', 78, 'rare')
+    const takeCard = makeTac('tac-take')
+
+    // The at-cap confirm (LockerRoom.handleConfirm) fires swap then claim in ONE click. They must
+    // compose — before the fix, claimReward read a stale runState and clobbered the swap.
+    act(() => {
+      result.current.swapTacticalReward(takeCard, 'cap-tac-0')
+      result.current.claimReward(rewardPlayer)
+    })
+
+    const finalDeck = result.current.viewState.runState!.deck
+    expect(finalDeck.some((c) => c.id === 'tac-take')).toBe(true) // new tactical made it in
+    expect(finalDeck.some((c) => c.id === 'cap-tac-0')).toBe(false) // exiled one is gone
+    expect(finalDeck.some((c) => c.id === 'reward-cap-player')).toBe(true) // player reward added
+    expect(countTacticals(finalDeck)).toBe(RUN_TACTICAL_DECK_CAP) // still exactly at cap
     expect(result.current.viewState.phase).toBe('map')
   })
 

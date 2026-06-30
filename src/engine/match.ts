@@ -143,12 +143,7 @@ export function cleanupBoards(m: MatchState): void {
 function fillPressure(m: MatchState, idx: 0 | 1, fillXg: number, hasAtk: boolean): void {
   const pl = m.players[idx]!;
   pl.lastFill = hasAtk ? fillXg : 0;
-  if (hasAtk) {
-    addPressure(pl, fillXg);
-    // Accumulate total chances created (independent of the resetting pressure meter) for the §19#5
-    // tie-break. ET fills land here too, but the tie-break is read at full time, before any ET.
-    pl.xgAccum = (pl.xgAccum ?? 0) + fillXg;
-  }
+  if (hasAtk) addPressure(pl, fillXg);
 }
 
 /**
@@ -221,6 +216,11 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
 
   // Difficulty handicap: the AI opponent (player 1) sharpens by a per-stage multiplier set by the
   // Arcade run. Defaults to 1 (off) — Quickplay and AI-vs-AI tests are unaffected.
+  // The handicap makes the AI harder to BEAT, but it must NOT decide the full-time xG tie-break
+  // (§19#5b), which compares genuine chances created. Capture the AI's un-boosted effective stats
+  // so we can accumulate a handicap-free fill for the tie-break below.
+  const fairAtk1 = stats1.atkEff;
+  const fairDef1 = stats1.defEff;
   const aiMult = m.aiStrengthMult ?? 1;
   if (aiMult !== 1) {
     stats1.atkEff *= aiMult;
@@ -229,6 +229,9 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
 
   const defEff0 = applyDefensiveTacticals(m, 0, stats0.defEff);
   const defEff1 = applyDefensiveTacticals(m, 1, stats1.defEff);
+  // Handicap-free AI defense, for the tie-break accumulation (the player's fair chances are measured
+  // against the AI's un-boosted back line, not the difficulty-inflated one).
+  const fairDefEff1 = applyDefensiveTacticals(m, 1, fairDef1);
 
   // You must field at least one attacker to threaten the goal. Measured AFTER instants so an
   // Offside Trap that strips the lone forward also kills the threat. (Any attacking tactical
@@ -240,6 +243,12 @@ export function resolveRound(m: MatchState, rng: Rng): MatchState {
   // into a 0–0 grind — defense still suppresses, just not to a standstill (§7/§19.9).
   let xg0 = xgAdd(stats0.atkEff, defEff1 * DEF_COEFF, floor0);
   let xg1 = xgAdd(stats1.atkEff, defEff0 * DEF_COEFF, floor1);
+
+  // §19#5 tie-break accumulation — the open-play chance each side created this round with NO
+  // difficulty handicap, so the AI's per-stage multiplier can't tilt a level-on-goals final. Uses
+  // the un-boosted base xgAdd only (tactical/ET adds excluded); the tie-break is a full-time read.
+  if (hasAtk0) m.players[0]!.xgAccum = (m.players[0]!.xgAccum ?? 0) + xgAdd(stats0.atkEff, fairDefEff1 * DEF_COEFF, floor0);
+  if (hasAtk1) m.players[1]!.xgAccum = (m.players[1]!.xgAccum ?? 0) + xgAdd(fairAtk1, defEff0 * DEF_COEFF, floor1);
 
   if (m.extraTime) {
     xg0 *= ET_XG_MULT;

@@ -144,7 +144,8 @@ export function Arcade({ onHome }: ArcadeProps) {
         onSwap={(takeId, exileId) => {
           const takeCard = reward.tacticalOffer.find((t) => t.id === takeId)
           if (takeCard) swapTacticalReward(takeCard, exileId)
-          proceedToNextStage()
+          // No proceedToNextStage here: handleConfirm always calls onClaim right after onSwap,
+          // and claimReward finalizes (clears reward, advances phase, draws the next opponent).
         }}
         onSetCaptain={setCaptain}
         onContinue={proceedToNextStage}

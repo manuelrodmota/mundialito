@@ -7,6 +7,7 @@ import { PlayerCard as PlayerCardComponent } from '../../molecules/PlayerCard'
 import { TacticCard } from '../../molecules/TacticCard'
 import { TACTICAL_DESCRIPTION_KEYS, tacticalName } from '../../organisms/CardDetailModal/tacticalText'
 import { opponentBlurb } from '../../../data'
+import { flagUrl } from '../../data/nations'
 import { useLang } from '../../i18n'
 
 interface LockerRoomProps {
@@ -240,13 +241,26 @@ export function LockerRoom({
           <h4>{t('run.yourSquad')}</h4>
           <p className="note3">{t('run.playersCaptainMarked', { n: playerCards.length })}</p>
           <div className="pick-rows">
-            {playerCards.map((p) => (
+            {playerCards.map((p) => {
+              const flag = flagUrl(p.nation)
+              return (
               <div
                 key={p.id}
                 className={`pick-row${p.id === captainId ? ' cap' : ''}`}
               >
                 <span className="rt">{p.position.charAt(0)}</span>
-                <span className="nm">{p.name}</span>
+                <span className="nm">
+                  {flag && (
+                    <img
+                      className="nm-flag"
+                      src={flag}
+                      alt=""
+                      loading="lazy"
+                      draggable={false}
+                    />
+                  )}
+                  {p.name}
+                </span>
                 <button
                   type="button"
                   className={`pick-row cap2${p.id === captainId ? ' on' : ''}`}
@@ -268,7 +282,8 @@ export function LockerRoom({
                   </button>
                 )}
               </div>
-            ))}
+              )
+            })}
           </div>
 
           {heldTacticals.length > 0 && (
